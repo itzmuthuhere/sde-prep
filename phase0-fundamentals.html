@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 0: Fundamentals — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html" class="active">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Phase 0 — Fundamentals</h1>
+  <p class="lede">
+    Weeks 1–4. The goal of this phase is that <strong>syntax, I/O, and basic
+    control flow stop costing you thought</strong>. Once these are automatic,
+    every later phase — DSA, design, Java, GenAI — is about ideas, not
+    mechanics.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>How to use this page.</strong> For each topic: read the explanation,
+      re-derive the worked example yourself in an editor (don't copy-paste),
+      trace the dry run on paper once, then solve the practice problems. Tick each
+      problem off as you solve it — the bars feed the
+      <a href="index.html">home dashboard</a>. Aim for ~3 topics per week.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — all practice problems</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#introduction-to-programming">Introduction to Programming</a></li>
+      <li><a href="#i-o-data-types">I/O &amp; Data Types</a></li>
+      <li><a href="#operators">Operators</a></li>
+      <li><a href="#conditionals">Conditionals</a></li>
+      <li><a href="#loops">Loops</a></li>
+      <li><a href="#pattern-problems">Pattern Problems</a></li>
+      <li><a href="#functions">Functions</a></li>
+      <li><a href="#arrays-1d">1D Arrays</a></li>
+      <li><a href="#number-systems-maths">Number Systems &amp; Maths</a></li>
+      <li><a href="#string-implementation">String Implementation</a></li>
+      <li><a href="#intro-to-data-structures">Intro to Data Structures</a></li>
+      <li><a href="#time-space-complexity">Time &amp; Space Complexity</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ================= 1. INTRODUCTION TO PROGRAMMING ================= -->
+  <section class="topic" id="introduction-to-programming">
+    <h2>1 · Introduction to Programming</h2>
+
+    <p>
+      A program is a precise, ordered list of instructions that a computer
+      executes exactly as written — not as intended. Every bug you will ever
+      write comes from a gap between what you meant and what you literally said.
+      The whole skill of programming is closing that gap: being explicit about
+      every step, every edge, every assumption.
+    </p>
+    <p>
+      Java runs in two stages. The <strong>compiler</strong> (<code>javac</code>)
+      translates your <code>.java</code> source into platform-independent
+      <em>bytecode</em> (<code>.class</code> files). The <strong>JVM</strong> (Java
+      Virtual Machine) then executes that bytecode, translating it to real machine
+      instructions as it runs. This is why Java is "write once, run anywhere" — the
+      bytecode is the same on every OS; only the JVM differs. A compile error means
+      <code>javac</code> rejected your source; a runtime exception means the JVM hit
+      a problem while executing.
+    </p>
+    <p>
+      Every Java program lives inside a <strong>class</strong>, and execution
+      begins at a method with the exact signature
+      <code>public static void main(String[] args)</code>. Statements inside a
+      method run top to bottom, one at a time. A <em>statement</em> does something
+      (<code>int x = 5;</code>); an <em>expression</em> computes a value
+      (<code>x * 2 + 1</code>). The file name must match the public class name
+      exactly, including capitalisation.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Think of a program as a recipe handed to someone who follows it with zero
+        common sense. "Add salt" fails — how much, when, to what? You must say
+        "add 5&nbsp;grams of salt to the pot after the water boils." Programming is
+        writing recipes at that level of precision, for every single step.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — simple interest</p>
+<pre><code>public class SimpleInterest {
+    public static void main(String[] args) {
+        double principal = 10000;   // rupees
+        double rate = 7.5;          // percent per year
+        int years = 3;
+
+        double interest = (principal * rate * years) / 100;
+        double total = principal + interest;
+
+        System.out.println("Interest: " + interest);
+        System.out.println("Total:    " + total);
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Line</th><th>What happens</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td>3–5</td><td>Declare and initialise variables</td><td><code>principal=10000.0, rate=7.5, years=3</code></td></tr>
+          <tr><td>7</td><td><code>(10000.0 * 7.5 * 3) / 100</code> = <code>225000.0 / 100</code></td><td><code>interest = 2250.0</code></td></tr>
+          <tr><td>8</td><td><code>10000.0 + 2250.0</code></td><td><code>total = 12250.0</code></td></tr>
+          <tr><td>10</td><td>Print</td><td><samp>Interest: 2250.0</samp></td></tr>
+          <tr><td>11</td><td>Print</td><td><samp>Total:    12250.0</samp></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>File name not matching the <code>public class</code> name (case-sensitive).</li>
+        <li>Missing semicolon, or a stray one after an <code>if (...)</code> condition.</li>
+        <li>Forgetting <code>static</code> on <code>main</code> — the program compiles but won't run.</li>
+        <li>Confusing <em>printing</em> a value with <em>returning</em> it — <code>main</code> returns <code>void</code>.</li>
+        <li>Java is fully case-sensitive: <code>Total</code>, <code>total</code>, and <code>TOTAL</code> are three different names.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-introduction-to-programming"></div>
+  </section>
+
+
+  <!-- ================= 2. I/O & DATA TYPES ================= -->
+  <section class="topic" id="i-o-data-types">
+    <h2>2 · I/O &amp; Data Types</h2>
+
+    <p>
+      A <strong>type</strong> is a promise about the shape, size, and allowed
+      operations of a value. Java's eight primitives:
+      <code>byte</code> (8-bit), <code>short</code> (16), <code>int</code> (32),
+      <code>long</code> (64), <code>float</code> (32-bit decimal),
+      <code>double</code> (64-bit decimal), <code>char</code> (16-bit unsigned,
+      a Unicode code unit), and <code>boolean</code>. As a rule: use
+      <code>int</code> for whole numbers, switch to <code>long</code> the moment a
+      value could exceed ~2.1&nbsp;billion, and use <code>double</code> for
+      decimals. Everything else is a <em>reference type</em> — <code>String</code>,
+      arrays, objects — where the variable holds a reference to data on the heap,
+      not the data itself.
+    </p>
+    <p>
+      For input, <code>Scanner</code> wraps <code>System.in</code> and gives you
+      <code>nextInt()</code>, <code>nextDouble()</code>, <code>next()</code> (one
+      token), and <code>nextLine()</code> (rest of the line). The classic trap:
+      <code>nextInt()</code> reads the number but leaves the trailing newline in
+      the buffer, so the next <code>nextLine()</code> returns an empty string. The
+      fix is a throwaway <code>nextLine()</code> to consume that newline. For
+      large inputs (10<sup>5</sup>+ tokens), <code>Scanner</code> is too slow —
+      use <code>BufferedReader</code> with <code>split</code>.
+    </p>
+    <p>
+      Java automatically <em>widens</em> smaller types to larger ones
+      (<code>int</code> → <code>long</code> → <code>double</code>) with no data
+      loss. Going the other way needs an explicit <em>cast</em>:
+      <code>int n = (int) 3.9;</code> gives <code>3</code> (it truncates, never
+      rounds). And <code>int / int</code> is always integer division:
+      <code>7 / 2</code> is <code>3</code>, not <code>3.5</code>.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Pick the smallest type that <em>safely</em> holds every value the variable
+        could ever take, then default up. "Could this sum overflow an
+        <code>int</code>?" is a question to ask <em>before</em> you write the
+        <code>+</code>, not after a wrong answer. Overflow in Java is silent — it
+        wraps around to a negative number and keeps going.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — the nextInt / nextLine trap</p>
+<pre><code>import java.util.Scanner;
+
+public class ReadInput {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        int age = sc.nextInt();       // reads 25, leaves '\n' in the buffer
+        sc.nextLine();                // consume that leftover newline
+        String name = sc.nextLine();  // now reads the real name line
+
+        System.out.println(name + " will be " + (age + 1) + " next year.");
+    }
+}</code></pre>
+    <p class="small muted">Input:</p>
+<pre><code>25
+Asha Rao</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — buffer contents shown as [ ... ]</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Call</th><th>Reads</th><th>Buffer after</th><th>Variable</th></tr></thead>
+        <tbody>
+          <tr><td>start</td><td>—</td><td><code>[25\nAsha Rao\n]</code></td><td>—</td></tr>
+          <tr><td><code>nextInt()</code></td><td><code>25</code></td><td><code>[\nAsha Rao\n]</code></td><td><code>age = 25</code></td></tr>
+          <tr><td><code>nextLine()</code></td><td><code>""</code> (up to the first <code>\n</code>)</td><td><code>[Asha Rao\n]</code></td><td>discarded</td></tr>
+          <tr><td><code>nextLine()</code></td><td><code>"Asha Rao"</code></td><td><code>[]</code></td><td><code>name = "Asha Rao"</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">Output: <samp>Asha Rao will be 26 next year.</samp> — note <code>age + 1</code> is in parentheses so it adds before string concatenation; without them you'd get <samp>...will be 251 next year.</samp></p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>nextInt()</code> then <code>nextLine()</code> returning <code>""</code> — forgot the throwaway read.</li>
+        <li>Integer overflow: <code>int</code> factorial past 12, or summing many large values without <code>long</code>.</li>
+        <li><code>int</code> division truncating: <code>average = sum / count</code> when you wanted a decimal — cast one side to <code>double</code>.</li>
+        <li>Comparing <code>double</code> values with <code>==</code> — floating point is inexact; compare <code>Math.abs(a - b) &lt; 1e-9</code>.</li>
+        <li><code>"5" + 3</code> is <code>"53"</code> (string), but <code>5 + 3 + "x"</code> is <code>"8x"</code> — left-to-right evaluation.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-i-o-data-types"></div>
+  </section>
+
+
+  <!-- ================= 3. OPERATORS ================= -->
+  <section class="topic" id="operators">
+    <h2>3 · Operators</h2>
+
+    <p>
+      Operators combine values into expressions. The arithmetic set is
+      <code>+ - * / %</code>. On integers, <code>/</code> discards the fractional
+      part and <code>%</code> gives the remainder — and crucially,
+      <code>a % b</code> keeps the sign of <code>a</code> in Java, so
+      <code>-7 % 3</code> is <code>-1</code>, not <code>2</code>. The relational
+      operators (<code>&lt; &lt;= &gt; &gt;= == !=</code>) produce a
+      <code>boolean</code>. The logical operators <code>&amp;&amp;</code> and
+      <code>||</code> <strong>short-circuit</strong>: <code>&amp;&amp;</code> stops
+      at the first <code>false</code>, <code>||</code> stops at the first
+      <code>true</code>. That's what makes
+      <code>if (i &lt; n &amp;&amp; a[i] == x)</code> safe — if <code>i &lt; n</code>
+      is false, <code>a[i]</code> is never touched.
+    </p>
+    <p>
+      The <strong>bitwise</strong> operators act on the binary representation:
+      <code>&amp;</code> (AND), <code>|</code> (OR), <code>^</code> (XOR),
+      <code>~</code> (NOT), <code>&lt;&lt;</code> (left shift),
+      <code>&gt;&gt;</code> (arithmetic right shift, sign-preserving), and
+      <code>&gt;&gt;&gt;</code> (logical right shift, zero-fill). Two identities
+      earn their keep everywhere: <code>n &amp; 1</code> is <code>1</code> exactly
+      when <code>n</code> is odd, and <code>n &amp; (n - 1)</code> clears the
+      lowest set bit — so <code>(n &amp; (n - 1)) == 0</code> tests whether
+      <code>n</code> is a power of two.
+    </p>
+    <p>
+      <strong>Precedence</strong> decides what binds first:
+      <code>*</code>, <code>/</code>, <code>%</code> before <code>+</code>,
+      <code>-</code>; arithmetic before shifts; shifts before relational;
+      relational before <code>&amp;&amp;</code> before <code>||</code>. When in
+      doubt, parenthesise — it costs nothing and removes an entire class of bug.
+      Pre-increment <code>++i</code> increments then yields the new value;
+      post-increment <code>i++</code> yields the old value then increments.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        <code>% 10</code> peels off the last decimal digit; <code>/ 10</code>
+        removes it. <code>% 2</code> and <code>/ 2</code> do the same in binary.
+        Almost every "process a number digit by digit" problem is a loop of those
+        two operations.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — digit extraction and power-of-two test</p>
+<pre><code>public class OperatorsDemo {
+    public static void main(String[] args) {
+        int n = 1234;
+        while (n &gt; 0) {
+            int digit = n % 10;       // last digit
+            System.out.print(digit + " ");
+            n = n / 10;               // drop last digit
+        }
+        System.out.println();
+
+        int x = 16;
+        boolean isPow2 = (x &gt; 0) &amp;&amp; ((x &amp; (x - 1)) == 0);
+        System.out.println(x + " power of two? " + isPow2);
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Iteration</th><th><code>n</code> (before)</th><th><code>digit = n % 10</code></th><th><code>n = n / 10</code></th><th>printed</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>1234</td><td>4</td><td>123</td><td><code>4</code></td></tr>
+          <tr><td>2</td><td>123</td><td>3</td><td>12</td><td><code>3</code></td></tr>
+          <tr><td>3</td><td>12</td><td>2</td><td>1</td><td><code>2</code></td></tr>
+          <tr><td>4</td><td>1</td><td>1</td><td>0</td><td><code>1</code></td></tr>
+          <tr><td>5</td><td>0</td><td colspan="3"><code>n &gt; 0</code> is false → loop ends. Digits printed lowest-first: <samp>4 3 2 1</samp></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Power-of-two check: <code>x = 16</code> is <code>10000</code> in binary,
+        <code>x - 1 = 15</code> is <code>01111</code>.
+        <code>10000 &amp; 01111 = 00000 = 0</code> → <samp>16 power of two? true</samp>.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Writing <code>a &amp; b</code> (bitwise) where you meant <code>a &amp;&amp; b</code> (logical) — both compile, only one short-circuits.</li>
+        <li>Assuming <code>-7 % 3 == 2</code>. In Java it's <code>-1</code>. For a non-negative result use <code>((a % b) + b) % b</code>.</li>
+        <li>Precedence surprise: <code>2 + 3 % 2</code> is <code>3</code>, not <code>2</code> — <code>%</code> binds first.</li>
+        <li>Using <code>&gt;&gt;</code> on a negative number and expecting zero-fill — that's <code>&gt;&gt;&gt;</code>.</li>
+        <li><code>int result = a * b;</code> overflowing before you take <code>% m</code> — cast to <code>long</code> first.</li>
+        <li>Reading <code>x = i++</code> as "x gets i+1". It gets the <em>old</em> <code>i</code>.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-operators"></div>
+  </section>
+
+
+  <!-- ================= 4. CONDITIONALS ================= -->
+  <section class="topic" id="conditionals">
+    <h2>4 · Conditionals</h2>
+
+    <p>
+      Conditionals let a program choose between paths. <code>if (cond) { ... }</code>
+      runs its block only when <code>cond</code> is <code>true</code>. An
+      <code>else if</code> chain is evaluated top to bottom and <strong>stops at
+      the first match</strong> — every branch after the first
+      <code>if</code> silently assumes all earlier conditions were false. You can
+      lean on that: once you've handled "invalid", the next branch doesn't need to
+      re-check validity.
+    </p>
+    <p>
+      Order your conditions <strong>most specific first</strong>. If you test
+      <code>marks &gt;= 40</code> before <code>marks &gt;= 90</code>, everyone
+      passes with a D because the first branch catches them. Reverse it. For a
+      fixed set of discrete values, <code>switch</code> is clearer than a long
+      chain — but remember each <code>case</code> falls through to the next unless
+      you <code>break</code> (the newer arrow form <code>case 1 -&gt; ...;</code>
+      doesn't fall through).
+    </p>
+    <p>
+      A <strong>guard clause</strong> — handling the bad/edge case first and
+      returning immediately — keeps the main logic un-nested and readable.
+      Prefer <code>if (!valid) return; /* main logic */</code> over wrapping the
+      entire method body in <code>if (valid) { ... }</code>.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        An <code>else if</code> chain is a sieve: each branch is a mesh that
+        catches some inputs and lets the rest fall through. Design the meshes from
+        finest to coarsest, and make sure nothing falls all the way through
+        unhandled unless you have a deliberate <code>else</code>.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — classify a triangle by its sides</p>
+<pre><code>public class Triangle {
+    public static void main(String[] args) {
+        int a = 3, b = 4, c = 5;
+
+        boolean valid = (a + b &gt; c) &amp;&amp; (a + c &gt; b) &amp;&amp; (b + c &gt; a);
+
+        if (!valid) {
+            System.out.println("Not a triangle");
+        } else if (a == b &amp;&amp; b == c) {
+            System.out.println("Equilateral");
+        } else if (a == b || b == c || a == c) {
+            System.out.println("Isosceles");
+        } else {
+            System.out.println("Scalene");
+        }
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — four inputs</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>(a, b, c)</th><th><code>valid</code></th><th>First branch that matches</th><th>Output</th></tr></thead>
+        <tbody>
+          <tr><td>(3, 3, 3)</td><td>true (6&gt;3, 6&gt;3, 6&gt;3)</td><td><code>a==b &amp;&amp; b==c</code></td><td><samp>Equilateral</samp></td></tr>
+          <tr><td>(3, 3, 5)</td><td>true (6&gt;5, 8&gt;3, 8&gt;3)</td><td>not all equal; <code>a==b</code> true</td><td><samp>Isosceles</samp></td></tr>
+          <tr><td>(3, 4, 5)</td><td>true (7&gt;5, 8&gt;4, 9&gt;3)</td><td>no equal pair → <code>else</code></td><td><samp>Scalene</samp></td></tr>
+          <tr><td>(1, 2, 3)</td><td>false (1+2 &gt; 3 is <code>3 &gt; 3</code> → false)</td><td><code>!valid</code></td><td><samp>Not a triangle</samp></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>if (x = 5)</code> instead of <code>if (x == 5)</code> — in Java this only compiles for <code>boolean</code> <code>x</code>, but it's still a real bug there.</li>
+        <li>Omitting braces then adding a second line — <code>if (c) doA(); doB();</code> always runs <code>doB()</code>.</li>
+        <li>Redundant conditions: <code>else if (x &lt;= 0)</code> right after <code>if (x &gt; 0)</code> — the <code>else</code> already means that.</li>
+        <li>Forgetting <code>break</code> in a classic <code>switch</code> and falling into the next case.</li>
+        <li>Ordering ranges coarsest-first so an early branch swallows everything.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-conditionals"></div>
+  </section>
+
+
+  <!-- ================= 5. LOOPS ================= -->
+  <section class="topic" id="loops">
+    <h2>5 · Loops</h2>
+
+    <p>
+      A loop repeats a block while a condition holds. <code>for</code> packages the
+      three moving parts — <em>initialise</em>, <em>test</em>, <em>update</em> — on
+      one line, which is why it's the default for counting. <code>while</code>
+      tests before each iteration and is right when you don't know the count up
+      front ("until the number becomes 0"). <code>do-while</code> runs the body
+      once before testing — rare, but correct for input-validation prompts.
+    </p>
+    <p>
+      The one rule that prevents infinite loops: <strong>something in the body must
+      move the condition toward false</strong>. In <code>while (n &gt; 0)</code>,
+      if no line ever shrinks <code>n</code>, you're stuck. <code>break</code>
+      exits the loop entirely; <code>continue</code> skips to the next iteration.
+      In <strong>nested</strong> loops, the inner loop runs fully for <em>each</em>
+      step of the outer one — that multiplication is where <code>O(n²)</code>
+      comes from.
+    </p>
+    <p>
+      Off-by-one errors cluster around the boundary. <code>for (i = 0; i &lt; n; i++)</code>
+      runs <code>n</code> times, <code>i</code> taking <code>0..n-1</code> — the
+      right shape for array indices. <code>i &lt;= n</code> runs one extra time and
+      is the classic <code>ArrayIndexOutOfBoundsException</code>. Decide
+      deliberately whether each bound is inclusive or exclusive.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Before writing a loop, answer three questions out loud: <em>What is my
+        state before the loop? What does one iteration change? What is true when
+        the loop ends?</em> If you can't answer the third, you don't yet
+        understand the loop.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — reverse the digits of an integer</p>
+<pre><code>public class ReverseNumber {
+    public static void main(String[] args) {
+        int n = 1234;
+        int rev = 0;
+
+        while (n &gt; 0) {
+            int digit = n % 10;        // grab last digit
+            rev = rev * 10 + digit;    // append it to rev
+            n = n / 10;                // remove it from n
+        }
+
+        System.out.println(rev);       // 4321
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — n = 1234</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Iteration</th><th><code>n</code> in</th><th><code>digit</code></th><th><code>rev</code> = rev*10 + digit</th><th><code>n</code> out</th></tr></thead>
+        <tbody>
+          <tr><td>start</td><td>1234</td><td>—</td><td>0</td><td>1234</td></tr>
+          <tr><td>1</td><td>1234</td><td>4</td><td>0·10 + 4 = 4</td><td>123</td></tr>
+          <tr><td>2</td><td>123</td><td>3</td><td>4·10 + 3 = 43</td><td>12</td></tr>
+          <tr><td>3</td><td>12</td><td>2</td><td>43·10 + 2 = 432</td><td>1</td></tr>
+          <tr><td>4</td><td>1</td><td>1</td><td>432·10 + 1 = 4321</td><td>0</td></tr>
+          <tr><td>5</td><td>0</td><td colspan="3"><code>n &gt; 0</code> false → exit. Print <samp>4321</samp>.</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>&lt;</code> vs <code>&lt;=</code> on the bound — one of these is an out-of-bounds crash on arrays.</li>
+        <li>Forgetting the update (<code>n = n / 10</code> / <code>i++</code>) → infinite loop.</li>
+        <li>Mutating the loop counter inside the body <em>and</em> in the update clause.</li>
+        <li>Reversed number overflowing <code>int</code> for large inputs — use <code>long</code>.</li>
+        <li><code>System.out.println</code> inside a nested loop when you meant <code>print</code> — breaks pattern output.</li>
+        <li>Loop bound reached by a step that skips it: <code>for (i = 0; i != 10; i += 3)</code> never stops.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-loops"></div>
+  </section>
+
+
+  <!-- ================= 6. PATTERN PROBLEMS ================= -->
+  <section class="topic" id="pattern-problems">
+    <h2>6 · Pattern Problems</h2>
+
+    <p>
+      Printing stars and numbers in shapes looks like busywork, but it trains the
+      exact skill you'll need for 2D arrays, matrices, and dynamic-programming
+      tables: reasoning about <strong>two nested indices at once</strong> and the
+      arithmetic relating them. Almost every interview grid problem is a pattern
+      problem wearing a costume.
+    </p>
+    <p>
+      The method is always the same. The <strong>outer loop is rows</strong>. For
+      each row <code>i</code>, ask one question: "as a function of <code>i</code>
+      and <code>n</code>, how many spaces, then how many symbols, does this row
+      need?" Write those counts as formulas. Then each becomes an inner loop. A
+      triangle that grows has <code>i</code> symbols on row <code>i</code>; one
+      that's right-aligned needs <code>n - i</code> leading spaces first.
+    </p>
+    <p>
+      Print with <code>System.out.print</code> (no newline) inside the inner
+      loops, and call <code>System.out.println()</code> exactly once per row,
+      after the inner loops finish. Getting that placement wrong is the single
+      most common pattern bug.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Don't try to picture the whole shape at once. Fix one row, work out its
+        contents as a formula in <code>i</code>, and trust that looping <code>i</code>
+        from <code>1</code> to <code>n</code> assembles the figure.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — right-aligned number staircase</p>
+<pre><code>public class Staircase {
+    public static void main(String[] args) {
+        int n = 4;
+        for (int i = 1; i &lt;= n; i++) {            // row
+            for (int s = 1; s &lt;= n - i; s++) {    // leading spaces
+                System.out.print(" ");
+            }
+            for (int j = 1; j &lt;= i; j++) {        // digits 1..i
+                System.out.print(j);
+            }
+            System.out.println();                 // end of this row
+        }
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — n = 4</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Row <code>i</code></th><th>spaces (<code>n - i</code>)</th><th>digits (<code>1..i</code>)</th><th>line printed</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>3</td><td><code>1</code></td><td><samp>&nbsp;&nbsp;&nbsp;1</samp></td></tr>
+          <tr><td>2</td><td>2</td><td><code>12</code></td><td><samp>&nbsp;&nbsp;12</samp></td></tr>
+          <tr><td>3</td><td>1</td><td><code>123</code></td><td><samp>&nbsp;123</samp></td></tr>
+          <tr><td>4</td><td>0</td><td><code>1234</code></td><td><samp>1234</samp></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>println</code> inside the inner loop — every symbol lands on its own line.</li>
+        <li>Wrong leading-space count — usually <code>n - i</code> vs <code>n - i - 1</code> depending on 0/1 indexing.</li>
+        <li>Forgetting the final <code>println()</code> after the inner loops → the whole pattern on one line.</li>
+        <li>Mixing 0-indexed and 1-indexed rows within the same solution.</li>
+        <li>For symmetric patterns (diamond, butterfly), not splitting into an upper half and a mirrored lower half.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-pattern-problems"></div>
+  </section>
+
+
+  <!-- ================= 7. FUNCTIONS ================= -->
+  <section class="topic" id="functions">
+    <h2>7 · Functions</h2>
+
+    <p>
+      A method (Java's word for a function) is a named, reusable block with a
+      <strong>contract</strong>: given parameters of declared types, it produces a
+      value of the declared return type. Good methods do one thing, have a name
+      that says what that thing is, and ideally have no side effects — same inputs,
+      same output, every time. Splitting a big <code>main</code> into small named
+      methods is the first real step toward code you can read a month later.
+    </p>
+    <p>
+      Java is strictly <strong>pass-by-value</strong>. For a primitive, the method
+      gets a copy — changing the parameter inside the method does nothing to the
+      caller's variable. For an object or array, the method gets a copy of the
+      <em>reference</em>: it can't make your variable point elsewhere, but it
+      <em>can</em> mutate the object that reference points to (e.g. change
+      <code>arr[0]</code>). That distinction explains most "why didn't my swap
+      work" confusion.
+    </p>
+    <p>
+      <strong>Recursion</strong> is a method calling itself on a smaller input. It
+      needs two parts: a <em>base case</em> that returns without recursing, and a
+      <em>recursive case</em> that makes progress toward the base case and
+      combines its result. Each call gets its own stack frame with its own
+      parameters and locals; when a call returns, its frame is popped and the
+      caller resumes. Miss the base case and you get
+      <code>StackOverflowError</code>.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Recursion: "assume I already have a correct answer for the smaller
+        problem — how do I build the answer for the current one from it?" Trust
+        the recursive call the way you'd trust a library function, then just
+        handle the smallest case explicitly.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — recursive power(a, b)</p>
+<pre><code>public class Power {
+
+    static int power(int a, int b) {
+        if (b == 0) return 1;             // base case: a^0 = 1
+        return a * power(a, b - 1);       // recursive case: a^b = a * a^(b-1)
+    }
+
+    public static void main(String[] args) {
+        System.out.println(power(2, 4));  // 16
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — the call stack for power(2, 4)</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Depth</th><th>Call</th><th>Waiting to compute</th><th>Returns (on the way back up)</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>power(2, 4)</code></td><td><code>2 * power(2, 3)</code></td><td><code>2 * 8 = 16</code></td></tr>
+          <tr><td>2</td><td><code>power(2, 3)</code></td><td><code>2 * power(2, 2)</code></td><td><code>2 * 4 = 8</code></td></tr>
+          <tr><td>3</td><td><code>power(2, 2)</code></td><td><code>2 * power(2, 1)</code></td><td><code>2 * 2 = 4</code></td></tr>
+          <tr><td>4</td><td><code>power(2, 1)</code></td><td><code>2 * power(2, 0)</code></td><td><code>2 * 1 = 2</code></td></tr>
+          <tr><td>5</td><td><code>power(2, 0)</code></td><td>base case</td><td><code>1</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        The stack grows down to depth 5, hits the base case, then unwinds
+        bottom-to-top: <code>1 → 2 → 4 → 8 → 16</code>.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>No base case, or a base case the recursion can't reach → <code>StackOverflowError</code>.</li>
+        <li><code>return a * power(a, b - 1);</code> written as <code>power(a, b - 1);</code> — computing the recursive result then throwing it away.</li>
+        <li>Expecting a method to change a primitive argument in the caller (it can't — pass-by-value).</li>
+        <li>Naive recursive Fibonacci: <code>fib(n-1) + fib(n-2)</code> recomputes the same values exponentially — <code>O(2ⁿ)</code>.</li>
+        <li>Overloads that differ only by return type — not allowed; overloads must differ in parameters.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-functions"></div>
+  </section>
+
+
+  <!-- ================= 8. 1D ARRAYS ================= -->
+  <section class="topic" id="arrays-1d">
+    <h2>8 · 1D Arrays</h2>
+
+    <p>
+      An array is a fixed-size block of contiguous memory holding elements of one
+      type, addressed by index <code>0 .. length - 1</code>.
+      <code>int[] a = new int[5];</code> allocates five <code>int</code> slots,
+      each defaulting to <code>0</code> (<code>null</code> for object arrays,
+      <code>false</code> for <code>boolean</code>). Because the elements are
+      contiguous and the same size, <code>a[i]</code> is <code>O(1)</code> — the
+      JVM computes <code>base + i * elementSize</code>. The trade-off is that the
+      size is fixed at creation; when you need growth, use <code>ArrayList</code>.
+    </p>
+    <p>
+      An array variable holds a <em>reference</em>. <code>int[] b = a;</code> does
+      <strong>not</strong> copy — <code>a</code> and <code>b</code> now name the
+      same array, and <code>b[0] = 9</code> is visible through <code>a</code>. To
+      actually copy, use <code>Arrays.copyOf(a, a.length)</code> or a loop.
+      Passing an array to a method passes that reference, so the method can
+      permanently change the array's contents.
+    </p>
+    <p>
+      Most array problems reduce to <strong>one pass while carrying a little
+      state</strong>: a running max, a running sum, a count, or two indices moving
+      through the array. Before reaching for a second loop or an extra array, ask
+      whether a single sweep with the right variables can do it — it usually can.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        "Walk through once, and at each element update what I know so far." The
+        skill is choosing <em>what</em> to remember — for "second largest" you
+        remember the top two; for "max subarray" you remember the best sum ending
+        here and the best seen anywhere.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — second largest element in one pass</p>
+<pre><code>public class SecondLargest {
+    public static void main(String[] args) {
+        int[] a = {12, 35, 1, 10, 34, 1};
+
+        int largest = Integer.MIN_VALUE;
+        int second  = Integer.MIN_VALUE;
+
+        for (int x : a) {
+            if (x &gt; largest) {
+                second  = largest;   // old largest slides down to second
+                largest = x;
+            } else if (x &gt; second &amp;&amp; x != largest) {
+                second = x;
+            }
+        }
+        System.out.println("Second largest: " + second);  // 34
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — a = {12, 35, 1, 10, 34, 1}</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th><code>x</code></th><th>branch taken</th><th><code>largest</code></th><th><code>second</code></th></tr></thead>
+        <tbody>
+          <tr><td>start</td><td>—</td><td>MIN</td><td>MIN</td></tr>
+          <tr><td>12</td><td><code>12 &gt; MIN</code></td><td>12</td><td>MIN</td></tr>
+          <tr><td>35</td><td><code>35 &gt; 12</code></td><td>35</td><td>12</td></tr>
+          <tr><td>1</td><td>neither (<code>1 &gt; 12</code>? no)</td><td>35</td><td>12</td></tr>
+          <tr><td>10</td><td>neither (<code>10 &gt; 12</code>? no)</td><td>35</td><td>12</td></tr>
+          <tr><td>34</td><td><code>34 &gt; 12 &amp;&amp; 34 != 35</code></td><td>35</td><td>34</td></tr>
+          <tr><td>1</td><td>neither</td><td>35</td><td>34</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">Result: <samp>Second largest: 34</samp>. The <code>x != largest</code> guard stops a duplicate of the max from becoming "second."</p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>for (i = 0; i &lt;= a.length; i++)</code> → <code>ArrayIndexOutOfBoundsException</code> at <code>a[a.length]</code>.</li>
+        <li>Initialising <code>max = 0</code> — wrong for an all-negative array. Use <code>Integer.MIN_VALUE</code> or <code>a[0]</code>.</li>
+        <li><code>int[] b = a;</code> and expecting an independent copy.</li>
+        <li>Assuming the array is sorted when the problem never said so.</li>
+        <li>Using <code>a.length()</code> (that's for <code>String</code>) instead of <code>a.length</code> (no parentheses for arrays).</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-arrays-1d"></div>
+  </section>
+
+
+  <!-- ================= 9. NUMBER SYSTEMS & MATHS ================= -->
+  <section class="topic" id="number-systems-maths">
+    <h2>9 · Number Systems &amp; Maths</h2>
+
+    <p>
+      A number system is positional: in base <code>b</code>, the digit at position
+      <code>k</code> (from the right, starting at 0) is worth
+      <code>digit · b<sup>k</sup></code>. Decimal is base 10, binary base 2, hex
+      base 16. Computers use binary because a wire is either on or off — one bit
+      per digit. Converting <strong>decimal → base b</strong>: repeatedly take
+      <code>n % b</code> (that's the next lowest digit) and <code>n /= b</code>;
+      the digits come out lowest-first, so reverse them. Converting
+      <strong>base b → decimal</strong>: <code>result = result * b + digit</code>,
+      scanning left to right.
+    </p>
+    <p>
+      A handful of number-theory tools recur constantly in interviews.
+      <strong>Modular arithmetic</strong>: <code>(a + b) % m</code>,
+      <code>(a * b) % m</code> — take the mod early and often to avoid overflow,
+      casting to <code>long</code> before multiplying. <strong>Primes</strong>: to
+      test one number, trial-divide up to <code>√n</code>; to list all primes up
+      to <code>N</code>, use the Sieve of Eratosthenes in
+      <code>O(N log log N)</code>. <strong>GCD</strong> by Euclid:
+      <code>gcd(a, b) = gcd(b, a % b)</code>, stopping when <code>b</code> is 0.
+    </p>
+    <p>
+      <strong>Fast exponentiation</strong> computes <code>a<sup>b</sup></code> in
+      <code>O(log b)</code> by squaring: <code>a<sup>b</sup> = (a<sup>b/2</sup>)²</code>
+      when <code>b</code> is even, <code>a · a<sup>b-1</sup></code> when odd. Prefer
+      it over <code>Math.pow</code>, which returns a <code>double</code> and loses
+      precision on large integers.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        "Decimal to base b" is just repeated division: each <code>% b</code> is one
+        digit falling off the bottom, each <code>/ b</code> shifts the rest down.
+        Stack the remainders and read them bottom-to-top.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — decimal to binary</p>
+<pre><code>public class DecToBin {
+    public static void main(String[] args) {
+        int n = 45;
+        StringBuilder sb = new StringBuilder();
+
+        while (n &gt; 0) {
+            sb.append(n % 2);   // next lowest binary digit
+            n = n / 2;
+        }
+
+        String binary = sb.reverse().toString();
+        System.out.println(binary);   // 101101
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — n = 45</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Step</th><th><code>n</code></th><th><code>n % 2</code> (bit)</th><th><code>n / 2</code></th><th><code>sb</code> (lowest-first)</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>45</td><td>1</td><td>22</td><td><code>1</code></td></tr>
+          <tr><td>2</td><td>22</td><td>0</td><td>11</td><td><code>10</code></td></tr>
+          <tr><td>3</td><td>11</td><td>1</td><td>5</td><td><code>101</code></td></tr>
+          <tr><td>4</td><td>5</td><td>1</td><td>2</td><td><code>1011</code></td></tr>
+          <tr><td>5</td><td>2</td><td>0</td><td>1</td><td><code>10110</code></td></tr>
+          <tr><td>6</td><td>1</td><td>1</td><td>0</td><td><code>101101</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Reverse <code>101101</code> → <code>101101</code> (palindrome here by
+        coincidence). Check: <code>32 + 8 + 4 + 1 = 45</code>. ✓
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Reading the remainders top-to-bottom instead of bottom-to-top (forgetting the reverse).</li>
+        <li><code>a * b % m</code> overflowing <code>int</code> <em>before</em> the <code>%</code> — cast to <code>long</code>.</li>
+        <li>Using <code>Math.pow(a, b)</code> for integer powers and getting <code>124.99999</code>.</li>
+        <li>Sieve loop bounds: inner loop should start at <code>i * i</code> and step by <code>i</code>.</li>
+        <li>Trial-dividing up to <code>n</code> instead of <code>√n</code> for primality — needlessly <code>O(n)</code>.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-number-systems-maths"></div>
+  </section>
+
+
+  <!-- ================= 10. STRING IMPLEMENTATION ================= -->
+  <section class="topic" id="string-implementation">
+    <h2>10 · String Implementation</h2>
+
+    <p>
+      A Java <code>String</code> is <strong>immutable</strong> — every operation
+      that looks like it changes a string (<code>toUpperCase</code>,
+      <code>replace</code>, <code>+</code>) actually returns a brand-new string and
+      leaves the original untouched. Useful methods: <code>length()</code>,
+      <code>charAt(i)</code>, <code>substring(from, to)</code> (<code>to</code>
+      exclusive), <code>indexOf</code>, <code>toCharArray()</code>. Because
+      strings are immutable, building one with <code>+=</code> inside a loop is
+      <code>O(n²)</code> — each <code>+=</code> copies the whole string so far.
+      Use <code>StringBuilder</code> and one final <code>toString()</code>.
+    </p>
+    <p>
+      Compare strings with <code>.equals()</code>, never <code>==</code>.
+      <code>==</code> asks "same object in memory?"; <code>.equals()</code> asks
+      "same characters?" They sometimes agree by accident (string literal
+      interning) and then surprise you later. <code>char</code> is a number, so
+      <code>c - 'a'</code> maps <code>'a'..'z'</code> to <code>0..25</code> — the
+      basis of the frequency-array trick.
+    </p>
+    <p>
+      Two patterns cover most string problems. For anything about
+      lowercase-letter counts (anagrams, first-unique, frequency), an
+      <code>int[26]</code> indexed by <code>c - 'a'</code> is your default. For
+      palindromes, reversal, and "compare from both ends," use
+      <strong>two pointers</strong> starting at <code>0</code> and
+      <code>length - 1</code> and moving inward.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A string is just a read-only <code>char</code> array. If you find yourself
+        wanting to mutate it, convert to <code>char[]</code> or a
+        <code>StringBuilder</code> first, and never grow a result string with
+        <code>+=</code> in a loop.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — palindrome check with two pointers</p>
+<pre><code>public class Palindrome {
+
+    static boolean isPalindrome(String s) {
+        int i = 0, j = s.length() - 1;
+        while (i &lt; j) {
+            if (s.charAt(i) != s.charAt(j)) return false;
+            i++;
+            j--;
+        }
+        return true;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(isPalindrome("racecar"));  // true
+        System.out.println(isPalindrome("hello"));    // false
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Input</th><th><code>i, j</code></th><th><code>s[i], s[j]</code></th><th>result</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="4"><code>"racecar"</code> (len 7)</td><td>0, 6</td><td><code>r, r</code> — equal</td><td>continue</td></tr>
+          <tr><td>1, 5</td><td><code>a, a</code> — equal</td><td>continue</td></tr>
+          <tr><td>2, 4</td><td><code>c, c</code> — equal</td><td>continue</td></tr>
+          <tr><td>3, 3</td><td><code>i &lt; j</code> is <code>3 &lt; 3</code> → false</td><td>return <samp>true</samp></td></tr>
+          <tr><td><code>"hello"</code> (len 5)</td><td>0, 4</td><td><code>h, o</code> — not equal</td><td>return <samp>false</samp></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>s1 == s2</code> to compare content — use <code>s1.equals(s2)</code>.</li>
+        <li><code>result += c;</code> in a loop — quietly <code>O(n²)</code>; use <code>StringBuilder</code>.</li>
+        <li>Forgetting immutability: <code>s.toUpperCase();</code> on its own line does nothing — you must assign the result.</li>
+        <li><code>substring(i, j)</code> with <code>j</code> inclusive in your head — it's exclusive.</li>
+        <li>Not stripping spaces / normalising case when the problem's examples imply you should.</li>
+        <li>Frequency array of size 128 vs 26 — pick based on whether input is letters only.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-string-implementation"></div>
+  </section>
+
+
+  <!-- ================= 11. INTRO TO DATA STRUCTURES ================= -->
+  <section class="topic" id="intro-to-data-structures">
+    <h2>11 · Intro to Data Structures</h2>
+
+    <p>
+      A data structure is a way of organising data together with the operations it
+      makes cheap. Choosing one is an act of matching: figure out which operations
+      your algorithm performs most, then pick the structure that makes those
+      <code>O(1)</code> or <code>O(log n)</code>. The four to internalise first:
+    </p>
+    <ul>
+      <li><strong>Dynamic array</strong> (<code>ArrayList</code>): <code>O(1)</code> indexed access and amortised <code>O(1)</code> append; <code>O(n)</code> to insert/remove in the middle.</li>
+      <li><strong>Stack</strong> (LIFO — last in, first out): <code>push</code>, <code>pop</code>, <code>peek</code> all <code>O(1)</code>. Use for undo, matching brackets, "nearest previous greater," and converting recursion to iteration.</li>
+      <li><strong>Queue</strong> (FIFO — first in, first out): <code>offer</code>, <code>poll</code>, <code>peek</code> all <code>O(1)</code>. Use for processing in arrival order and breadth-first search.</li>
+      <li><strong>Singly linked list</strong>: a chain of nodes, each holding a value and a reference to the next. <code>O(1)</code> insert/delete <em>at a known position</em>, but <code>O(n)</code> to find one — no indexing.</li>
+    </ul>
+    <p>
+      In Java, back a stack or queue with <code>ArrayDeque</code>, not the legacy
+      <code>Stack</code> class or <code>LinkedList</code>. When you traverse a
+      linked list, keep the head reference safe and walk with a separate
+      <code>current</code> pointer — lose the head and the whole list is gone.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        "Which end do I add and remove from?" Same end → stack. Opposite ends →
+        queue. Need the k-th element by number → array. Constantly splicing items
+        in and out of the middle with a handle already there → linked list.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — valid parentheses using a stack</p>
+<pre><code>import java.util.ArrayDeque;
+import java.util.Deque;
+
+public class ValidParens {
+
+    static boolean valid(String s) {
+        Deque&lt;Character&gt; stack = new ArrayDeque&lt;&gt;();
+        for (char c : s.toCharArray()) {
+            if (c == '(' || c == '[' || c == '{') {
+                stack.push(c);
+            } else {
+                if (stack.isEmpty()) return false;
+                char open = stack.pop();
+                if ((c == ')' &amp;&amp; open != '(') ||
+                    (c == ']' &amp;&amp; open != '[') ||
+                    (c == '}' &amp;&amp; open != '{')) return false;
+            }
+        }
+        return stack.isEmpty();
+    }
+
+    public static void main(String[] args) {
+        System.out.println(valid("([]{})"));  // true
+        System.out.println(valid("([)]"));    // false
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Input</th><th>char</th><th>action</th><th>stack (top → bottom)</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="7"><code>"([]{})"</code></td><td><code>(</code></td><td>push</td><td><code>(</code></td></tr>
+          <tr><td><code>[</code></td><td>push</td><td><code>[ (</code></td></tr>
+          <tr><td><code>]</code></td><td>pop <code>[</code> — matches</td><td><code>(</code></td></tr>
+          <tr><td><code>{</code></td><td>push</td><td><code>{ (</code></td></tr>
+          <tr><td><code>}</code></td><td>pop <code>{</code> — matches</td><td><code>(</code></td></tr>
+          <tr><td><code>)</code></td><td>pop <code>(</code> — matches</td><td><em>empty</em></td></tr>
+          <tr><td>end</td><td>stack empty → <samp>true</samp></td><td></td></tr>
+          <tr><td rowspan="3"><code>"([)]"</code></td><td><code>(</code></td><td>push</td><td><code>(</code></td></tr>
+          <tr><td><code>[</code></td><td>push</td><td><code>[ (</code></td></tr>
+          <tr><td><code>)</code></td><td>pop <code>[</code>; <code>')' &amp;&amp; open != '('</code> → <samp>false</samp></td><td>—</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Calling <code>pop()</code> / <code>peek()</code> without checking <code>isEmpty()</code> first.</li>
+        <li>Using <code>List.remove(0)</code> as a queue — that's <code>O(n)</code> per call; use <code>ArrayDeque.poll()</code>.</li>
+        <li>Returning <code>true</code> at the end without checking the stack is empty (unmatched openers left over).</li>
+        <li>Losing the head of a linked list by advancing it instead of a copy.</li>
+        <li>Comparing <code>Character</code> / <code>Integer</code> wrappers with <code>==</code> outside the cached range.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-intro-to-data-structures"></div>
+  </section>
+
+
+  <!-- ================= 12. TIME & SPACE COMPLEXITY ================= -->
+  <section class="topic" id="time-space-complexity">
+    <h2>12 · Time &amp; Space Complexity</h2>
+
+    <p>
+      Big-O describes how the number of operations grows as the input size
+      <code>n</code> grows, ignoring constant factors and lower-order terms — so
+      <code>3n + 50</code> and <code>n</code> are both <code>O(n)</code>. It's a
+      statement about <em>scaling</em>, not about wall-clock time on a specific
+      input. The ladder you must know cold:
+      <code>O(1) &lt; O(log n) &lt; O(n) &lt; O(n log n) &lt; O(n²) &lt; O(2ⁿ) &lt; O(n!)</code>.
+    </p>
+    <p>
+      To analyse a snippet, count how many times the innermost line runs as a
+      function of <code>n</code>. Sequential blocks <strong>add</strong> (still
+      <code>O(n)</code> for two separate loops). Nested loops over the same
+      <code>n</code> <strong>multiply</strong> → <code>O(n²)</code>. Anything that
+      halves the remaining work each step is <code>O(log n)</code> (binary search,
+      balanced-tree operations). A rough bar for interviews: modern hardware does
+      ~10<sup>8</sup> simple operations per second, so if <code>n = 10⁵</code>, an
+      <code>O(n²)</code> solution (10<sup>10</sup> ops) is too slow and you need
+      <code>O(n log n)</code> or better.
+    </p>
+    <p>
+      <strong>Space complexity</strong> counts extra memory beyond the input: an
+      <code>O(1)</code> in-place reversal vs an <code>O(n)</code> copy. Don't
+      forget the <strong>recursion stack</strong> — a recursion <code>n</code>
+      levels deep is <code>O(n)</code> space even if each frame is tiny.
+      <strong>Amortised</strong> analysis explains why <code>ArrayList.add</code>
+      is "<code>O(1)</code>": most appends are cheap, the occasional resize copies
+      everything, and averaged over many appends it works out to a constant.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Put your finger on the innermost statement and ask "how many times does
+        this run, in terms of <code>n</code>?" One loop → <code>n</code>. Loop
+        inside a loop → <code>n · n</code>. Halving each step → <code>log n</code>.
+        That count, stripped of constants, is your answer.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — analysing binary search</p>
+<pre><code>public class BinarySearch {
+
+    static int search(int[] a, int target) {
+        int lo = 0, hi = a.length - 1;
+        while (lo &lt;= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (a[mid] == target) return mid;
+            else if (a[mid] &lt; target) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return -1;
+    }
+
+    public static void main(String[] args) {
+        int[] a = {1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31};
+        System.out.println(search(a, 27));  // 13
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — target 27 in 16 elements</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>Iteration</th><th><code>lo</code></th><th><code>hi</code></th><th><code>mid</code></th><th><code>a[mid]</code></th><th>action</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>0</td><td>15</td><td>7</td><td>15</td><td><code>15 &lt; 27</code> → <code>lo = 8</code></td></tr>
+          <tr><td>2</td><td>8</td><td>15</td><td>11</td><td>23</td><td><code>23 &lt; 27</code> → <code>lo = 12</code></td></tr>
+          <tr><td>3</td><td>12</td><td>15</td><td>13</td><td>27</td><td>match → return <samp>13</samp></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        The search range went <code>16 → 8 → 4</code> and would continue
+        <code>2 → 1</code>. Each step halves it, so the worst case is
+        <code>log₂ 16 = 4</code> iterations → <code>O(log n)</code> time,
+        <code>O(1)</code> space.
+      </p>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">The pattern to remember: brute force → better structure</span>
+      <p class="small">
+        Two-sum brute force checks every pair — two nested loops, <code>O(n²)</code>.
+        Swapping the inner loop for a <code>HashMap</code> lookup ("have I seen
+        <code>target - a[i]</code>?") makes it one pass, <code>O(n)</code> time and
+        <code>O(n)</code> space. Trading memory for time by adding a hash structure
+        is the most common optimisation in interview coding rounds.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Calling a <code>HashMap</code> / <code>HashSet</code> lookup <code>O(n)</code> — it's <code>O(1)</code> average.</li>
+        <li>Ignoring the cost of <code>list.contains(x)</code> inside a loop — that's <code>O(n)</code>, making the loop <code>O(n²)</code>.</li>
+        <li>Forgetting recursion-stack space when asked for space complexity.</li>
+        <li>Treating <code>O(2n)</code> or <code>O(n + 100)</code> as worse than <code>O(n)</code> — constants drop.</li>
+        <li>Reporting best-case as if it were the answer — Big-O questions mean worst-case unless stated.</li>
+        <li>Building a string with <code>+=</code> in a loop and calling it <code>O(n)</code> — it's <code>O(n²)</code>.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-time-space-complexity"></div>
+  </section>
+
+
+  <p class="backlink"><a href="index.html">← Back to home &amp; dashboard</a> &nbsp;·&nbsp; <a href="roadmap.html">See where this fits in the roadmap →</a></p>
+
+  <footer class="foot">
+    <p>Phase 0 of the <a href="roadmap.html">8-month roadmap</a>. Next: DSA.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("phase0-fundamentals", [
+  {
+    group: "Introduction to Programming",
+    mount: "#t-introduction-to-programming",
+    items: [
+      "Hello, World",
+      "Print a formatted name / role card (multi-line)",
+      "Sum and average of three numbers",
+      "Temperature converter: Celsius to Fahrenheit",
+      "Simple interest calculator",
+      "Swap two numbers using a temporary variable",
+      "Swap two numbers without a temporary variable"
+    ]
+  },
+  {
+    group: "I/O & Data Types",
+    mount: "#t-i-o-data-types",
+    items: [
+      "Read name and age, print age next year",
+      "Sum of N space-separated integers on one line",
+      "Rectangle area and perimeter from input",
+      "Convert total paise to rupees and paise",
+      "int vs long: demonstrate silent overflow",
+      "Read a double, print it rounded to 2 decimals",
+      "Character to ASCII code and back",
+      "Fast I/O with BufferedReader: sum 10^6 numbers"
+    ]
+  },
+  {
+    group: "Operators",
+    mount: "#t-operators",
+    items: [
+      "Even or odd using n & 1",
+      "Check if a number is a power of two",
+      "Extract the last digit and drop the last digit",
+      "Max of three numbers using nested ternary",
+      "Set, clear, and toggle the k-th bit",
+      "Count set bits using n & (n - 1)",
+      "Compound-assignment trace puzzle",
+      "Swap two numbers using XOR"
+    ]
+  },
+  {
+    group: "Conditionals",
+    mount: "#t-conditionals",
+    items: [
+      "Leap year check",
+      "Largest of three numbers",
+      "Letter grade from marks (A-F)",
+      "Quadrant of a point (x, y)",
+      "Triangle validity and type",
+      "Simple calculator with switch on the operator",
+      "Slab-based electricity bill",
+      "FizzBuzz"
+    ]
+  },
+  {
+    group: "Loops",
+    mount: "#t-loops",
+    items: [
+      "Print 1..N and N..1",
+      "Factorial of N",
+      "Sum of digits of a number",
+      "Reverse a number",
+      "Nth Fibonacci (iterative)",
+      "Count digits without converting to a string",
+      "GCD using Euclid's algorithm",
+      "Check if a number is prime",
+      "Print all divisors of N"
+    ]
+  },
+  {
+    group: "Pattern Problems",
+    mount: "#t-pattern-problems",
+    items: [
+      "Solid square / rectangle of stars",
+      "Right-angled triangle of stars",
+      "Inverted right-angled triangle",
+      "Half pyramid of numbers",
+      "Floyd's triangle",
+      "Pascal's triangle",
+      "Hollow rectangle",
+      "Diamond of stars",
+      "Butterfly pattern"
+    ]
+  },
+  {
+    group: "Functions",
+    mount: "#t-functions",
+    items: [
+      "isPrime(n) helper, then count primes up to N",
+      "power(a, b): iterative and recursive versions",
+      "nCr using a factorial function",
+      "Recursion: sum of an array",
+      "Recursion: print Fibonacci and draw the call tree",
+      "Overload area() for circle, rectangle, triangle",
+      "Tower of Hanoi: count and print the moves",
+      "Recursion: reverse a string"
+    ]
+  },
+  {
+    group: "1D Arrays",
+    mount: "#t-arrays-1d",
+    items: [
+      "Maximum and minimum in one pass",
+      "Sum and average of an array",
+      "Linear search returning the index",
+      "Reverse an array in place",
+      "Count even and odd elements",
+      "Second largest element",
+      "Check if an array is sorted",
+      "Move all zeros to the end",
+      "Rotate an array right by k"
+    ]
+  },
+  {
+    group: "Number Systems & Maths",
+    mount: "#t-number-systems-maths",
+    items: [
+      "Decimal to binary",
+      "Binary to decimal",
+      "Decimal to any base b",
+      "Count set bits (Brian Kernighan)",
+      "Sieve of Eratosthenes up to N",
+      "Prime factorization of N",
+      "Fast modular exponentiation: a^b mod m",
+      "Count trailing zeros in N!"
+    ]
+  },
+  {
+    group: "String Implementation",
+    mount: "#t-string-implementation",
+    items: [
+      "Reverse a string",
+      "Check palindrome using two pointers",
+      "Count vowels and consonants",
+      "Toggle the case of each character",
+      "Check if two strings are anagrams",
+      "Count occurrences of a character",
+      "Remove duplicate characters preserving order",
+      "Longest common prefix of an array of strings",
+      "Check if one string is a rotation of another"
+    ]
+  },
+  {
+    group: "Intro to Data Structures",
+    mount: "#t-intro-to-data-structures",
+    items: [
+      "Implement a fixed-size stack with an array",
+      "Implement a circular queue with an array",
+      "Implement a singly linked list (insert, delete, print)",
+      "Reverse a singly linked list",
+      "Valid parentheses using a stack",
+      "Min stack with O(1) getMin",
+      "Implement a dynamic array that doubles when full"
+    ]
+  },
+  {
+    group: "Time & Space Complexity",
+    mount: "#t-time-space-complexity",
+    items: [
+      "Label the Big-O of 10 given code snippets",
+      "Two-sum: brute force, then HashMap, and compare",
+      "Explain why string concatenation in a loop is O(n^2)",
+      "Derive the complexity of binary search from its recurrence",
+      "In-place reverse vs copy: compare space complexity",
+      "Identify the amortized O(1) operation in a dynamic array",
+      "Time an O(n) vs an O(n^2) solution on a large input",
+      "Complexity of nested loops where the inner runs to i"
+    ]
+  }
+], { pageTitle: "Phase 0: Fundamentals" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("phase0-fundamentals");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

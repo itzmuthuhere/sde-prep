@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SDE Prep — Home</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav id="site-nav"><!-- filled by JS --></nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap wrap-wide">
+
+  <h1>Placement prep for a Java backend SDE role</h1>
+  <p class="lede">
+    A self-contained study system: one map, one page per subject, and a checklist
+    that remembers what you've finished. Built for someone with a full-time job —
+    weeknights 9–11&nbsp;PM, longer sessions on weekends.
+  </p>
+
+  <!-- ROADMAP: the first thing you should see -->
+  <section class="hero">
+    <span class="box-title" style="color:var(--accent)">Start here</span>
+    <h2 style="margin-top:.3rem"><a href="roadmap.html">📍 The Roadmap</a></h2>
+    <p class="muted">
+      An 8-month, ~34-week plan. Content mastery, problem-solving volume, real
+      projects, and job applications run <strong>in parallel</strong> — you start
+      interviewing for practice reps from month 4–5, before you feel "ready."
+      Everything else on this site is a phase inside this plan.
+    </p>
+    <p><a href="roadmap.html">Open the roadmap →</a></p>
+  </section>
+
+  <!-- AGGREGATE DASHBOARD -->
+  <h2>Progress dashboard</h2>
+  <p class="muted small">
+    Live totals summed from every page's <code>tracker.js</code> checklist, stored
+    locally in this browser. Open a page and tick items off — the numbers here
+    update automatically.
+  </p>
+
+  <div class="dash-overall">
+    <div class="ring" id="overall-ring" style="--pct:0">0%</div>
+    <div>
+      <div style="font-weight:700;font-size:1.1rem" id="overall-line">0 of 0 items complete</div>
+      <div class="meta" id="overall-sub">Across all built pages. Planned pages join the count once their page ships.</div>
+      <div style="margin-top:10px">
+        <button class="theme-toggle" type="button" id="reset-all">Reset all progress</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-grid" id="page-grid"><!-- filled by JS --></div>
+
+  <footer class="foot">
+    <p>sde-prep · everything is static HTML/CSS/JS · your progress never leaves this browser.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+/* ---- The site map. `built:false` pages render as disabled placeholders. ---- */
+var PAGES = [
+  { id: "roadmap",             file: "roadmap.html",             title: "Roadmap",              desc: "The month-by-month plan tying every phase together.", built: true,  phase: "Map" },
+  { id: "phase0-fundamentals", file: "phase0-fundamentals.html", title: "Phase 0 · Fundamentals", desc: "Programming basics → arrays, strings, complexity.", built: true,  phase: "Phase 0" },
+  { id: "dsa-linear",          file: "dsa-linear.html",          title: "DSA · Linear",         desc: "Pattern-first: arrays, two pointers, sliding window, binary search, strings, bits, recursion, hashing, sorting, linked lists, stacks & queues.", built: true,  phase: "Phase 1" },
+  { id: "dsa-nonlinear",       file: "dsa-nonlinear.html",       title: "DSA · Non-linear",     desc: "Trees, BSTs, tries, heaps, graphs (BFS/DFS/topo/union-find), greedy, dynamic programming.", built: true,  phase: "Phase 1" },
+  { id: "sql",                 file: "sql.html",                 title: "SQL",                  desc: "Advanced SELECT, joins, grouping, CTEs, subqueries, window functions, recursive CTEs, string functions.", built: true,  phase: "Phase 2" },
+  { id: "lld",                 file: "lld.html",                 title: "Low-Level Design",     desc: "SOLID principles, 10 design patterns with triggers, and 10 classic LLD problems worked as design walkthroughs.", built: true,  phase: "Phase 2" },
+  { id: "hld",                 file: "hld.html",                 title: "High-Level Design",    desc: "Distributed systems, load balancing, consistent hashing, caching, transactions & isolation, SQL vs NoSQL, microservices, queues — plus a system-design framework run end-to-end on a URL shortener.", built: true,  phase: "Phase 2" },
+  { id: "fullstack-java",      file: "fullstack-java.html",      title: "Full-Stack Java",      desc: "Spring Core, MVC, Data JPA, Security & JWT, Actuator, JUnit/Mockito, Thymeleaf, REST, Docker, Spring Cloud — plus a capstone eCommerce app with login.", built: true,  phase: "Phase 3" },
+  { id: "fullstack-js",        file: "fullstack-js.html",        title: "Full-Stack JS",        desc: "Enough React + hooks, Redux, Node/Express and MongoDB schema design to work across the stack.", built: true,  phase: "Phase 3" },
+  { id: "genai",               file: "genai.html",               title: "GenAI",                desc: "LLMs & transformers, vector DBs, LLM APIs & fine-tuning, RAG, agents, LangChain/LangGraph, prompt engineering, MCP, and production cost/latency/accuracy/safety trade-offs.", built: true,  phase: "Phase 4" },
+  { id: "electives",           file: "electives.html",           title: "Electives",            desc: "Advanced DSA (segment trees, KMP, advanced DP & graphs), system-design case studies, computer networks, operating systems, and an optional mobile-dev section.", built: true,  phase: "Phase 5" },
+  { id: "projects",            file: "projects.html",            title: "Projects",             desc: "15 project briefs — 4 starred to build fully & push to GitHub (order management, notification service, payments settlement, RAG assistant), the rest design & write-up only. Each: problem, requirements, architecture, tech stack, REST API, DB schema, milestones, interview talking points.", built: true,  phase: "Parallel" },
+  { id: "job-search",          file: "job-search.html",          title: "Job Search",           desc: "The full hiring loop as a system: resume checklist + before/after, LinkedIn optimization, target-company research method, cold-outreach templates, editable target/application/interview-pipeline trackers, mock-interview bank structure, worked STAR stories, salary-negotiation scripts, and an offer-evaluation framework with a numeric two-offer comparison.", built: true, phase: "Parallel" }
+];
+
+function bar(pctVal) {
+  return '<div class="tracker-bar"><div class="tracker-fill" style="width:' + pctVal + '%"></div></div>';
+}
+
+/* The static catalog (content-index.js) is the source of truth for which
+   pages and items exist — so the dashboard shows correct totals even for
+   pages this browser has never opened. "done" counts come from localStorage. */
+var CATALOG = window.SDE_CONTENT || [];
+
+function renderDashboard() {
+  var summary = Tracker.summaryFromCatalog(CATALOG);
+  var ov = Tracker.overallFromCatalog(CATALOG);
+
+  var ring = document.getElementById("overall-ring");
+  ring.style.setProperty("--pct", ov.pct);
+  ring.textContent = ov.pct + "%";
+  document.getElementById("overall-line").textContent =
+    ov.done + " of " + ov.total + " items complete";
+
+  var grid = document.getElementById("page-grid");
+  grid.innerHTML = "";
+  PAGES.forEach(function (p) {
+    var inCatalog = CATALOG.some(function (c) { return c.id === p.id; });
+    var s = summary[p.id] || { total: 0, done: 0, pct: 0 };
+    var node;
+    if (p.built) {
+      node = document.createElement("a");
+      node.href = p.file;
+      node.className = "page-card";
+    } else {
+      node = document.createElement("div");
+      node.className = "page-card planned";
+    }
+    node.innerHTML =
+      '<div class="pc-top"><span class="pc-title">' + p.title + '</span>' +
+      '<span class="pc-badge">' + (p.built ? p.phase : "planned") + '</span></div>' +
+      '<div class="pc-desc">' + p.desc + '</div>' +
+      (p.built && inCatalog
+        ? bar(s.pct) + '<div class="pc-count">' + s.done + ' / ' + s.total + ' · ' + s.pct + '%</div>'
+        : '<div class="pc-count">' + (p.built ? 'no checklist' : 'page not built yet') + '</div>');
+    grid.appendChild(node);
+  });
+}
+
+function renderNav() {
+  var nav = document.getElementById("site-nav");
+  nav.innerHTML = "";
+  PAGES.forEach(function (p) {
+    if (p.built) {
+      var a = document.createElement("a");
+      a.href = p.file;
+      a.textContent = p.title;
+      nav.appendChild(a);
+    } else {
+      var s = document.createElement("span");
+      s.className = "soon";
+      s.textContent = p.title;
+      nav.appendChild(s);
+    }
+  });
+}
+
+renderNav();
+renderDashboard();
+document.addEventListener("tracker:update", renderDashboard);
+document.getElementById("reset-all").addEventListener("click", function () {
+  if (confirm("Clear every ticked item on every page? This cannot be undone.")) {
+    Tracker.resetAll();
+    renderDashboard();
+  }
+});
+</script>
+</body>
+</html>

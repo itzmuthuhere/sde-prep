@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadmap — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html" class="active">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>The Roadmap</h1>
+  <p class="lede">
+    An 8-month, ~34-week plan to go from fundamentals to signing an offer at a
+    product-based company, built around weeknights of 9–11&nbsp;PM and longer
+    weekend blocks.
+  </p>
+
+  <!-- ---------------- PHILOSOPHY ---------------- -->
+  <section class="box intuition">
+    <span class="box-title">Core philosophy — read this before anything else</span>
+    <p>
+      Four tracks run <strong>in parallel</strong>, not one after another:
+    </p>
+    <ol>
+      <li><strong>Content mastery</strong> — the concepts on each page of this site.</li>
+      <li><strong>Problem-solving volume</strong> — hundreds of coding problems, spaced and reviewed.</li>
+      <li><strong>Real projects</strong> — two things you built, deployed, and can defend for ten minutes.</li>
+      <li><strong>Job applications &amp; interviews</strong> — applying, and sitting real interviews, <em>for practice reps</em>.</li>
+    </ol>
+    <p>
+      The mistake almost everyone makes is treating these as a sequence: "I'll
+      apply once I'm ready." You will never feel ready. Interviewing is a
+      <strong>separate trained skill</strong> — thinking out loud under time
+      pressure, clarifying ambiguous prompts, recovering from a wrong turn, doing
+      LLD on a whiteboard. You get good at it the same way you got good at loops:
+      reps. Start <strong>practice-applying from month 4–5</strong> — to companies
+      you're lukewarm about — so that by the time you interview at a company you
+      actually want, you have ten interviews of muscle memory behind you.
+    </p>
+    <p>
+      Projects overlap with study from <strong>month 5</strong>. Serious
+      applications ramp up once you clear the <a href="#gate">interview-ready
+      gate</a> below — realistically around <strong>week 22–26</strong>, not week 34.
+    </p>
+  </section>
+
+  <!-- ---------------- PHASE MAP ---------------- -->
+  <h2>The 8 months at a glance</h2>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Month</th><th>Weeks</th><th>Primary focus</th><th>Runs in parallel</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>1–4</td><td><a href="phase0-fundamentals.html">Phase&nbsp;0 — Fundamentals</a> + toolchain setup</td><td>Easy problems daily; set up GitHub, LeetCode, resume v0</td></tr>
+      <tr><td>2</td><td>5–9</td><td>DSA part 1 — arrays, strings, hashing, two pointers, sliding window, binary search, sorting, recursion</td><td>Concept notes; start a "solved log"</td></tr>
+      <tr><td>3</td><td>10–13</td><td>DSA part 2 — linked lists, stacks, queues, trees, BST, heaps, tries</td><td>First résumé review from a senior; LinkedIn cleanup</td></tr>
+      <tr><td>4</td><td>14–17</td><td>DSA part 3 — graphs, DP, greedy, backtracking</td><td><strong>Practice-applying begins</strong> (~2–3 apps/week, low-stakes companies)</td></tr>
+      <tr><td>5</td><td>18–21</td><td>SQL + Low-Level Design (OOP, SOLID, patterns, UML)</td><td><strong>Project 1</strong> build starts; weekly mock interviews; real applications</td></tr>
+      <tr><td>6</td><td>22–25</td><td>High-Level Design (scaling, caching, queues, sharding, estimation)</td><td>Project 1 ships; Project 2 starts; <strong>serious applications</strong> ramp</td></tr>
+      <tr><td>7</td><td>26–30</td><td>Full-Stack Java — Core Java, Collections, concurrency, JVM, Spring Boot, JPA, testing</td><td>Project 2 ships; heavy interviewing; DSA maintenance only</td></tr>
+      <tr><td>8</td><td>31–34</td><td>GenAI (LLMs, RAG, tool calling, agents) + Electives (Docker, K8s, CI/CD, AWS, Kafka)</td><td>Continued interviews; offer evaluation &amp; negotiation</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="small muted">
+    DSA deliberately spans months 2–4 — it's the largest single block and the
+    highest-leverage skill for product-company loops. Everything after it is
+    shorter because you'll already have the study habit.
+  </p>
+
+  <!-- ---------------- WEEKLY TEMPLATE ---------------- -->
+  <h2>The weekly template</h2>
+  <p>
+    Roughly <strong>10 weeknight hours</strong> (5 × 2h, 9–11&nbsp;PM) plus
+    <strong>8–12 weekend hours</strong>. The split between "grind problems" and
+    "study concepts" is fixed so you don't have to decide each night — decision
+    fatigue at 9&nbsp;PM is real.
+  </p>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>Slot</th><th>Focus</th><th>What that actually means</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Mon 9–11</strong></td><td>DSA — new pattern</td><td>Read the pattern, do 3–4 problems on it (easy→medium). Write each solution's idea in the solved log <em>before</em> coding.</td></tr>
+      <tr><td><strong>Tue 9–11</strong></td><td>Concept study</td><td>Current phase's page on this site. Take notes in your own words; code every worked example yourself.</td></tr>
+      <tr><td><strong>Wed 9–11</strong></td><td>DSA — mixed</td><td>2 review problems from 1–2 weeks ago (from memory) + 2–3 new on the current pattern.</td></tr>
+      <tr><td><strong>Thu 9–11</strong></td><td>Concept study / project</td><td>Finish the phase page, or (from month 5) work on the current project.</td></tr>
+      <tr><td><strong>Fri 9–11</strong></td><td>DSA — timed</td><td>Simulate pressure: 2 mediums in 70 minutes, timer visible, narrate aloud. Then review both fully.</td></tr>
+      <tr><td><strong>Sat (4–6h)</strong></td><td>Build + mock</td><td>3h project building · 1h mock interview (peer/Pramp/paid) · 1h review the week's problems + update solved log.</td></tr>
+      <tr><td><strong>Sun (4–6h)</strong></td><td>Design + apply + plan</td><td>2h LLD/HLD or SQL study · 1.5h applications + referrals + behavioral stories · 1h spaced repetition of old problems · 0.5h plan next week.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="box note">
+    <p class="small">
+      <strong>Sustainability rules:</strong> one full rest day is allowed and
+      encouraged — take it, don't let it become three. If you miss a weeknight,
+      don't "make it up" the next day; just resume. A missed week is recoverable;
+      a burned-out month is not. Weekends are where projects and mocks live —
+      protect them.
+    </p>
+  </div>
+
+  <!-- ---------------- PHASES + MILESTONES ---------------- -->
+  <h2>Phases &amp; milestone checkpoints</h2>
+  <p class="muted small">
+    Each checkpoint is a specific, testable bar — not "understand recursion" but
+    "trace a recursion call tree on paper without running it." Tick them off as
+    you clear them; they roll up into the dashboard on the home page.
+  </p>
+
+  <!-- Phase 0 -->
+  <div class="phase">
+    <span class="phase-when">Weeks 1–4 · Month 1</span>
+    <h3>Phase 0 — Fundamentals</h3>
+    <p>
+      Programming basics through to arrays, strings, and complexity analysis.
+      Goal: never be slowed down by <em>syntax</em> or <em>I/O</em> again — those
+      should be automatic so all your thinking goes to the problem.
+      Page: <a href="phase0-fundamentals.html">Phase 0 — Fundamentals</a>.
+    </p>
+    <div id="t-phase-0-milestones"></div>
+  </div>
+
+  <!-- DSA -->
+  <div class="phase">
+    <span class="phase-when">Weeks 5–17 · Months 2–4</span>
+    <h3>Phase 1 — DSA</h3>
+    <p>
+      The core of every product-company coding round. Checkpoints at weeks 8, 12,
+      and 16 so you can catch a slipping pace early. Problem counts are cumulative
+      and assume ~60% mediums, ~25% easy, ~15% hard.
+    </p>
+    <div id="t-dsa-milestones"></div>
+  </div>
+
+  <!-- SQL / LLD / HLD -->
+  <div class="phase">
+    <span class="phase-when">Weeks 18–25 · Months 5–6</span>
+    <h3>Phase 2 — SQL, Low-Level Design, High-Level Design</h3>
+    <p>
+      The "can you design software, not just solve puzzles" phase. Project 1 is
+      being built alongside this — the design concepts here should show up in that
+      project's code.
+    </p>
+    <div id="t-sql-lld-hld-milestones"></div>
+  </div>
+
+  <!-- Full Stack Java -->
+  <div class="phase">
+    <span class="phase-when">Weeks 26–30 · Month 7</span>
+    <h3>Phase 3 — Full-Stack Java</h3>
+    <p>
+      Deep Core Java plus the Spring ecosystem — the stack you'll be hired to
+      write. By now DSA is on maintenance (3–4 problems/week to stay sharp) and
+      most weeknights go here.
+    </p>
+    <div id="t-full-stack-java-milestones"></div>
+  </div>
+
+  <!-- GenAI + Electives -->
+  <div class="phase">
+    <span class="phase-when">Weeks 31–34 · Month 8</span>
+    <h3>Phases 4 &amp; 5 — GenAI + Electives</h3>
+    <p>
+      GenAI literacy is now a differentiator for backend roles; electives
+      (containers, cloud, streaming) round out the résumé and unblock
+      infrastructure questions. These are lighter — you're interviewing heavily
+      by now.
+    </p>
+    <div id="t-genai-electives-milestones"></div>
+  </div>
+
+  <!-- Projects (parallel) -->
+  <div class="phase">
+    <span class="phase-when">Weeks 18–30 · parallel</span>
+    <h3>Projects (overlapping)</h3>
+    <p>
+      Two projects, built on weekends. Not tutorials followed to completion —
+      things with a real design decision, a real bug you fixed, and a deployed URL.
+    </p>
+    <div id="t-project-milestones"></div>
+  </div>
+
+  <!-- ---------------- INTERVIEW-READY GATE ---------------- -->
+  <h2 id="gate">Definition of "interview-ready"</h2>
+  <p>
+    Use this to decide <strong>when to switch from practice-applying to seriously
+    applying</strong>. You do <em>not</em> need every box to start practice
+    interviews — start those at week ~14 regardless. But before you spend your
+    limited referral capital and emotional energy on dream companies, you want
+    roughly <strong>80% of this</strong> true.
+  </p>
+  <div id="t-interview-ready-gate"></div>
+
+  <div class="box intuition">
+    <span class="box-title">Practice-apply vs. seriously-apply</span>
+    <p class="small">
+      <strong>Practice-apply (from week ~14):</strong> companies you're neutral or
+      lukewarm about. Target 2–3 applications/week. The goal is interview reps and
+      calibration — treat every rejection as free data. Debrief each interview in
+      your mock-interview log within 24 hours.
+    </p>
+    <p class="small">
+      <strong>Seriously-apply (when the gate is ~80% met, realistically week
+      22–26):</strong> your target companies. 8–12 applications/week plus active
+      referral outreach. By now you have a portfolio, a tight résumé, rehearsed
+      stories, and a dozen interviews of experience — you're a different candidate
+      than you were at week 14.
+    </p>
+  </div>
+
+  <p class="backlink"><a href="index.html">← Back to home &amp; dashboard</a></p>
+
+  <footer class="foot">
+    <p>Adjust dates to your real start date. The bars matter more than the calendar.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("roadmap", [
+  {
+    group: "Phase 0 milestones",
+    mount: "#t-phase-0-milestones",
+    items: [
+      "40+ easy problems solved across the fundamentals topics",
+      "Can write a nested-loop pattern (e.g. Pascal's triangle) in under 15 min with no reference",
+      "Can state the time AND space complexity of any loop I write, out loud",
+      "Java I/O is automatic: read multi-line / space-separated input without looking it up",
+      "Fluent with array, ArrayList, HashMap, HashSet, String/StringBuilder basics"
+    ]
+  },
+  {
+    group: "DSA milestones",
+    mount: "#t-dsa-milestones",
+    items: [
+      "Week 8: 100 problems total solved and logged",
+      "Week 8: can explain any of my last 20 solutions from memory, no re-reading",
+      "Week 8: recognise on sight — two pointers, sliding window, binary search, prefix sum, hashing",
+      "Week 12: 180 problems total; linked lists, stacks, queues, trees, heaps all comfortable",
+      "Week 12: code iterative AND recursive tree traversals cold; solve a new easy in under 10 min",
+      "Week 16: 260 problems total; graphs (BFS/DFS/topo/Dijkstra), DP (1D/2D, knapsack, LIS, LCS), backtracking",
+      "Week 16: solve a NEW medium LeetCode problem within 30 minutes, cold, narrating aloud",
+      "Week 16: ~60% first-attempt acceptance on mediums; always state complexity before submitting"
+    ]
+  },
+  {
+    group: "SQL / LLD / HLD milestones",
+    mount: "#t-sql-lld-hld-milestones",
+    items: [
+      "SQL: write any query with joins, GROUP BY/HAVING, subqueries, window functions in under 10 min",
+      "SQL: explain indexing, B-trees, normalization vs denormalization, ACID, isolation levels, the N+1 problem",
+      "LLD: design parking lot / BookMyShow / elevator / rate limiter on a whiteboard in 40 min with a clean class diagram",
+      "LLD: explain every SOLID principle with a concrete code example I wrote",
+      "LLD: know 8+ design patterns and can name a real situation for each",
+      "HLD: draw the architecture for URL shortener, news feed, chat, and a rate limiter",
+      "HLD: explain caching strategies, load balancing, sharding, replication, CAP, and message queues",
+      "HLD: do back-of-the-envelope capacity estimation (QPS, storage, bandwidth) without panicking"
+    ]
+  },
+  {
+    group: "Full-Stack Java milestones",
+    mount: "#t-full-stack-java-milestones",
+    items: [
+      "Core Java: explain JVM memory areas, GC basics, equals/hashCode contract, immutability, generics, checked vs unchecked exceptions",
+      "Collections: explain HashMap internals, ConcurrentHashMap, ArrayList vs LinkedList, TreeMap, when each is right",
+      "Concurrency: threads, ExecutorService, locks, volatile, synchronized, CompletableFuture; solve producer–consumer cold",
+      "Spring Boot: build + deploy a REST API with JPA, validation, exception handling, and auth from scratch in one weekend",
+      "Testing: write meaningful JUnit 5 + Mockito unit tests and at least one integration test"
+    ]
+  },
+  {
+    group: "GenAI & Electives milestones",
+    mount: "#t-genai-electives-milestones",
+    items: [
+      "Explain tokens, embeddings, context window, temperature, and how a transformer predicts the next token at a high level",
+      "Build a working RAG service (Java or Python) that retrieves from a vector store and calls an LLM API",
+      "Explain prompt-engineering patterns, tool/function calling, agent loops, and hallucination mitigation",
+      "Docker: write a multi-stage Dockerfile and a docker-compose with an app + database",
+      "Explain Kubernetes pods/deployments/services and set up a CI/CD pipeline with GitHub Actions",
+      "AWS: use EC2, S3, RDS, Lambda, IAM; deploy one project to the cloud",
+      "Kafka: producers/consumers, topics/partitions/consumer groups, and when to use it instead of REST"
+    ]
+  },
+  {
+    group: "Project milestones",
+    mount: "#t-project-milestones",
+    items: [
+      "Project 1: chosen, scoped to a 4-week weekend build, README written first",
+      "Project 1: deployed to a public URL with CI, tests, and a documented design decision",
+      "Project 2: a different domain/stack from Project 1, also deployed",
+      "For each project: can talk for 10 min covering architecture, one tradeoff, and one hard bug I fixed",
+      "Both projects pinned on GitHub with clean commit history and a real README"
+    ]
+  },
+  {
+    group: "Interview-ready gate",
+    mount: "#t-interview-ready-gate",
+    items: [
+      "Solved 250+ problems; can solve a random medium in 30 min cold while talking aloud",
+      "Can explain every résumé project for 10 min including a design tradeoff and a bug I fixed",
+      "Completed 8+ mock interviews with written feedback, and visibly acted on that feedback",
+      "Can do LLD for a common system in 40 min and HLD for one in 45 min",
+      "10+ rehearsed STAR stories covering conflict, failure, leadership, ambiguity, and impact",
+      "Résumé passes a 6-second scan; LinkedIn and GitHub are current and consistent",
+      "Can clearly answer 'why this company' and 'why this role' for each target",
+      "DSA, one system-design flavour, and behavioral all feel 'defensible' — not perfect, defensible"
+    ]
+  }
+], { pageTitle: "Roadmap" });
+</script>
+</body>
+</html>

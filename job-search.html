@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Search — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html" class="active">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Job Search — The Operating System</h1>
+  <p class="lede">
+    Studying is one loop; getting hired is a different one, and it runs
+    <strong>in parallel</strong>. This page is the machine for that loop: a resume
+    that passes the six-second scan, a LinkedIn profile recruiters actually find, a
+    repeatable way to build a target list, outreach that gets replies, and the
+    trackers that keep 40 open threads from turning into chaos — through
+    negotiation and picking the right offer.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>How to use this page.</strong> Work it top to bottom <em>once</em> to
+      set everything up (resume, LinkedIn, target list, templates, trackers), then
+      it becomes a weekly dashboard: add companies, fire outreach, log every
+      interview stage and the exact questions asked, and review the pipeline every
+      Sunday. The three tables (targets, applications, pipeline) are real
+      <code>&lt;table&gt;</code> elements — open this file in an editor and
+      duplicate a <code>&lt;tr&gt;</code> row to add your own. The checklist at the
+      bottom of each section tracks setup, not applications.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — job search</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#js-resume">Resume — the six-second scan</a></li>
+      <li><a href="#js-linkedin">LinkedIn optimization</a></li>
+      <li><a href="#js-research">Target company research method</a></li>
+      <li><a href="#js-targets">Target company tracker</a></li>
+      <li><a href="#js-outreach">Cold outreach &amp; referrals</a></li>
+      <li><a href="#js-applications">Application tracker</a></li>
+      <li><a href="#js-pipeline">Interview pipeline tracker</a></li>
+      <li><a href="#js-mock-bank">Mock interview question bank</a></li>
+      <li><a href="#js-star">STAR behavioral bank (worked)</a></li>
+      <li><a href="#js-negotiation">Salary negotiation scripts</a></li>
+      <li><a href="#js-offer">Offer evaluation framework</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ============================================================
+       1. RESUME
+       ============================================================ -->
+  <section class="topic" id="js-resume">
+    <h2>1. Resume — built for the six-second scan</h2>
+    <p>
+      A recruiter spends about six seconds on the first pass and an ATS parses it
+      before that. So the resume has one job: make it obvious in one screen that
+      you're a backend engineer who ships. One page, single column (multi-column
+      layouts confuse ATS parsers), a standard font, no photo, no skill bars, PDF
+      named <code>Firstname_Lastname_Backend_Engineer.pdf</code>. Section order for
+      someone with 2–6 years of experience: <strong>Summary → Skills → Experience →
+      Projects → Education</strong>. Experience is 70% of the page.
+    </p>
+    <p>
+      Every bullet is an <strong>accomplishment</strong>, not a responsibility. The
+      formula: <em>action verb → what you built → the technical how → the measured
+      result</em>. If you can't measure it, quantify the scope instead (requests/day,
+      rows, services, team size). "Responsible for maintaining APIs" is invisible.
+      "Cut p99 latency on the checkout API from 900&nbsp;ms to 180&nbsp;ms by adding a
+      read-through Redis cache and fixing an N+1 query, serving 2M requests/day" is a
+      conversation.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p class="small">
+        The reader is pattern-matching against a job description. Mirror its
+        language: if the JD says "distributed systems," "Kafka," "observability,"
+        those exact words should appear in your bullets (truthfully). Tailor the
+        Summary and reorder skills per application — that's 10 minutes and it moves
+        you past keyword filters and the six-second scan.
+      </p>
+    </div>
+
+    <h4>Pre-send checklist</h4>
+    <ul class="small">
+      <li>One page. One column. Selectable text (open the PDF, Ctrl+A — if nothing highlights, the ATS sees nothing).</li>
+      <li>Contact line: name, city, phone, professional email, LinkedIn URL, GitHub URL. No full address.</li>
+      <li>Summary is 2–3 lines, role-specific, no "hardworking team player."</li>
+      <li>Skills grouped: <em>Languages</em> / <em>Frameworks</em> / <em>Data &amp; Infra</em> / <em>Practices</em>. Only list what you can be grilled on.</li>
+      <li>Every experience bullet starts with a past-tense verb (Built, Led, Migrated, Reduced, Designed).</li>
+      <li>Each role has at least one bullet with a hard number.</li>
+      <li>No pronouns, no articles at the start of bullets, consistent tense and punctuation.</li>
+      <li>Most impressive / most relevant bullet is the <em>first</em> bullet of your most recent role.</li>
+      <li>2–3 projects with a one-line "what + stack + link." GitHub links actually resolve.</li>
+      <li>Dates aligned right, format consistent (<code>Mar 2022 – Present</code>). No unexplained gaps.</li>
+      <li>Ran it through <code>jobscan</code> or a JD keyword diff for the specific role.</li>
+      <li>Spell-checked. Someone else read it. Exported fresh PDF (not "Save As" from an old one — re-embeds fonts).</li>
+    </ul>
+
+    <h4>Before → after: one bullet</h4>
+    <div class="box mistakes">
+      <span class="box-title">Before</span>
+      <ul class="small">
+        <li>Worked on the notification system and was responsible for its reliability.</li>
+        <li>Used Kafka for messaging between services.</li>
+        <li>Helped improve database performance.</li>
+      </ul>
+    </div>
+    <div class="box intuition">
+      <span class="box-title">After</span>
+      <ul class="small">
+        <li>Re-architected the notification service to a queue-per-channel model with exponential backoff and a dead-letter queue, raising successful delivery from 94% to 99.7% across ~1.2M messages/day.</li>
+        <li>Introduced an outbox pattern (Postgres → Kafka poller) to remove a dual-write bug that was dropping ~200 events/day during broker failovers.</li>
+        <li>Cut the orders list endpoint from 1.4&nbsp;s to 210&nbsp;ms by replacing an N+1 fetch with a single join projection and adding a covering index, verified with Testcontainers load tests.</li>
+      </ul>
+    </div>
+    <p class="small muted">
+      What changed: a specific action verb, the <em>mechanism</em> (queue-per-channel,
+      outbox, covering index), and a number that frames the scope. Each "after"
+      bullet is a door into a 10-minute technical story you can defend.
+    </p>
+
+    <div id="t-resume"></div>
+  </section>
+
+
+  <!-- ============================================================
+       2. LINKEDIN
+       ============================================================ -->
+  <section class="topic" id="js-linkedin">
+    <h2>2. LinkedIn optimization</h2>
+    <p>
+      Recruiters search LinkedIn with boolean queries against your
+      <strong>headline</strong>, <strong>About</strong>, <strong>skills</strong>,
+      and <strong>job titles</strong>. Ranking favours completeness ("All-Star"
+      profile), keyword match, and recent activity. You want to show up for
+      <em>"backend engineer" AND (Java OR Spring) AND (Kafka OR microservices)</em>
+      and look active when they click.
+    </p>
+
+    <h4>Headline formula</h4>
+    <p class="small">
+      Not just your job title. Use: <code>Role · Core stack · Domain / impact</code>
+      (220 chars, front-load the keywords).
+    </p>
+    <div class="box dryrun">
+      <span class="box-title">Examples</span>
+      <ul class="small">
+        <li>Backend Engineer · Java, Spring Boot, PostgreSQL, Kafka · Building payment &amp; order systems at scale</li>
+        <li>Software Engineer (Backend) | Distributed systems, microservices, AWS | 3+ yrs shipping high-throughput APIs</li>
+        <li>SDE II · Java / Spring / Kubernetes · Reliability &amp; performance for e-commerce backends</li>
+      </ul>
+    </div>
+
+    <h4>About section template</h4>
+    <div class="box dryrun">
+      <span class="box-title">Fill in the brackets — 4 short paragraphs</span>
+<pre><code>[Hook — 1 line]  Backend engineer who likes the unglamorous parts:
+correctness under concurrency, latency budgets, and systems that page
+no one at 3am.
+
+[What you do — 2–3 lines]  Currently at [company], working on [domain]
+in [stack]. Recent work: [1-line impact], [1-line impact]. Comfortable
+owning a service from schema design through deployment and on-call.
+
+[Toolbox — 1 line, keyword-dense]  Java, Spring Boot, Hibernate/JPA,
+PostgreSQL, Redis, Kafka, Docker, Kubernetes, AWS, JUnit, CI/CD.
+
+[What's next + CTA — 2 lines]  Looking for a senior backend role at a
+product company working on [distributed systems / payments / data
+infra]. Open to a conversation — [email].</code></pre>
+    </div>
+
+    <h4>Featured section (3 items)</h4>
+    <ul class="small">
+      <li>Your best GitHub project repo — the one with a real README and an architecture diagram.</li>
+      <li>A short write-up: a blog post, a Gist, or a PDF of a design doc you can share. Even one "how I built X" post signals more than a dozen endorsements.</li>
+      <li>Your resume PDF, or a link to a portfolio / the deployed project.</li>
+    </ul>
+
+    <h4>Profile checklist</h4>
+    <ul class="small">
+      <li>Photo: plain background, face fills ~60% of frame. Banner: simple, not a stock skyline (a subtle tech pattern or your city is fine).</li>
+      <li>Custom URL: <code>linkedin.com/in/firstname-lastname</code>.</li>
+      <li>"Open to work" set to <em>recruiters only</em> (green badge is optional; recruiters-only avoids signalling to your current employer).</li>
+      <li>Location set to your target metro if you'll relocate.</li>
+      <li>Every past role has 2–3 accomplishment bullets (reuse resume bullets).</li>
+      <li>Skills: pin the top 3 to match your headline; get a few endorsements on those.</li>
+      <li>Turn on "notify network of job changes" only <em>after</em> you start a new role, not during the search.</li>
+      <li>Activity: comment thoughtfully on 2–3 engineering posts a week, or repost with a sentence of your take. Recency feeds ranking.</li>
+      <li>Request 2 recommendations from people you worked closely with; offer to write theirs first.</li>
+    </ul>
+
+    <div id="t-linkedin"></div>
+  </section>
+
+
+  <!-- ============================================================
+       3. RESEARCH METHOD
+       ============================================================ -->
+  <section class="topic" id="js-research">
+    <h2>3. Target company research method</h2>
+    <p>
+      Spray-and-pray applications convert at roughly 1–2%. A researched, referred
+      application converts many times better. The method below is a repeatable
+      ~15-minute-per-company pipeline that produces a ranked target list and the
+      raw material for outreach.
+    </p>
+
+    <h4>Step 1 — Build the raw list (cast wide)</h4>
+    <ul class="small">
+      <li><strong>Company career pages</strong> — the source of truth for openings and titles. Bookmark 20–30 and check weekly; roles often appear here days before job boards.</li>
+      <li><strong>LinkedIn Jobs</strong> with search operators in the keyword box:
+        <br><code>("backend engineer" OR "software engineer") AND (java OR spring) NOT (senior staff OR principal OR intern)</code>
+        <br>Filter: Date posted → past week, Experience level, On-site/Hybrid/Remote.</li>
+      <li><strong>LinkedIn people search</strong> to find who to contact:
+        <code>title:("engineering manager" OR "recruiter") AND "CompanyName"</code>, then filter by 2nd-degree connections.</li>
+      <li><strong>Wellfound (AngelList)</strong> — startups, often direct-to-founder applications, salary + equity shown up front.</li>
+      <li><strong>Aggregators</strong> — a curated newsletter or two in your niche, company lists (YC, well-funded Series B+), and <code>levels.fyi</code> to see which companies pay in your target band.</li>
+      <li><strong>Your network</strong> — ex-colleagues, college seniors, people from your city. A warm intro beats everything.</li>
+    </ul>
+
+    <h4>Step 2 — Qualify each company (the 15-minute pass)</h4>
+    <ul class="small">
+      <li><strong>Engineering blog</strong> — do they write about the problems you want to work on? Read the 2 most recent technical posts; note names of authors and specific systems (great outreach hooks).</li>
+      <li><strong>Tech stack</strong> — from the JD, the blog, StackShare, or their open-source. Is it adjacent to yours (Java/Spring/Postgres/Kafka), or a full retool (Go/gRPC/Rust)?</li>
+      <li><strong>Compensation band</strong> — <code>levels.fyi</code>, Glassdoor, Wellfound. Rule it out early if it's below your floor.</li>
+      <li><strong>Health &amp; stage</strong> — funding round + date, headcount trend on LinkedIn, recent layoffs, Glassdoor trajectory (not the absolute score, the trend).</li>
+      <li><strong>Interview process</strong> — Glassdoor / Leetcode discuss / <code>interviewing.io</code> notes. How many rounds, DSA-heavy or system-design-heavy, take-home or live.</li>
+      <li><strong>The connection</strong> — do you know anyone there, or a 2nd-degree who could refer? This decides your application path.</li>
+    </ul>
+
+    <h4>Step 3 — Score and tier</h4>
+    <p class="small">
+      Score each on <em>Interest</em> (1–5), <em>Fit</em> (1–5), <em>Reachability</em>
+      (1–5 — comp in band + you have a referral path). Sum, then tier:
+    </p>
+    <ul class="small">
+      <li><strong>Tier A (11–15)</strong> — dream + reachable. Get a referral, tailor everything, apply last (after you've done a few reps).</li>
+      <li><strong>Tier B (7–10)</strong> — solid. The bulk of your applications.</li>
+      <li><strong>Tier C (≤6)</strong> — practice reps. Apply early to warm up your interview muscles on lower stakes.</li>
+    </ul>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul class="small">
+        <li>Applying to Tier-A companies in week one, before you've had any interview practice.</li>
+        <li>Researching so thoroughly you apply to 3 companies a week. Timebox it: 15 min qualify, move on.</li>
+        <li>Ignoring comp bands and getting deep into a process that could never clear your floor.</li>
+        <li>Not recording <em>why</em> a company was interesting — you'll need that exact detail for the cover note and the "why us?" question.</li>
+      </ul>
+    </div>
+
+    <div id="t-research"></div>
+  </section>
+
+
+  <!-- ============================================================
+       4. TARGET COMPANY TRACKER
+       ============================================================ -->
+  <section class="topic" id="js-targets">
+    <h2>4. Target company tracker</h2>
+    <p class="small muted">
+      Duplicate a <code>&lt;tr&gt;</code> to add a row. Scores are Interest / Fit /
+      Reachability (1–5 each); Tier = A/B/C from the sum. Keep this to ~25 live
+      companies; archive the dead ones.
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th><th>Role / JD link</th><th>Stack fit</th><th>Comp band (levels.fyi)</th>
+            <th>I</th><th>F</th><th>R</th><th>Tier</th><th>Referral path</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Razorpay</td><td>SDE-2 Backend — <code>jobs link</code></td><td>Java/Spring/Kafka — strong</td><td>₹35–45L</td>
+            <td>5</td><td>5</td><td>4</td><td>A</td><td>Ex-colleague (S. on payments team) — asked 4 Sep</td><td>Referral requested</td>
+          </tr>
+          <tr>
+            <td>Atlassian</td><td>Backend Engineer — <code>jobs link</code></td><td>Java/AWS — strong</td><td>₹40–55L</td>
+            <td>4</td><td>4</td><td>3</td><td>B</td><td>2nd-degree via college senior</td><td>Researching</td>
+          </tr>
+          <tr>
+            <td>Zerodha</td><td>Backend (Go) — <code>jobs link</code></td><td>Go/Postgres — retool</td><td>₹30–40L</td>
+            <td>3</td><td>2</td><td>3</td><td>C</td><td>None — cold apply</td><td>Practice rep</td>
+          </tr>
+          <!-- duplicate a row above to add your own -->
+        </tbody>
+      </table>
+    </div>
+    <div id="t-targets"></div>
+  </section>
+
+
+  <!-- ============================================================
+       5. OUTREACH
+       ============================================================ -->
+  <section class="topic" id="js-outreach">
+    <h2>5. Cold outreach &amp; referrals</h2>
+    <p>
+      The path is: <strong>referral &gt; recruiter reply &gt; cold application</strong>.
+      Outreach is how you get the first two. Send to (in order of value) an engineer
+      on the team, an engineering manager, then a recruiter. Keep it under 120 words,
+      make the ask small, and never attach a resume in the first message.
+    </p>
+
+    <h4>The five-part template</h4>
+    <div class="box dryrun">
+      <span class="box-title">Subject → Hook → Proof → Fit → CTA</span>
+<pre><code>Subject:  Backend engineer interested in [Team] at [Company]
+
+Hook:     I read [Name]'s post on [specific system — e.g. "your
+          move to a cell-based architecture"] — the part about
+          [specific detail] matched a problem I hit at [my company].
+
+Proof:    I'm a backend engineer at [company], 3 years on
+          [Java/Spring/Kafka]. Recently I [one concrete, quantified
+          win — "cut checkout p99 from 900ms to 180ms"].
+
+Fit:      I noticed you're hiring for [role]. My work on
+          [domain] lines up closely with what that team does.
+
+CTA:      Would you be open to a 15-minute call so I can learn
+          more about the team? Or if it's easier, I'm happy to
+          apply and reference this note.</code></pre>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Why it works</span>
+      <ul class="small">
+        <li><strong>Hook</strong> proves you did homework and aren't mass-mailing — the single biggest reply-rate lever.</li>
+        <li><strong>Proof</strong> is one quantified line, not your life story.</li>
+        <li><strong>CTA</strong> is a small, specific ask ("15 minutes") with an even smaller fallback ("just apply and reference this").</li>
+      </ul>
+    </div>
+
+    <h4>Referral-ask variant (someone you already know)</h4>
+    <div class="box dryrun">
+<pre><code>Hi [Name] — hope [team/kids/city] is good. I'm starting a job
+search focused on backend roles at product companies, and
+[Company] is near the top of my list — [one sentence why].
+
+I saw an opening for [role] ([link]). Would you be comfortable
+referring me? No worries at all if not. I've attached my resume
+and a 3-line blurb you can paste into the referral form to make
+it zero effort.
+
+Thanks either way — happy to return the favour anytime.</code></pre>
+    </div>
+    <p class="small muted">
+      Always include the paste-ready blurb: <em>"[Name] is a backend engineer with
+      3 years on Java/Spring at [company]; recently [one win]. Strong fit for the
+      [role] opening."</em>
+    </p>
+
+    <h4>Follow-up cadence</h4>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>When</th><th>Action</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>Day 0</td><td>Send the initial message</td><td>Tue–Thu, morning, is best.</td></tr>
+          <tr><td>Day 3–4</td><td>Follow-up #1</td><td>Reply in the same thread: "Bumping this in case it slipped — still very interested."</td></tr>
+          <tr><td>Day 8–10</td><td>Follow-up #2 (final)</td><td>Short. Add one new thing: a project link, or "I went ahead and applied — ref: [id]."</td></tr>
+          <tr><td>Day 10+</td><td>Stop. Try a different person</td><td>Two unanswered follow-ups = move to the next contact at that company.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">
+      Rule: <strong>max 3 touches per person</strong>. Track every send in the
+      application tracker so you never double-message or forget a follow-up.
+    </p>
+
+    <div id="t-outreach"></div>
+  </section>
+
+
+  <!-- ============================================================
+       6. APPLICATION TRACKER
+       ============================================================ -->
+  <section class="topic" id="js-applications">
+    <h2>6. Application tracker</h2>
+    <p class="small muted">
+      One row per application. "Next action" + "Next date" are the two columns you
+      scan every day; sort by Next date. Statuses:
+      <code>To apply → Applied → Recruiter screen → In pipeline → Offer → Rejected → Withdrawn</code>.
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th><th>Role</th><th>Applied via</th><th>Date applied</th>
+            <th>Status</th><th>Last contact</th><th>Next action</th><th>Next date</th><th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Razorpay</td><td>SDE-2 Backend</td><td>Referral (S.)</td><td>2026-09-06</td>
+            <td>Recruiter screen</td><td>2026-09-09</td><td>Prep recruiter call — comp range, story</td><td>2026-09-11</td>
+            <td>Recruiter: Priya. Process: OA → 2 DSA → 1 SD → HM → HR.</td>
+          </tr>
+          <tr>
+            <td>Atlassian</td><td>Backend Engineer</td><td>Company site + 2nd-degree ping</td><td>2026-09-04</td>
+            <td>Applied</td><td>2026-09-04</td><td>Follow up with referrer</td><td>2026-09-08</td>
+            <td>Waiting on referral confirmation.</td>
+          </tr>
+          <tr>
+            <td>Zerodha</td><td>Backend</td><td>Cold — careers page</td><td>2026-09-02</td>
+            <td>Rejected</td><td>2026-09-05</td><td>—</td><td>—</td>
+            <td>Auto-reject in 3 days. Go stack was probably the filter.</td>
+          </tr>
+          <!-- duplicate a row above to add your own -->
+        </tbody>
+      </table>
+    </div>
+    <div class="box note">
+      <p class="small">
+        <strong>Weekly review (Sunday, 20 min).</strong> Count applications sent
+        this week (target from the <a href="roadmap.html">roadmap</a>: 2–3/week
+        early, 8–12/week in the push). Every row with no "Next action" gets one or
+        gets moved to Withdrawn. Every follow-up due this week goes on the calendar.
+      </p>
+    </div>
+    <div id="t-applications"></div>
+  </section>
+
+
+  <!-- ============================================================
+       7. INTERVIEW PIPELINE TRACKER
+       ============================================================ -->
+  <section class="topic" id="js-pipeline">
+    <h2>7. Interview pipeline tracker</h2>
+    <p>
+      Once an application becomes a live process, it gets its own detailed log. The
+      value here is compounding: <strong>write down every question asked at every
+      stage, the same day</strong>. After 4–5 processes you'll have a personalised
+      question bank and you'll see each company's patterns before you walk in.
+    </p>
+
+    <h4>The stages</h4>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Stage</th><th>What it tests</th><th>Your prep focus</th></tr></thead>
+        <tbody>
+          <tr><td>OA (online assessment)</td><td>2–4 DSA problems, timed; sometimes debugging or MCQs</td><td>Speed on easy/medium. Practice in the platform (HackerRank/Codility) UI.</td></tr>
+          <tr><td>Phone / recruiter screen</td><td>Motivation, comp expectations, basic background, logistics</td><td>2-min story, comp range, 2 questions for them. See negotiation section.</td></tr>
+          <tr><td>Technical phone screen</td><td>1–2 DSA problems live, or code review / language depth</td><td>Think out loud, clarify first, test your code.</td></tr>
+          <tr><td>Virtual onsite (3–5 rounds)</td><td>DSA ×2, system design ×1, LLD/OOD ×1, behavioral ×1, hiring-manager ×1</td><td>Full-loop simulation. Rest the day before.</td></tr>
+          <tr><td>HR / hiring-manager wrap</td><td>Team fit, your questions, soft close on comp &amp; timeline</td><td>Have a decision framework ready (offer section).</td></tr>
+          <tr><td>Offer</td><td>—</td><td>Don't accept on the call. Negotiate. See scripts.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Per-process log</h4>
+    <p class="small muted">One block per company. Duplicate the table.</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Company</th><th>Stage</th><th>Date</th><th>Interviewer / role</th><th>Result</th><th>Questions asked (verbatim as you can)</th><th>What to fix</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Razorpay</td><td>OA</td><td>2026-09-12</td><td>—</td><td>Passed (3/3)</td>
+            <td>1) Merge intervals. 2) LRU cache. 3) Min-cost to connect ropes (heap).</td>
+            <td>Blanked on heap API for 30s — drill <code>PriorityQueue</code> idioms.</td>
+          </tr>
+          <tr>
+            <td>Razorpay</td><td>Tech phone screen</td><td>2026-09-18</td><td>Senior SDE, payments</td><td>Advanced</td>
+            <td>Rate limiter — design + code the token bucket. Follow-up: make it distributed (Redis).</td>
+            <td>Should have asked about accuracy vs cost trade-off earlier.</td>
+          </tr>
+          <tr>
+            <td>Razorpay</td><td>Onsite — System Design</td><td>2026-09-25</td><td>Staff Eng</td><td>Pending</td>
+            <td>Design a payment gateway: idempotency, retries, reconciliation, exactly-once capture.</td>
+            <td>—</td>
+          </tr>
+          <!-- duplicate a row / block per company -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Post-interview routine (do it within 2 hours)</span>
+      <ul class="small">
+        <li>Dump every question into the log while it's fresh.</li>
+        <li>Note where you struggled and the one concrete thing to drill before the next round.</li>
+        <li>Send a 3-line thank-you to the recruiter (not each interviewer unless you have emails); restate interest.</li>
+        <li>Update the application tracker status + next date.</li>
+      </ul>
+    </div>
+
+    <div id="t-pipeline"></div>
+  </section>
+
+
+  <!-- ============================================================
+       8. MOCK INTERVIEW QUESTION BANK
+       ============================================================ -->
+  <section class="topic" id="js-mock-bank">
+    <h2>8. Mock interview question bank — structure</h2>
+    <p>
+      A mock is only useful if it's timed, spoken aloud, and reviewed. Do one full
+      mock a week from month 4 (see the <a href="roadmap.html">roadmap</a>). Rotate a
+      partner, <code>interviewing.io</code> / <code>Pramp</code>, or record yourself
+      solving cold. This is the <em>structure</em> of the bank — the actual problems
+      live on the DSA, LLD, HLD and this site's other pages; pull from them.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Track</th><th>Format</th><th>Time</th><th>Source on this site</th><th>What "good" looks like</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>DSA</td><td>1 medium or 2 easy, live-coded, talking</td><td>35–45 min</td>
+            <td><a href="dsa-linear.html">DSA · Linear</a>, <a href="dsa-nonlinear.html">DSA · Non-linear</a></td>
+            <td>Clarify → brute force + complexity → optimise → code → dry-run on an example → edge cases.</td>
+          </tr>
+          <tr>
+            <td>Core CS</td><td>Rapid-fire Q&amp;A: OS, networks, DBMS, concurrency, Java internals</td><td>20–30 min</td>
+            <td><a href="electives.html">Electives</a>, <a href="fullstack-java.html">Full-Stack Java</a>, <a href="sql.html">SQL</a></td>
+            <td>Crisp definitions, then a real example, then a trade-off. "It depends, because…"</td>
+          </tr>
+          <tr>
+            <td>System design (HLD)</td><td>Open-ended design, whiteboard</td><td>45–60 min</td>
+            <td><a href="hld.html">HLD</a>, <a href="projects.html">Projects</a></td>
+            <td>Requirements + scale numbers → API → data model → components → deep-dive one → trade-offs + failure modes.</td>
+          </tr>
+          <tr>
+            <td>LLD / OOD</td><td>Design classes for a bounded problem, some code</td><td>40–50 min</td>
+            <td><a href="lld.html">LLD</a></td>
+            <td>Clarify scope → core entities → apply 1–2 patterns with a reason → extensible interface → walk a use case.</td>
+          </tr>
+          <tr>
+            <td>Behavioral / HR</td><td>STAR questions, "why us", "why leave"</td><td>20–30 min</td>
+            <td>Section 9 below</td>
+            <td>60–90 sec per answer, Situation short, Action detailed and "I"-focused, Result quantified + learning.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Scoring a mock (1–4 each, review after)</span>
+      <ul class="small">
+        <li><strong>Communication</strong> — did the interviewer always know what you were doing?</li>
+        <li><strong>Problem solving</strong> — structured approach, not a lucky guess?</li>
+        <li><strong>Correctness</strong> — did it work, did you test it?</li>
+        <li><strong>Speed</strong> — finished with time for follow-ups?</li>
+      </ul>
+      <p class="small">Anything ≤2 becomes next week's drill focus.</p>
+    </div>
+
+    <div id="t-mock-bank"></div>
+  </section>
+
+
+  <!-- ============================================================
+       9. STAR BANK
+       ============================================================ -->
+  <section class="topic" id="js-star">
+    <h2>9. STAR behavioral bank — worked examples</h2>
+    <p>
+      <strong>S</strong>ituation (10s, context only) → <strong>T</strong>ask (10s,
+      your specific responsibility) → <strong>A</strong>ction (40s, what
+      <em>you</em> did, step by step) → <strong>R</strong>esult (15s, quantified +
+      what you learned). Write your own version of each prompt below; the worked
+      answers are templates in the right voice, not scripts to memorise. Aim for
+      6–8 stories total that you can flex across 20+ questions.
+    </p>
+
+    <div class="box note">
+      <p class="small">
+        <strong>The core story set.</strong> Most behavioral questions map to one of:
+        (1) conflict / disagreement, (2) failure / mistake, (3) leadership /
+        influence without authority, (4) ambiguity / ownership, (5) tight deadline /
+        pressure, (6) technical challenge, (7) feedback received, (8) impact you're
+        proud of. Prepare one strong story for each.
+      </p>
+    </div>
+
+    <h3>Example 1 — Conflict / disagreement with a teammate</h3>
+    <p class="small muted"><em>"Tell me about a time you disagreed with a colleague."</em></p>
+    <div class="box dryrun">
+      <ul class="small">
+        <li><strong>S:</strong> On the payments service, a senior engineer wanted to add a second database for a new reporting feature; I thought it would create a dual-write consistency problem.</li>
+        <li><strong>T:</strong> I owned the write path, so I had to either get aligned or raise it before we committed to the design.</li>
+        <li><strong>A:</strong> I didn't argue it in the meeting. I built a one-page doc: the dual-write failure scenario with a concrete sequence, the on-call cost, and two alternatives — a read replica, and an outbox → analytics pipeline. I walked him through it 1:1 first, acknowledged the reporting need was real, and asked where my reasoning was wrong. He pushed back on replica lag; we agreed the outbox option handled both concerns. We took the revised design to the team together.</li>
+        <li><strong>R:</strong> Shipped the outbox pipeline; zero consistency incidents in the 8 months since, and it became the pattern two other teams reused. What I learned: bring a written argument and a real alternative, and disagree in private before you disagree in public.</li>
+      </ul>
+    </div>
+
+    <h3>Example 2 — Failure / mistake</h3>
+    <p class="small muted"><em>"Tell me about a time you failed."</em></p>
+    <div class="box dryrun">
+      <ul class="small">
+        <li><strong>S:</strong> I pushed a change to the notification service that added a new Kafka consumer group.</li>
+        <li><strong>T:</strong> It was my change and my deploy; I'd tested it locally and in staging.</li>
+        <li><strong>A:</strong> I missed that the consumer wasn't idempotent. Under a partition rebalance in production it reprocessed a batch and double-sent ~3,000 emails before alerts fired. I rolled back within 15 minutes, then owned it in the incident channel — no hedging. I wrote the postmortem myself: root cause was no dedupe key, contributing cause was that staging had one partition so rebalancing never happened. Fixes: a Redis <code>SETNX</code> dedupe on message ID, staging topics repartitioned to match prod, and a checklist item for "is this consumer idempotent?"</li>
+        <li><strong>R:</strong> No recurrence. The idempotency checklist caught two would-be bugs in the next quarter during review. What I learned: staging has to match prod on the dimensions that cause failures — partition count, not just "it's the same code."</li>
+      </ul>
+    </div>
+
+    <h3>Example 3 — Leadership / influence without authority</h3>
+    <p class="small muted"><em>"Tell me about a time you drove a change beyond your own work."</em></p>
+    <div class="box dryrun">
+      <ul class="small">
+        <li><strong>S:</strong> Our team's services had no consistent integration testing; each repo did its own thing and flaky tests were routinely ignored.</li>
+        <li><strong>T:</strong> Not my assigned project — I was a mid-level engineer and this was a team-wide habit.</li>
+        <li><strong>A:</strong> I picked the worst-offending repo and converted it to Testcontainers with a clean pattern: real Postgres + Kafka in the test, deterministic fixtures, &lt;90s runtime. I wrote it up as a short internal doc and a template repo, then offered to pair with anyone migrating. I didn't mandate it — I made the good path the easy path and demoed the flaky-test reduction in a team meeting.</li>
+        <li><strong>R:</strong> 5 of 7 services migrated within two months by their own owners; CI flakiness dropped from ~1 in 4 builds to under 1 in 20. What I learned: you change a team habit by building the reference implementation and lowering the switching cost, not by winning the argument.</li>
+      </ul>
+    </div>
+
+    <h3>Example 4 — Ambiguity / ownership</h3>
+    <p class="small muted"><em>"Tell me about a time you had to make progress with unclear requirements."</em></p>
+    <div class="box dryrun">
+      <ul class="small">
+        <li><strong>S:</strong> Product asked for "faster checkout" after complaints, with no specifics and no metric.</li>
+        <li><strong>T:</strong> I took it on as the backend owner of checkout and had to define the problem before solving it.</li>
+        <li><strong>A:</strong> I added tracing across the checkout flow and pulled a week of latency data broken down by step. p50 was fine; p99 was 2.1s, driven by a synchronous call to the tax service and an N+1 in cart pricing. I framed three options for product with effort and expected impact, and proposed a target: p99 under 500ms. We agreed on scope in 20 minutes because now there was data.</li>
+        <li><strong>A (cont.):</strong> Made the tax call async with a cached fallback, replaced the N+1 with a batch query, added a covering index.</li>
+        <li><strong>R:</strong> p99 went from 2.1s to 380ms; checkout abandonment dropped ~6%. What I learned: "make it faster" is not a task — instrument first, turn the vague ask into a number, then the scope negotiation is easy.</li>
+      </ul>
+    </div>
+
+    <h3>Example 5 — Tight deadline / pressure</h3>
+    <p class="small muted"><em>"Tell me about a time you were under significant time pressure."</em></p>
+    <div class="box dryrun">
+      <ul class="small">
+        <li><strong>S:</strong> A payment provider announced they were deprecating the API we used, with a hard cutoff 3 weeks out. Miss it and payments stop.</li>
+        <li><strong>T:</strong> I was the most familiar with the integration, so I led the migration.</li>
+        <li><strong>A:</strong> I cut scope hard: build an adapter interface so the rest of the code didn't change, migrate only the endpoints we actually used (6 of ~20), and defer nice-to-haves. I split the work — I took auth + capture, a teammate took webhooks + refunds. We ran both providers in parallel behind a feature flag with a 5% canary, watched reconciliation for 48 hours, then ramped. I gave the manager a daily one-line status so there were no surprises.</li>
+        <li><strong>R:</strong> Fully cut over 4 days before the deadline, zero failed payments during the switch, reconciliation clean. What I learned: under a hard deadline the lever is scope, and an adapter boundary is what makes aggressive scope-cutting safe.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul class="small">
+        <li>Spending 40 seconds on Situation and 10 on Action. Invert it.</li>
+        <li>"We" everywhere — the interviewer can't tell what <em>you</em> did. Use "I" for your actions.</li>
+        <li>No result, or an unquantified one. Even "reduced escalations noticeably" beats trailing off.</li>
+        <li>No learning. Every story ends with one sentence of what you'd carry forward.</li>
+        <li>A "failure" that's secretly a brag ("I work too hard"). Pick a real one with a real fix.</li>
+        <li>Picking a conflict story where you were clearly right and they were clearly an idiot. Show you can be moved by evidence.</li>
+      </ul>
+    </div>
+
+    <div id="t-star"></div>
+  </section>
+
+
+  <!-- ============================================================
+       10. NEGOTIATION
+       ============================================================ -->
+  <section class="topic" id="js-negotiation">
+    <h2>10. Salary negotiation scripts</h2>
+    <p>
+      Negotiation starts at the recruiter screen, not the offer. Two principles:
+      <strong>never name a number first if you can avoid it</strong>, and
+      <strong>never accept or reject on the call</strong> — "thank you, I'm excited,
+      I'd like to review the details and come back by [date]." Everything below is
+      polite, specific, and leaves room.
+    </p>
+
+    <h3>The recruiter asks for your current CTC</h3>
+    <div class="box dryrun">
+      <span class="box-title">Deflect — you're not obliged to share it</span>
+      <p class="small">
+        "I'd prefer to keep my current compensation private, but I'm happy to share
+        expectations so we don't waste each other's time. Based on my research for
+        this role and level in [city], I'm targeting a total comp in the range of
+        <strong>[X to X+25%]</strong>. Does that work with the band for this role?"
+      </p>
+      <p class="small muted">
+        If they insist it's required by policy: give a total-comp number including
+        variable and the current value of any stock, and immediately pivot to
+        expectations. In several jurisdictions asking is restricted — you can simply
+        say you'd rather discuss the future role.
+      </p>
+    </div>
+
+    <h3>The recruiter pushes for an expected-CTC number</h3>
+    <div class="box dryrun">
+      <span class="box-title">Give a researched range, anchored high, with a reason</span>
+      <p class="small">
+        "From <code>levels.fyi</code> and conversations with engineers at similar
+        companies, this role at this level looks like <strong>[₹Y – ₹Y+30%]</strong>
+        total comp. I'm interviewing across a few companies in that band. If the
+        role and team are a strong fit, I'd expect an offer in that range."
+      </p>
+      <ul class="small">
+        <li>Always a <em>range</em>, and make your walk-away number the <em>bottom</em> of it.</li>
+        <li>Total comp — base + variable + stock (annualised) — not just base.</li>
+        <li>Name that you have other processes going, without bluffing specifics you can't back.</li>
+      </ul>
+    </div>
+
+    <h3>Handling a lowball offer</h3>
+    <div class="box dryrun">
+      <span class="box-title">Don't counter with a number yet — get the gap acknowledged</span>
+      <p class="small">
+        "Thank you — I'm genuinely excited about the team and the [specific
+        project]. I want to be straightforward: the offer is meaningfully below what
+        I'm seeing for this role and level, and below my other conversations. I was
+        expecting total comp closer to <strong>[₹Z]</strong>. Is there flexibility
+        to get there? I'd like to make this work."
+      </p>
+      <p class="small">Then stop talking. If they ask what would close it:</p>
+      <p class="small">
+        "A base of <strong>[₹B]</strong> and <strong>[₹E]</strong> in equity would
+        get me to yes. If base is capped, I'm open to closing the gap with a signing
+        bonus or a 6-month review commitment."
+      </p>
+      <ul class="small">
+        <li>Ask for a specific, justified number — not "more."</li>
+        <li>Give them levers: base, equity, sign-on, review timeline, joining date, title.</li>
+        <li>Stay warm. "I want to make this work" every time.</li>
+      </ul>
+    </div>
+
+    <h3>Negotiating with a competing offer</h3>
+    <div class="box dryrun">
+      <span class="box-title">Use it as information, not a threat</span>
+      <p class="small">
+        "I want to be transparent — I have another offer at <strong>[₹total]</strong>.
+        You're my first choice because of [specific, honest reason], but the gap is
+        significant. If you can get to <strong>[₹target]</strong> total, I'll sign
+        and stop my other processes today."
+      </p>
+      <ul class="small">
+        <li>Only mention a competing offer if it's real. Bluffing collapses the moment they call it.</li>
+        <li>Give a concrete "if you hit X, I sign today" — a decision, not a bidding war.</li>
+        <li>If the other offer is from a stronger-brand company, you don't even need the number — "a company with a higher comp band" is enough.</li>
+        <li>Never play games with your first choice past one round. Get to yes and stop.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul class="small">
+        <li>Accepting on the phone out of relief. Always take 24–72 hours.</li>
+        <li>Negotiating base only — equity, sign-on, and level are often more movable.</li>
+        <li>Apologising for negotiating. It's expected; recruiters rarely revoke over a polite counter.</li>
+        <li>Not getting the final offer in writing before resigning anywhere.</li>
+        <li>Negotiating without a real walk-away number decided in advance.</li>
+      </ul>
+    </div>
+
+    <div id="t-negotiation"></div>
+  </section>
+
+
+  <!-- ============================================================
+       11. OFFER EVALUATION
+       ============================================================ -->
+  <section class="topic" id="js-offer">
+    <h2>11. Offer evaluation framework</h2>
+    <p>
+      Compare offers on <strong>total compensation over a realistic horizon
+      (usually 4 years)</strong>, then adjust for risk and the non-money factors.
+      Break every offer into four buckets:
+    </p>
+    <ul class="small">
+      <li><strong>Base</strong> — guaranteed cash. Weight this highest; it's certain and it's what raises and future offers anchor on.</li>
+      <li><strong>Variable / bonus</strong> — target %, but discount it: historical payout ratio, company performance. Assume 80–90% unless you know better.</li>
+      <li><strong>Stock</strong> — RSUs: grant value ÷ vest years, but haircut private-company equity heavily (illiquid, may be worth zero). Public RSUs: use current price, ignore hoped-for growth. ESOPs with a strike price: usually treat as a lottery ticket, not comp.</li>
+      <li><strong>Benefits &amp; conditions</strong> — insurance value, PF, meal/transport, learning budget, WFH (a real ₹ saving), commute time, on-call load, sabbatical, notice period, joining bonus (one-time — separate it out).</li>
+    </ul>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p class="small">
+        A big number that's 60% illiquid private equity is not the same as a
+        slightly smaller number that's 90% base. Convert everything to
+        <em>expected, risk-adjusted annual cash</em> before you compare, and keep
+        one-time bonuses out of the recurring figure.
+      </p>
+    </div>
+
+    <h4>Worked comparison — Offer A vs Offer B</h4>
+    <p class="small">
+      Both for a senior backend role. All figures ₹ lakh/year unless noted. Offer A
+      is a large public product company; Offer B is a Series-B startup.
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Component</th><th>Offer A (public)</th><th>Offer B (startup)</th><th>How it's counted</th></tr></thead>
+        <tbody>
+          <tr><td>Base</td><td>32.0</td><td>38.0</td><td>Full value, guaranteed</td></tr>
+          <tr><td>Target bonus</td><td>15% = 4.8</td><td>10% = 3.8</td><td>—</td></tr>
+          <tr><td>Bonus, risk-adjusted</td><td>4.8 × 0.9 = <strong>4.3</strong></td><td>3.8 × 0.7 = <strong>2.7</strong></td><td>A pays out reliably; B missed last year</td></tr>
+          <tr><td>Stock grant</td><td>₹48L public RSU / 4 yrs = 12.0</td><td>₹80L ESOP / 4 yrs = 20.0</td><td>Grant ÷ vest years</td></tr>
+          <tr><td>Stock, risk-adjusted</td><td>12.0 × 0.9 = <strong>10.8</strong></td><td>20.0 × 0.25 = <strong>5.0</strong></td><td>Public: mild haircut. Private ESOP w/ strike: 75% haircut</td></tr>
+          <tr><td>Benefits (insurance, PF match, meals, learning)</td><td><strong>3.0</strong></td><td><strong>1.5</strong></td><td>Estimated cash-equivalent</td></tr>
+          <tr><td>WFH saving (commute, food)</td><td>0 (5 days office)</td><td><strong>2.0</strong> (hybrid 2 days)</td><td>Real recurring saving</td></tr>
+          <tr><td><strong>Risk-adjusted annual total</strong></td><td><strong>≈ 50.4</strong></td><td><strong>≈ 49.2</strong></td><td>Base + adj. bonus + adj. stock + benefits + WFH</td></tr>
+          <tr><td>Joining bonus (one-time)</td><td>2.0</td><td>5.0</td><td>Kept separate — amortise over ~2 yrs if you must fold it in</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="box dryrun">
+      <span class="box-title">Reading the result</span>
+      <ul class="small">
+        <li>On <strong>headline comp</strong> B looks bigger (38 + 80L ESOP). On <strong>risk-adjusted cash</strong> they're within 2% — essentially equal.</li>
+        <li>B's upside is real but binary: if the startup does a strong up-round or exits, that ESOP could be 3–5× the modelled value. If it doesn't, it's ~zero. A's stock is boring and liquid.</li>
+        <li>B has ₹6L higher <em>guaranteed</em> base — that compounds into every future raise and offer. That's the strongest single argument for B.</li>
+        <li>Tie-breakers now decide it: team &amp; manager quality, the actual work, learning rate, on-call burden, company runway (ask B directly: months of runway, last round date), your risk appetite, and title/level for your next jump.</li>
+      </ul>
+    </div>
+
+    <h4>Non-money checklist before you sign</h4>
+    <ul class="small">
+      <li>Did you talk to your future manager and at least one peer? Would you want them in a code review?</li>
+      <li>What will you actually work on in the first 6 months — concretely?</li>
+      <li>On-call rotation frequency and severity.</li>
+      <li>For a startup: months of runway, last raise date &amp; amount, burn, path to next round or profitability.</li>
+      <li>Level / title — does it set you up for the role after this one?</li>
+      <li>Notice period, WFH policy in writing, relocation terms, joining-bonus clawback period.</li>
+      <li>Full offer letter reviewed in writing before you resign anywhere.</li>
+    </ul>
+
+    <div id="t-offer"></div>
+  </section>
+
+
+  <p class="backlink">
+    <a href="index.html">← Back to home &amp; dashboard</a>
+    &nbsp;·&nbsp; <a href="projects.html">← Projects</a>
+    &nbsp;·&nbsp; <a href="roadmap.html">The roadmap →</a>
+  </p>
+
+  <footer class="foot">
+    <p>
+      Runs in parallel with the <a href="roadmap.html">8-month roadmap</a>. Set the
+      system up once — resume, LinkedIn, target list, templates, trackers — then run
+      it weekly: apply, reach out, log every interview question the same day,
+      review the pipeline every Sunday. Negotiate every offer. Pick with the
+      framework, not the headline number.
+    </p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("job-search", [
+  {
+    group: "Resume",
+    mount: "#t-resume",
+    items: [
+      "One-page, single-column, ATS-selectable PDF exported fresh",
+      "Every experience bullet rewritten as action -> mechanism -> number",
+      "Summary + skills tailored to one target JD as a reusable base",
+      "Ran a JD keyword diff (jobscan or manual) and closed gaps",
+      "Reviewed by one other person; first bullet of latest role is the strongest"
+    ]
+  },
+  {
+    group: "LinkedIn",
+    mount: "#t-linkedin",
+    items: [
+      "Headline set with the Role - Stack - Impact formula",
+      "About section written from the 4-paragraph template",
+      "Featured: project repo + a write-up + resume/portfolio",
+      "Custom URL, photo, banner, location, Open-to-work (recruiters only)",
+      "All past roles have accomplishment bullets; top 3 skills pinned",
+      "Weekly: comment on 2-3 engineering posts for recency"
+    ]
+  },
+  {
+    group: "Target research",
+    mount: "#t-research",
+    items: [
+      "20-30 company career pages bookmarked and checked weekly",
+      "LinkedIn Jobs + people boolean searches saved",
+      "15-min qualify pass done for the first batch (blog, stack, comp, health, process)",
+      "Companies scored on Interest/Fit/Reachability and tiered A/B/C"
+    ]
+  },
+  {
+    group: "Target company tracker",
+    mount: "#t-targets",
+    items: [
+      "Target table populated with ~15+ companies",
+      "Each row has a referral path (or explicitly 'cold apply')",
+      "Tier-C practice reps identified to apply to first"
+    ]
+  },
+  {
+    group: "Outreach",
+    mount: "#t-outreach",
+    items: [
+      "Five-part cold-outreach template personalised and saved",
+      "Referral-ask template + paste-ready blurb saved",
+      "Follow-up cadence (day 0 / 3-4 / 8-10, max 3 touches) in the tracker",
+      "First 5 outreach messages sent"
+    ]
+  },
+  {
+    group: "Trackers running",
+    mount: "#t-applications",
+    items: [
+      "Application tracker set up (status + next action + next date columns)",
+      "Sunday 20-min weekly review scheduled recurring",
+      "Weekly application target set from the roadmap"
+    ]
+  },
+  {
+    group: "Interview pipeline",
+    mount: "#t-pipeline",
+    items: [
+      "Per-process log created for every live pipeline",
+      "Post-interview routine done within 2 hours (dump questions, fix-note, thank-you)",
+      "Company interview patterns reviewed before each next round"
+    ]
+  },
+  {
+    group: "Mock interviews",
+    mount: "#t-mock-bank",
+    items: [
+      "Weekly full mock scheduled (partner / interviewing.io / recorded)",
+      "One mock done in each track: DSA, core CS, HLD, LLD, behavioral",
+      "Each mock scored 1-4 on communication/problem-solving/correctness/speed; weak area drilled"
+    ]
+  },
+  {
+    group: "STAR behavioral bank",
+    mount: "#t-star",
+    items: [
+      "Story written for: conflict / disagreement",
+      "Story written for: failure / mistake with a real fix",
+      "Story written for: leadership / influence without authority",
+      "Story written for: ambiguity / ownership",
+      "Story written for: tight deadline / pressure",
+      "Story written for: hardest technical challenge",
+      "Story written for: feedback received & acted on",
+      "Story written for: impact you're most proud of",
+      "All stories spoken aloud and timed to 60-90 seconds"
+    ]
+  },
+  {
+    group: "Negotiation & offer prep",
+    mount: "#t-negotiation",
+    items: [
+      "Deflection line for the current-CTC question rehearsed",
+      "Researched expected-comp range (levels.fyi) with a decided walk-away floor",
+      "Lowball-response and competing-offer scripts rehearsed",
+      "Rule internalised: never accept/reject on the call, take 24-72h"
+    ]
+  },
+  {
+    group: "Offer evaluation",
+    mount: "#t-offer",
+    items: [
+      "Offer comparison sheet built (base / variable / stock / benefits, risk-adjusted)",
+      "Private equity haircut and one-time-bonus separation applied",
+      "Non-money checklist completed (manager/peer talk, first-6-months work, on-call, runway, level)"
+    ]
+  }
+], { pageTitle: "Job Search — The Operating System" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("job-search");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

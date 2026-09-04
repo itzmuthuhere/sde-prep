@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>High-Level Design — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html" class="active">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>High-Level Design — Scaling, Data &amp; Distributed Systems</h1>
+  <p class="lede">
+    Phase 2. An HLD round hands you one sentence ("design a URL shortener",
+    "design Instagram's feed") and 45 minutes. The interviewer is checking
+    whether you can turn a vague ask into numbers, propose components that fit
+    those numbers, go deep on the one hard part, and name the trade-off you
+    made instead of pretending there wasn't one. This page is the toolbox —
+    eight core concepts, each with the back-of-envelope math that tells you
+    when it applies — and then a repeatable framework run end-to-end on a URL
+    shortener.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>How to use this page.</strong> Every concept has a
+      <em>capacity math</em> block — those numbers are the point, not
+      decoration. In a real interview you will estimate out loud and the
+      estimate decides the architecture (one box vs a hundred, cache vs no
+      cache, SQL vs a partitioned store). Read each concept, then do the
+      arithmetic yourself on a scratchpad before looking at mine. Tick the
+      checklist items to feed the <a href="index.html">home dashboard</a> —
+      aim for two concepts a week, then spend a weekend doing the URL
+      shortener without notes.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — HLD concepts &amp; the system-design framework</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#fundamentals">Distributed systems fundamentals</a></li>
+      <li><a href="#load-balancing">Load balancing</a></li>
+      <li><a href="#consistent-hashing">Consistent hashing</a></li>
+      <li><a href="#caching">Caching</a></li>
+      <li><a href="#transactions">Transactions — ACID &amp; isolation levels</a></li>
+      <li><a href="#sql-nosql">SQL vs NoSQL — a decision framework</a></li>
+      <li><a href="#microservices">Microservices — the honest trade-offs</a></li>
+      <li><a href="#queues">Distributed queues</a></li>
+      <li><a href="#framework">Designing real systems — the framework</a></li>
+      <li><a href="#url-shortener">Worked example — URL shortener</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ================= FUNDAMENTALS ================= -->
+  <section class="topic" id="fundamentals">
+    <h2>Distributed systems fundamentals</h2>
+
+    <p>
+      A distributed system is a set of machines that appears to its users as a
+      single coherent service. You go distributed for three reasons:
+      <strong>scale</strong> (one machine can't hold the data or serve the
+      traffic), <strong>availability</strong> (one machine's failure shouldn't
+      take the service down), and <strong>latency</strong> (put data near users
+      in different regions). Every one of those benefits is bought with the
+      same currency: you now have a network in the middle, and networks drop
+      messages, reorder them, and delay them unpredictably.
+    </p>
+    <p>
+      The <strong>CAP theorem</strong> is the one-liner everyone quotes: when a
+      network <em>partition</em> splits your nodes, you must choose between
+      <strong>consistency</strong> (every read sees the latest write, or an
+      error) and <strong>availability</strong> (every request gets a non-error
+      answer, possibly stale). You don't get to pick "CA" — partitions happen
+      whether you like them or not, so the real choice is CP or AP <em>during a
+      partition</em>. A bank ledger picks CP (refuse the withdrawal rather than
+      double-spend); a social feed picks AP (show a slightly old feed rather
+      than an error page). PACELC extends this: <em>else</em>, when there's no
+      partition, you still trade latency against consistency (a synchronous
+      quorum write is slower than a fire-and-forget one).
+    </p>
+    <p>
+      <strong>Consistency models</strong> form a spectrum, not a binary.
+      <em>Strong / linearizable</em>: reads always see the most recent write,
+      as if there were one copy. <em>Read-your-writes</em>: you see your own
+      updates, others may lag. <em>Eventual</em>: replicas converge if writes
+      stop. Most large systems are a deliberate mix — strong for the checkout,
+      eventual for the "people also bought" widget. Interviewers want you to
+      say which parts of <em>your</em> design need which model and why.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition — the latency numbers you must know</span>
+      <p>
+        Design decisions fall out of the fact that operations differ by
+        <strong>orders of magnitude</strong>:
+      </p>
+<pre><code>L1 cache reference .................... 1 ns
+Main memory reference ................ 100 ns      (~100x L1)
+Read 1 MB sequentially from memory .... 3 us
+SSD random read ...................... 100 us     (~1000x memory)
+Round trip within a datacenter ....... 500 us
+Read 1 MB sequentially from SSD ....... 1 ms
+Disk (HDD) seek ...................... 10 ms      (~100x SSD read)
+Round trip CA <-> Netherlands ........ 150 ms</code></pre>
+      <p>
+        Takeaways you will actually use: a cross-region round trip
+        (150&nbsp;ms) is ~300&times; a same-DC one, so chatty cross-region
+        calls are death — batch or replicate. A disk seek (10&nbsp;ms) is
+        ~20&times; an SSD read, which is why nobody spec's spinning disks for
+        random-access workloads any more. Memory is ~1000&times; faster than
+        SSD for random reads — that single ratio is the entire economic case
+        for caching.
+      </p>
+    </div>
+
+    <div class="box dryrun">
+      <span class="box-title">Capacity math — what "three nines" actually costs you</span>
+      <p>
+        Availability is downtime budget per year (365&nbsp;&times;&nbsp;24&nbsp;&times;&nbsp;60 &asymp; 525,600 minutes):
+      </p>
+<pre><code>99%     ("two nines")  -> 5,256 min/yr  = 3.65 days   down
+99.9%   ("three nines")-> 526 min/yr    = 8.8 hours   down
+99.99%  ("four nines") -> 52.6 min/yr   = 52 minutes  down
+99.999% ("five nines") -> 5.26 min/yr   = 5 minutes   down</code></pre>
+      <p>
+        Components in <strong>series</strong> multiply: a request that must
+        pass through an LB (99.99%), a service (99.9%), and a DB (99.9%) has
+        <code>0.9999 &times; 0.999 &times; 0.999 &asymp; 0.9979</code> &rarr;
+        <strong>99.79%</strong>, worse than any single part (~16 hours/yr
+        down). Redundant components in <strong>parallel</strong> do the
+        opposite: two independent replicas each at 99% give
+        <code>1 &minus; (0.01)&sup2; = 99.99%</code>. This is why you add
+        replicas and why every hop you remove from the critical path buys
+        availability for free.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Treating CAP as a system-wide switch.</strong> It's per-operation. Say "the write path is CP, the read path is AP."</li>
+        <li><strong>Claiming "CA".</strong> There is no partition-free distributed system; if you have replicas across a network, P is a given.</li>
+        <li><strong>"We'll just make it strongly consistent."</strong> Then price it: every write is a cross-node quorum round trip, and availability drops when a quorum can't be formed.</li>
+        <li><strong>Ignoring the tail.</strong> p50 latency of 20&nbsp;ms with p99 of 800&nbsp;ms means 1 in 100 users has a bad time — and a page that fans out to 100 services hits that p99 almost every load.</li>
+        <li><strong>Forgetting clocks lie.</strong> Wall-clock timestamps across machines can disagree by tens of ms; don't order events by them. Use logical clocks / versions.</li>
+      </ul>
+    </div>
+
+    <div id="t-fundamentals"></div>
+  </section>
+
+
+  <!-- ================= LOAD BALANCING ================= -->
+  <section class="topic" id="load-balancing">
+    <h2>Load balancing</h2>
+
+    <p>
+      A load balancer spreads incoming requests across a pool of identical
+      backends so no single one is overwhelmed, and so a dead backend is taken
+      out of rotation automatically. It's the thing that turns "one server" into
+      "a tier you can grow by adding boxes." It also becomes a single point of
+      failure, so in practice you run it redundantly (two LB nodes with a
+      floating IP, or a managed L7 service fronted by anycast DNS).
+    </p>
+    <p>
+      <strong>Layer 4 vs Layer 7.</strong> An L4 balancer forwards TCP/UDP by
+      IP and port — fast, protocol-agnostic, but blind to what's inside. An L7
+      balancer terminates HTTP, so it can route by path (<code>/api</code> vs
+      <code>/static</code>), do TLS termination, retry idempotent requests,
+      inject headers, and rate-limit per user. Most modern designs put an L7
+      proxy (Envoy, NGINX, ALB) at the edge. The cost is CPU for TLS and
+      parsing, and a bit more latency.
+    </p>
+    <p>
+      <strong>Algorithms.</strong> <em>Round robin</em> is the default and is
+      fine when requests cost about the same. <em>Least connections</em> routes
+      to the backend with the fewest in-flight requests — better when request
+      durations vary wildly. <em>Consistent hashing on a key</em> (see the next
+      section) pins a given user or cache key to the same backend, which you
+      want for sticky sessions or cache locality. <em>Weighted</em> variants let
+      you send more traffic to bigger instances or shift load during a canary
+      deploy. Layer on <strong>active health checks</strong> (LB pings
+      <code>/healthz</code> every few seconds) and <strong>passive</strong> ones
+      (eject a backend after N consecutive 5xx).
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">Capacity math — how many backends do I need?</span>
+      <p>
+        Say each app server handles <strong>500 requests/second</strong> at
+        acceptable latency (you'd get this number from a load test; it's set by
+        CPU per request and the thread/connection pool). Your traffic:
+      </p>
+<pre><code>Daily requests ............. 500,000,000  (500M)
+Seconds per day ............ 86,400
+Average QPS ................ 500M / 86,400        ~= 5,800 req/s
+Peak factor (diurnal) ...... 3x                   -> ~17,400 req/s peak
+Servers at 500 rps each .... 17,400 / 500         = 35 servers
+Headroom for failures (N+2). +2                   = 37 servers
+Rolling-deploy / spike pad . x1.3                 ~= 48 servers</code></pre>
+      <p>
+        Now you know the app tier is ~50 boxes, not 5 and not 500. If one
+        machine could do it (say 200&nbsp;QPS total), you wouldn't need a load
+        balancer or this section — that's the signal that tells you whether
+        horizontal scaling is even on the table.
+      </p>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A load balancer only works if the backends are <strong>stateless</strong>
+        — any box can serve any request. The moment a server keeps
+        session data in local memory, you've created affinity, and affinity
+        fights elasticity (you can't freely drain a box) and fault tolerance
+        (its death loses sessions). Push state to a shared store (Redis, a
+        signed cookie, a JWT) and the LB problem becomes trivial.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Making the LB stateful.</strong> Sticky sessions by server IP defeat the purpose; hash on a stable user key instead, or externalize the session.</li>
+        <li><strong>One LB, no redundancy.</strong> It's now your single point of failure; pair it, or use a managed anycast service.</li>
+        <li><strong>Health check that only checks the port is open.</strong> Check a real endpoint that touches the DB, or you'll route to a box that's up but broken.</li>
+        <li><strong>Retrying non-idempotent requests.</strong> An LB retrying a <code>POST /charge</code> on timeout can double-charge. Only retry safe methods or requests with an idempotency key.</li>
+        <li><strong>Ignoring connection draining.</strong> Killing a backend with in-flight requests returns errors; drain first.</li>
+      </ul>
+    </div>
+
+    <div id="t-load-balancing"></div>
+  </section>
+
+
+  <!-- ================= CONSISTENT HASHING ================= -->
+  <section class="topic" id="consistent-hashing">
+    <h2>Consistent hashing — why naive hashing breaks at scale</h2>
+
+    <p>
+      You have a set of keys (cache entries, user records, shards) and a set of
+      <em>N</em> nodes, and you need a deterministic function
+      <code>key &rarr; node</code>. The obvious answer is
+      <code>node = hash(key) % N</code>. It distributes evenly and is O(1). It
+      also has a fatal property: <strong>change N and almost every key moves.</strong>
+    </p>
+    <p>
+      Concretely, with <code>% N</code>, a key stays put after resizing to
+      <code>N+1</code> only if <code>hash(key) % N == hash(key) % (N+1)</code>,
+      which happens for roughly <code>1/(N+1)</code> of keys. So going from 4
+      nodes to 5 remaps about <strong>80%</strong> of keys; from 100 to 101,
+      about <strong>99%</strong>. For a cache that means a near-total cold
+      cache the instant you add or lose a node — every miss stampedes to the
+      database, and you've turned "one extra server" into an outage. For a
+      sharded database it means moving nearly the whole dataset.
+    </p>
+    <p>
+      <strong>Consistent hashing</strong> fixes this. Map both nodes and keys
+      onto the same circular hash space (say 0 to 2&sup3;&sup2;&minus;1). A key
+      is owned by the first node encountered walking clockwise from the key's
+      position. Now adding a node only steals the arc between it and its
+      predecessor — <strong>only ~K/N keys move</strong>, and only from one
+      neighbour. Removing a node hands its arc to the next node clockwise;
+      again only that node's share moves. The rest of the ring is undisturbed.
+    </p>
+    <p>
+      One problem remains: with few nodes, random placement makes the arcs
+      uneven — one node might own 40% of the ring. The fix is
+      <strong>virtual nodes</strong>: each physical node is hashed to the ring
+      at (say) 150 positions. Load evens out (standard deviation shrinks as
+      <code>1/&radic;V</code>), and when a node dies its load spreads across
+      <em>many</em> neighbours instead of dumping entirely on one.
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">Capacity math — keys moved when the cluster grows</span>
+<pre><code>Cache with 1,000,000,000 (1B) entries.
+
+Naive  hash % N,  N: 10 -> 11
+  fraction that stay = 1/11  ->  ~91% of keys remap
+  = 910,000,000 entries suddenly missing -> DB sees ~10x its normal read load
+
+Consistent hashing,  N: 10 -> 11
+  keys moved ~= K / (N+1) = 1B / 11  ->  ~9% remap
+  = ~91,000,000 entries move, all from ONE node's former arc
+  DB sees a ~1.09x blip, not a stampede
+
+Virtual nodes, V = 150 per physical node
+  per-node load spread: ~ +/- 1/sqrt(150) ~= +/-8%  (vs +/-30-40% with V=1)
+  node failure: its ~9% of keys reassigned across ~150 arcs -> many nodes each +~0.06%</code></pre>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Naive modulo hashing couples <em>every</em> key's location to the
+        <em>total count</em> of nodes, so any membership change is global.
+        Consistent hashing couples a key's location only to its
+        <em>immediate clockwise neighbour</em>, so a membership change is
+        local. You're trading a trivially-even distribution for one that's
+        "even enough" (with vnodes) in exchange for cheap elasticity — and
+        elasticity is the whole reason you're sharding.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Reaching for it when you don't resize.</strong> A fixed 16-shard scheme that never changes can just use <code>% 16</code>. Consistent hashing earns its keep when the node set churns.</li>
+        <li><strong>Forgetting virtual nodes.</strong> Plain consistent hashing with 5 nodes has badly skewed arcs; interviewers will ask how you balance them.</li>
+        <li><strong>Assuming it gives replication.</strong> It gives placement. For replicas you also store the key on the next R distinct physical nodes clockwise.</li>
+        <li><strong>Hot keys.</strong> Consistent hashing balances <em>key count</em>, not <em>traffic</em>. One viral key still cooks its node — you need per-key replication or request coalescing for that.</li>
+        <li><strong>Ignoring "jump hash" / rendezvous.</strong> When you don't need to remove arbitrary nodes, these are simpler and need no ring state — worth a mention.</li>
+      </ul>
+    </div>
+
+    <div id="t-consistent-hashing"></div>
+  </section>
+
+
+  <!-- ================= CACHING ================= -->
+  <section class="topic" id="caching">
+    <h2>Caching</h2>
+
+    <p>
+      A cache is a small, fast store in front of a big, slow one, holding the
+      subset of data that's asked for most. It works because access is skewed —
+      a small fraction of keys gets most of the traffic (a "Zipfian"
+      distribution) — so a cache far smaller than the dataset can still absorb
+      most reads. The number that matters is the <strong>hit ratio</strong>,
+      and small improvements there have outsized effects on the backend.
+    </p>
+
+    <h3>Write strategies</h3>
+    <p>
+      <strong>Cache-aside (lazy loading).</strong> The application checks the
+      cache; on a miss it reads the DB, populates the cache, and returns. Writes
+      go to the DB and <em>invalidate</em> (delete) the cache key. Simple, and
+      the cache only ever holds data someone actually asked for. Downsides: the
+      first request for any key is always a miss, and there's a race where a
+      stale value can be re-populated by a slow reader that overlapped a writer.
+      This is the default for most systems (it's how you use Redis + Postgres).
+    </p>
+    <p>
+      <strong>Write-through.</strong> The application writes to the cache, and
+      the cache synchronously writes to the DB before acknowledging. Reads are
+      always warm for recently-written data and the cache is never staler than
+      the DB. The cost is write latency (two hops on every write) and cache
+      churn from data that's written but never read.
+    </p>
+    <p>
+      <strong>Write-back (write-behind).</strong> The application writes to the
+      cache, which acknowledges immediately and flushes to the DB
+      asynchronously in batches. Fastest writes, and it absorbs write bursts and
+      coalesces repeated writes to the same key. The danger is obvious: a cache
+      node crash loses un-flushed writes. Use it only where some loss is
+      tolerable (view counts, "last seen" timestamps) or where the cache itself
+      is durable/replicated.
+    </p>
+
+    <h3>Eviction policies</h3>
+    <p>
+      When the cache is full, something must go. <strong>LRU</strong> (evict the
+      least recently used) is the safe default and matches temporal locality.
+      <strong>LFU</strong> (least frequently used) is better when popularity is
+      stable over time but reacts slowly to shifts (a once-hot key lingers).
+      <strong>FIFO</strong> is cheap but ignores access. <strong>TTL</strong>
+      isn't really eviction — it's a correctness knob that bounds staleness and
+      should usually be set <em>in addition</em> to a size-based policy.
+      Real systems blend: e.g. TinyLFU (a frequency filter guarding an LRU
+      window), which is what Caffeine and many CDNs use.
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">Capacity math — hit ratio drives backend load, and cache size</span>
+      <p>
+        Read traffic: <strong>100,000 QPS</strong>. Backend (DB) can serve
+        <strong>20,000 QPS</strong> before it falls over.
+      </p>
+<pre><code>Hit ratio   Misses hitting DB          Verdict
+--------    ----------------------     ---------------------------
+80%         100k x 0.20 = 20,000 QPS   DB exactly at its limit - fragile
+90%         100k x 0.10 = 10,000 QPS   comfortable
+95%         100k x 0.05 =  5,000 QPS   lots of headroom
+99%         100k x 0.01 =  1,000 QPS   DB barely notices
+
+=> Going 90% -> 95% HALVES DB load. Hit ratio is the highest-leverage knob.</code></pre>
+      <p>
+        Sizing the cache: suppose 200M items, average 2&nbsp;KB each = 400&nbsp;GB
+        for the full set. Measurements show the hottest <strong>10%</strong> of
+        keys serve <strong>90%</strong> of reads. Cache that 10%:
+        <code>20M items &times; 2&nbsp;KB = 40&nbsp;GB</code> &rarr; fits in a
+        small Redis cluster (3&ndash;6 nodes with replicas), and buys you the
+        90% hit ratio above. Doubling the cache to 80&nbsp;GB might get you to
+        94% — diminishing returns, and that's the curve you're always riding.
+      </p>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A cache is a bet that the near future looks like the recent past. It
+        pays when access is skewed and data changes slowly relative to how
+        often it's read. It <em>doesn't</em> help uniform-random access over a
+        huge keyspace (nothing is "hot"), write-heavy workloads (you're
+        invalidating as fast as you fill), or data that must be perfectly
+        fresh. Always ask: what's the read:write ratio, and how stale can this
+        be?
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Cache stampede / thundering herd.</strong> A hot key expires and 10,000 concurrent requests all miss and hit the DB at once. Fix: request coalescing (single-flight), a short "lock" on recompute, or probabilistic early expiration.</li>
+        <li><strong>No answer for consistency.</strong> "The DB was updated but the cache still has the old value." Decide: TTL-bounded staleness, delete-on-write (cache-aside), or write-through.</li>
+        <li><strong>Caching negative results forever.</strong> A miss for a key that doesn't exist should be cached briefly (to stop lookups for garbage keys) but not indefinitely.</li>
+        <li><strong>Unbounded cache.</strong> No eviction policy = OOM. Always cap size and set a policy.</li>
+        <li><strong>Putting the cache on the critical write path with write-back and no durability.</strong> One crash, silent data loss.</li>
+        <li><strong>Ignoring the client and CDN layers.</strong> The cheapest cache hit is the one that never leaves the user's browser or the edge POP.</li>
+      </ul>
+    </div>
+
+    <div id="t-caching"></div>
+  </section>
+
+
+  <!-- ================= TRANSACTIONS ================= -->
+  <section class="topic" id="transactions">
+    <h2>Transactions — ACID &amp; isolation levels</h2>
+
+    <p>
+      A transaction groups several reads and writes so they succeed or fail as a
+      unit. <strong>ACID</strong> names the four guarantees:
+      <strong>Atomicity</strong> (all the writes commit or none do — no partial
+      state after a crash), <strong>Consistency</strong> (the transaction moves
+      the DB from one valid state to another, respecting constraints — this "C"
+      is the odd one out, more an application property than a DB mechanism),
+      <strong>Isolation</strong> (concurrent transactions don't step on each
+      other — ideally each runs as if alone), and <strong>Durability</strong>
+      (once committed, it survives a crash — the write is on disk / replicated,
+      not just in memory).
+    </p>
+    <p>
+      Isolation is where the interesting interview questions live, because full
+      isolation (serializability) is expensive, so databases offer weaker
+      <strong>isolation levels</strong> that permit specific anomalies in
+      exchange for concurrency. The classic anomalies:
+      <em>dirty read</em> (you read another transaction's uncommitted write),
+      <em>non-repeatable read</em> (you read a row twice and get different
+      values because someone committed in between),
+      <em>phantom read</em> (you re-run a range query and new rows have
+      appeared), and <em>lost update</em> (two read-modify-write cycles
+      overlap and one is silently overwritten).
+    </p>
+
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Isolation level</th><th>Dirty read</th><th>Non-repeatable read</th><th>Phantom</th><th>Lost update</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Read Uncommitted</td><td>possible</td><td>possible</td><td>possible</td><td>possible</td></tr>
+        <tr><td>Read Committed <span class="small">(Postgres default)</span></td><td>prevented</td><td>possible</td><td>possible</td><td>possible</td></tr>
+        <tr><td>Repeatable Read <span class="small">(MySQL/InnoDB default)</span></td><td>prevented</td><td>prevented</td><td>possible*</td><td>prevented**</td></tr>
+        <tr><td>Serializable</td><td>prevented</td><td>prevented</td><td>prevented</td><td>prevented</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small">
+      * The SQL standard allows phantoms at Repeatable Read; InnoDB's next-key
+      locking actually prevents most of them. ** Postgres Read Committed does
+      <em>not</em> prevent lost update; its Repeatable Read (snapshot isolation)
+      aborts the second writer with a serialization error.
+    </p>
+
+    <h3>A concrete race — the lost update</h3>
+    <p>
+      Two support agents both process a $80 refund against the same account,
+      which has a $100 balance. The app does read-modify-write:
+    </p>
+<pre><code>-- both transactions run this logic, interleaved:
+BEGIN;
+SELECT balance FROM accounts WHERE id = 42;      -- both read 100
+-- app computes new balance = 100 - 80 = 20
+UPDATE accounts SET balance = 20 WHERE id = 42;  -- both write 20
+COMMIT;
+
+-- Timeline at READ COMMITTED:
+--   T1: SELECT -> 100
+--   T2: SELECT -> 100        (T1 hasn't committed; even if it had, T2 re-reads fresh each statement)
+--   T1: UPDATE balance = 20
+--   T1: COMMIT
+--   T2: UPDATE balance = 20  (overwrites; T2 never saw T1's 20)
+--   T2: COMMIT
+-- Result: balance = 20. Two $80 refunds were issued but only $80 left the account.</code></pre>
+    <p>How each level handles it:</p>
+    <ul>
+      <li><strong>Read Committed:</strong> anomaly occurs, as above. The second UPDATE blocks until T1 commits (row lock), then proceeds using the stale value it read earlier. Money lost.</li>
+      <li><strong>Repeatable Read (snapshot isolation, Postgres):</strong> T2's UPDATE detects the row changed since its snapshot and aborts with <code>could not serialize access due to concurrent update</code>. The app retries the whole transaction, re-reads 20, computes &minus;60, and (correctly) rejects it.</li>
+      <li><strong>Serializable:</strong> same safe outcome; the engine guarantees some serial order exists.</li>
+      <li><strong>Explicit locking at any level:</strong> <code>SELECT ... FOR UPDATE</code> takes a write lock on the read, so T2 blocks until T1 commits and then reads the fresh 20. This is the usual fix without bumping the isolation level.</li>
+      <li><strong>Atomic write:</strong> <code>UPDATE accounts SET balance = balance - 80 WHERE id = 42 AND balance &gt;= 80</code> sidesteps the read entirely — one statement, and the <code>WHERE</code> guards the invariant.</li>
+    </ul>
+    <p>
+      A related anomaly, <strong>write skew</strong>, is nastier: two
+      transactions read an overlapping set, each checks an invariant ("at least
+      one doctor is on call"), each sees it holds, and each takes itself off
+      call. No single row is double-written, so <code>FOR UPDATE</code> on
+      individual rows doesn't save you — you need <strong>Serializable</strong>
+      or a materialized lock on the predicate.
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">Capacity math — the cost of stronger isolation</span>
+<pre><code>Contended row, read-modify-write, single DB node:
+
+Read Committed + retry loop:  ~0 extra latency when uncontended;
+   under contention, aborts/retries scale with concurrency C:
+   ~ (C-1)/2 retries expected for the last writer -> throughput per row
+   collapses toward  1 / (txn_latency)  as C grows.
+
+FOR UPDATE (pessimistic):  serializes writers on that row.
+   If txn holds the lock ~5 ms, max throughput for that row ~= 200 txn/s,
+   regardless of how many app servers you add.
+
+=> Per-row hotspots cap out around  1000 / lock_hold_ms  writes/sec.
+   Design so the hot row isn't hot: shard the counter into N sub-rows and
+   sum on read (N=100 sub-rows -> ~100x the write throughput).</code></pre>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Isolation levels are the database letting you buy concurrency by
+        accepting a named, bounded risk. Default (Read Committed) is right for
+        most reads. The moment your logic is
+        <em>read &rarr; decide &rarr; write</em> on the same data, that default
+        is unsafe — reach for an atomic UPDATE, <code>SELECT ... FOR UPDATE</code>,
+        a compare-and-set version column, or snapshot isolation with a retry
+        loop. Name which one and why.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Assuming the default prevents lost updates.</strong> Read Committed does not.</li>
+        <li><strong>"Just use Serializable everywhere."</strong> It works, but throughput on contended rows drops and you must handle serialization-failure retries in every transaction.</li>
+        <li><strong>Confusing the "C" in ACID with CAP's "C".</strong> Different things — ACID consistency is constraint-preservation; CAP consistency is replica agreement.</li>
+        <li><strong>Doing the arithmetic in the app when the DB can do it atomically.</strong> <code>SET x = x + 1</code> beats <code>SELECT</code> then <code>UPDATE</code>.</li>
+        <li><strong>Long transactions.</strong> Holding locks across a network call or user think-time throttles everyone behind you.</li>
+        <li><strong>Forgetting distributed transactions are a different beast.</strong> Two-phase commit across services is slow and blocks on the coordinator; sagas (compensating actions) are the usual alternative.</li>
+      </ul>
+    </div>
+
+    <div id="t-transactions"></div>
+  </section>
+
+
+  <!-- ================= SQL VS NOSQL ================= -->
+  <section class="topic" id="sql-nosql">
+    <h2>SQL vs NoSQL — a decision framework</h2>
+
+    <p>
+      This is not "relational is old, NoSQL is web-scale." It's a set of
+      questions about <em>your</em> data and access patterns. Walk them in
+      order; the answers point at a category.
+    </p>
+
+    <ol>
+      <li>
+        <strong>Is your access pattern known and narrow, or ad-hoc?</strong>
+        If you always fetch "user by id" and "posts by user id, newest first",
+        a key-value or wide-column store models that directly and scales it
+        trivially. If analysts will slice the data ten unforeseen ways
+        tomorrow, you want SQL's ad-hoc joins and aggregations.
+      </li>
+      <li>
+        <strong>Do you need multi-record ACID transactions?</strong>
+        Money movement, inventory, bookings, anything with an invariant across
+        rows — relational engines give you this for free and it is genuinely
+        hard to bolt on later. Many document stores now offer single-document
+        atomicity and some offer multi-document transactions, but with caveats
+        and cost.
+      </li>
+      <li>
+        <strong>What's the write volume and does it exceed one primary node?</strong>
+        A single Postgres primary handles a <em>lot</em> (tens of thousands of
+        writes/sec with good hardware). If you genuinely need more sustained
+        write throughput than one node — or seamless multi-region writes —
+        a horizontally-partitioned store (Cassandra, DynamoDB, Spanner) is
+        built for it; sharding classic SQL yourself is possible but you give up
+        cross-shard joins and transactions anyway.
+      </li>
+      <li>
+        <strong>Is the schema stable or genuinely polymorphic?</strong>
+        Stable-ish schema &rarr; SQL (and use <code>JSONB</code> columns for the
+        rare flexible bits). Every record has wildly different fields (product
+        catalog across categories, event payloads) &rarr; a document store fits
+        the grain.
+      </li>
+      <li>
+        <strong>What shape is the data?</strong> Deeply connected, "friends of
+        friends who liked X" &rarr; a graph database. Time-ordered metrics
+        &rarr; a time-series DB. Full-text search &rarr; a search engine
+        (Elasticsearch) alongside your system of record, not instead of it.
+      </li>
+      <li>
+        <strong>How strong is your consistency requirement?</strong> Need
+        read-your-writes and strong consistency by default &rarr; single-primary
+        SQL or Spanner-class. Fine with eventual consistency and tunable quorums
+        &rarr; Dynamo-style.
+      </li>
+    </ol>
+
+    <p>
+      <strong>Default recommendation:</strong> start with a relational database
+      (Postgres). It's flexible, transactional, and one node goes further than
+      people expect. Introduce a specialized store when a specific access
+      pattern outgrows it — and say <em>which</em> pattern. The mature systems
+      you're being asked to design almost always end up
+      <strong>polyglot</strong>: Postgres for the core entities and money,
+      Redis for cache and rate limits, a wide-column store for the
+      high-volume append-only stream, a search index for text, an object store
+      for blobs.
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">Capacity math — does one SQL node actually suffice?</span>
+<pre><code>Product: 50M users, each does ~20 writes/day (posts, likes, profile edits).
+
+Writes/day ........ 50M x 20         = 1,000,000,000  (1B)
+Average write QPS . 1B / 86,400      ~= 11,600 w/s
+Peak (3x) ......... ~35,000 w/s
+
+One tuned Postgres primary: order of 10-20k simple write TPS sustained.
+=> Peak is ~2x a single node. Options, cheapest first:
+   1. Absorb the peak with a write-ahead queue + batching       (buys ~5x)
+   2. Move the heaviest table (likes/feed) to a partitioned store
+   3. Functional sharding: separate DBs per bounded context
+   4. Full horizontal sharding by user_id                        (last resort)
+
+Storage: 1B rows/day x 300 bytes x 365 = ~110 TB/yr of writes.
+   -> you are partitioning/archiving by time regardless of engine.</code></pre>
+      <p>
+        The lesson: "we need NoSQL for scale" is only true above a threshold
+        you should be able to <em>compute</em>. Below it, reach for a queue, a
+        cache, read replicas, and table partitioning first.
+      </p>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Relational databases optimize for <strong>flexibility of querying</strong>
+        and <strong>correctness of writes</strong> at the cost of easy
+        horizontal scaling. NoSQL stores flip that: pick your access pattern up
+        front, model the data as answers to those queries (often denormalized,
+        duplicated), and get near-linear scale-out — but ad-hoc queries and
+        cross-entity invariants become your problem. Choose based on which set
+        of costs you'd rather pay.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Feature-table thinking.</strong> "NoSQL is schemaless and fast" — every store has trade-offs; name the access pattern that motivates the choice.</li>
+        <li><strong>Picking NoSQL then needing transactions.</strong> Retrofitting cross-document atomicity is painful; know this before you commit.</li>
+        <li><strong>Sharding SQL prematurely.</strong> You lose joins and transactions across shards — the very things you chose SQL for.</li>
+        <li><strong>Using one store for everything.</strong> Forcing full-text search or a social graph into Postgres, or analytics onto Cassandra, fights the engine.</li>
+        <li><strong>Ignoring operational maturity.</strong> "Postgres, because the team knows how to run it" is a legitimate, senior answer.</li>
+      </ul>
+    </div>
+
+    <div id="t-sql-nosql"></div>
+  </section>
+
+
+  <!-- ================= MICROSERVICES ================= -->
+  <section class="topic" id="microservices">
+    <h2>Microservices — the honest trade-offs</h2>
+
+    <p>
+      A microservice architecture splits a system into independently deployable
+      services, each owning its own data and communicating over the network.
+      The pitch is real: teams ship without coordinating a monolith release,
+      each service scales and fails independently, and you can use the right
+      language/store per service. But the costs are also real, and often
+      undersold.
+    </p>
+
+    <h3>What you actually gain</h3>
+    <ul>
+      <li><strong>Independent deploys.</strong> A 3-person team owns "payments" and releases twice a day without a company-wide train.</li>
+      <li><strong>Independent scaling.</strong> The image-resize service runs 200 pods; the settings service runs 3. In a monolith you scale the whole thing to the hottest path.</li>
+      <li><strong>Fault isolation — <em>if</em> you design for it.</strong> Recommendations being down shows an empty carousel, not a 500, provided the caller degrades gracefully.</li>
+      <li><strong>Clear ownership.</strong> A bounded context with an API contract is easier to reason about and staff than a shared 2M-line codebase.</li>
+    </ul>
+
+    <h3>What it costs you</h3>
+    <ul>
+      <li><strong>A distributed system, on purpose.</strong> Every in-process call that used to be nanoseconds and always-succeeds is now a network call that's milliseconds and sometimes-fails. You need timeouts, retries, circuit breakers, and idempotency <em>everywhere</em>.</li>
+      <li><strong>No more distributed transactions (cheaply).</strong> "Create order + charge card + reserve stock" spanning three services means sagas with compensating actions, or an outbox pattern — and eventual consistency the product team has to accept.</li>
+      <li><strong>Operational surface area.</strong> 40 services = 40 pipelines, dashboards, on-call rotations, and a service mesh or you drown in it. Distributed tracing stops being optional.</li>
+      <li><strong>Data is scattered.</strong> A report that was one SQL join is now an API composition or a data pipeline into a warehouse.</li>
+      <li><strong>Versioning and contracts.</strong> You can't change an API in lockstep with all callers; you support N and N&minus;1 and run consumer-driven contract tests.</li>
+    </ul>
+
+    <div class="box dryrun">
+      <span class="box-title">Capacity math — latency and availability of a fan-out</span>
+<pre><code>A page render calls 6 services in sequence, each: p50 = 10 ms, p99 = 80 ms.
+
+Sequential p50 total ....... 6 x 10 ms  = 60 ms      (fine)
+Sequential p99-ish total ... dominated by tail; ~1 - 0.99^6 = 6% chance
+   at least one call is at its p99 -> tail latency balloons.
+
+Availability: 6 services each at 99.9% (independent), all required:
+   0.999^6 = 0.994  ->  99.4%  = ~52 hours/year of page failures
+   (worse than any single service)
+
+Mitigations you must name:
+   - parallelize independent calls (total ~= slowest, not sum)
+   - make non-critical calls optional with fast fallbacks (feed w/o "who to follow")
+   - hedged requests / tight timeouts + retries for the critical few
+   - cache aggressively so most renders touch 1-2 services, not 6</code></pre>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Microservices trade <strong>local complexity</strong> (a big codebase)
+        for <strong>distributed complexity</strong> (a network of small ones).
+        That trade pays off past a certain <em>team</em> size, not a certain
+        <em>traffic</em> level — the bottleneck it solves is human coordination.
+        The right first answer for most designs is "a well-structured
+        <strong>modular monolith</strong>, split out the one or two services
+        that have a different scaling profile or a different team." Start
+        splitting when deploy contention and ownership ambiguity — not
+        performance — become the pain.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Distributed monolith.</strong> Services so chatty and co-dependent that they must deploy together — all the costs, none of the benefits.</li>
+        <li><strong>Shared database.</strong> Two services writing the same tables aren't independent; a schema change breaks both. Each service owns its schema.</li>
+        <li><strong>Synchronous call chains.</strong> A &rarr; B &rarr; C &rarr; D synchronously means D's latency and downtime are everyone's. Use async events where you can.</li>
+        <li><strong>Nano-services.</strong> A service per class. The network overhead and operational tax dwarf any benefit.</li>
+        <li><strong>No platform investment.</strong> Adopting microservices without CI/CD, centralized logging, tracing, and a deployment platform first.</li>
+        <li><strong>Splitting by technical layer</strong> (a "database service", a "business-logic service") instead of by business capability.</li>
+      </ul>
+    </div>
+
+    <div id="t-microservices"></div>
+  </section>
+
+
+  <!-- ================= QUEUES ================= -->
+  <section class="topic" id="queues">
+    <h2>Distributed queues</h2>
+
+    <p>
+      A distributed queue (or log) sits between producers and consumers so they
+      don't have to be available at the same time or run at the same speed. The
+      producer writes a message and moves on; consumers pull and process at
+      their own pace. This buys you three things:
+      <strong>decoupling</strong> (the producer doesn't know or care who
+      consumes), <strong>buffering</strong> (a traffic spike fills the queue
+      instead of knocking over the downstream), and <strong>smoothing</strong>
+      (a slow downstream just means the queue drains later).
+    </p>
+    <p>
+      Two broad shapes. A <strong>traditional message queue</strong>
+      (RabbitMQ, SQS) hands each message to one consumer and deletes it on ack;
+      good for task distribution ("resize this image", "send this email").
+      A <strong>distributed log</strong> (Kafka, Kinesis, Pulsar) keeps
+      messages in an ordered, partitioned, append-only log with a retention
+      window; consumers track their own offset and can replay. The log shape
+      wins when you have multiple independent consumer groups, need ordering
+      within a key, or want to reprocess history (rebuild a search index,
+      backfill a new feature).
+    </p>
+    <p>
+      <strong>Delivery semantics.</strong> <em>At-most-once</em> (fire and
+      forget, may lose messages). <em>At-least-once</em> (retry until acked, may
+      deliver duplicates — the common default). <em>Exactly-once</em> is
+      mostly a marketing term for "at-least-once delivery + idempotent
+      processing"; you get it by making the consumer safe to run twice (dedupe
+      on a message id, or make the write idempotent). Design every consumer as
+      if it will see duplicates, because it will.
+    </p>
+    <p>
+      <strong>Ordering</strong> is only guaranteed within a partition. If you
+      need "events for user 42 in order," partition by <code>user_id</code> so
+      they all land on one partition — at the cost that one hot user can't be
+      parallelized. <strong>Dead-letter queues</strong> catch messages that
+      fail repeatedly so one poison message doesn't block the partition
+      forever.
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">Capacity math — sizing consumers and spotting a backlog</span>
+<pre><code>Producers emit:  avg 10,000 msg/s,  peak 50,000 msg/s
+One consumer processes:  200 msg/s  (limited by a downstream API call ~5 ms each)
+
+Consumers to keep up with the AVERAGE:  10,000 / 200  =  50 consumers
+Consumers to keep up with the PEAK:     50,000 / 200  =  250 consumers
+
+You don't provision for peak. Run ~60 consumers and let the queue absorb bursts:
+
+  30-minute spike at 50k/s, drained by 60 consumers (12k/s capacity):
+    inflow  = 50,000 x 1,800 s = 90,000,000 msgs
+    drained = 12,000 x 1,800 s = 21,600,000 msgs
+    backlog peak = 68,400,000 msgs
+    time to clear after spike ends: 68.4M / (12,000 - 10,000) = ~9.5 hours  (!)
+
+=> 60 is too few if spikes are frequent. Autoscale consumers on queue depth:
+   target "drain any backlog within 15 min" -> need ~230 consumers during the spike.
+
+Partitions must be >= max consumers you'll ever want:  pick 256 partitions now.
+Retention: 50k/s x 1 KB x 7 days = ~30 TB on the brokers -> plan disk accordingly.</code></pre>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A queue converts a <strong>latency</strong> problem into a
+        <strong>throughput</strong> problem. The user's request returns as soon
+        as the message is enqueued (fast); the actual work happens later,
+        sized for average load, with the queue as shock absorber. The catch:
+        the caller now gets an ack, not a result, so the product must tolerate
+        "we're processing your upload" and you must design for the queue
+        backing up (alert on depth and on consumer lag, not just on errors).
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>No idempotency.</strong> At-least-once means duplicates; a non-idempotent consumer double-charges, double-emails, double-increments.</li>
+        <li><strong>Monitoring throughput but not lag.</strong> Consumers keeping up on average while falling permanently behind after each spike — watch backlog depth and oldest-message age.</li>
+        <li><strong>Fewer partitions than desired parallelism.</strong> Consumer count is capped at partition count; you can't repartition Kafka cheaply.</li>
+        <li><strong>Using a queue for request/response.</strong> If the caller must wait for the result anyway, the queue just adds a hop; use it for genuinely async work.</li>
+        <li><strong>No dead-letter handling.</strong> One un-processable message retried forever blocks its partition.</li>
+        <li><strong>Unbounded retention or unbounded queue.</strong> Decide the retention window and what happens when the queue is full (block producers? drop? shed load?).</li>
+      </ul>
+    </div>
+
+    <div id="t-queues"></div>
+  </section>
+
+
+  <!-- ================= FRAMEWORK ================= -->
+  <section class="topic" id="framework">
+    <h2>Designing real systems — the framework</h2>
+
+    <p>
+      The interviewer is not grading the "right answer" — there isn't one. They
+      are grading whether you drive the conversation in a structured way, make
+      your assumptions explicit, and can defend your choices. Use these six
+      steps, out loud, in order, and manage the clock (a 45-minute round:
+      ~5 / 5 / 5 / 10 / 15 / 5).
+    </p>
+
+    <ol>
+      <li>
+        <strong>Requirements (5 min).</strong> Ask questions until scope is
+        pinned. Separate <em>functional</em> ("shorten a URL, redirect,
+        custom aliases, analytics?") from <em>non-functional</em> ("how much
+        traffic, read:write ratio, latency target, how available, how
+        consistent"). Write the agreed list down. Explicitly state what's
+        <em>out</em> of scope. The single most common failure is designing the
+        wrong system because you never clarified.
+      </li>
+      <li>
+        <strong>Capacity estimation (5 min).</strong> Turn the scale into
+        numbers: QPS (average and peak), storage per year, bandwidth, memory
+        for caches. These numbers <em>choose the architecture</em> — they tell
+        you whether it's one server or a fleet, whether the data fits on a node,
+        whether you need a cache. Round aggressively; the interviewer wants the
+        method, not precision.
+      </li>
+      <li>
+        <strong>API design (5 min).</strong> Define the handful of endpoints:
+        method, path, key params, response, and error cases. This nails down
+        the contract before you draw boxes and often surfaces a requirement you
+        missed ("wait, who owns the custom alias namespace?").
+      </li>
+      <li>
+        <strong>High-level components (10 min).</strong> Draw the boxes: clients
+        &rarr; LB &rarr; app tier &rarr; datastores / cache / queue. Show the
+        data flow for the main read path and the main write path. Keep it
+        boring and standard; this is the skeleton, not the interesting part.
+      </li>
+      <li>
+        <strong>Deep dive (15 min).</strong> The interviewer picks (or you
+        propose) the one hard part and you go deep: the data model and
+        partitioning, the algorithm (key generation, ranking, dedup), the
+        consistency story, the failure modes, the hot-key or celebrity problem.
+        This is where the signal is. Have an opinion.
+      </li>
+      <li>
+        <strong>Trade-offs &amp; wrap-up (5 min).</strong> State what you chose
+        and what you gave up: "SQL + a counter service, so I get strong
+        uniqueness and simple ops, at the cost of the counter being a scaling
+        chokepoint I'd shard by range." Name what you'd monitor, what breaks
+        first at 10&times; scale, and what you'd do next.
+      </li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Every step feeds the next: requirements set the numbers, the numbers
+        pick the components, the components have trade-offs, the deep dive
+        defends one of them. If you skip estimation you'll over- or
+        under-build; if you skip the API you'll wave your hands at the data
+        model; if you skip trade-offs you look like you think your design is
+        perfect. The framework is the same for every prompt — only the deep
+        dive changes.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Jumping to boxes in minute two.</strong> No requirements, no numbers — you're designing blind.</li>
+        <li><strong>Estimation theatre.</strong> Computing QPS and then never using it. Tie each number to a decision.</li>
+        <li><strong>Boiling the ocean.</strong> Trying to design analytics, spam detection, and multi-region all at once. Nail the core, mention the rest as extensions.</li>
+        <li><strong>Going silent to think.</strong> Narrate. The interviewer can only grade what you say.</li>
+        <li><strong>No opinion.</strong> "We could do A or B or C" without picking one and justifying it reads as inexperience.</li>
+        <li><strong>Ignoring the interviewer's nudges.</strong> "How would that handle a burst?" is a hint about where they want depth — follow it.</li>
+      </ul>
+    </div>
+
+    <div id="t-framework"></div>
+  </section>
+
+
+  <!-- ================= URL SHORTENER ================= -->
+  <section class="topic" id="url-shortener">
+    <h2>Worked example — URL shortener (end to end)</h2>
+
+    <p>
+      Running the framework top to bottom. This is the canonical warm-up
+      question; doing it crisply in 30 minutes is a strong baseline signal.
+    </p>
+
+    <h3>1 &middot; Requirements</h3>
+    <p><strong>Functional:</strong></p>
+    <ul>
+      <li>Given a long URL, return a short URL on a domain we own (<code>sho.rt/aB3xK9q</code>).</li>
+      <li>Hitting the short URL redirects (HTTP 301/302) to the long URL.</li>
+      <li>Optional custom alias (<code>sho.rt/my-launch</code>).</li>
+      <li>Optional expiry (link stops working after a date).</li>
+      <li>Basic analytics: click count per link. (Kept lightweight; full analytics is out of scope.)</li>
+    </ul>
+    <p><strong>Non-functional:</strong></p>
+    <ul>
+      <li>Scale: assume <strong>100M new URLs/day</strong>; <strong>read:write = 100:1</strong>.</li>
+      <li>Redirect latency: <strong>&lt; 50 ms p99</strong> — this is the money path.</li>
+      <li>Availability: redirects should be <strong>highly available</strong> (99.99%); the create path can be a notch lower.</li>
+      <li>Short codes must be <strong>non-guessable-ish</strong> and not expose a sequential counter directly.</li>
+      <li>Links are effectively permanent unless an expiry is set.</li>
+    </ul>
+
+    <h3>2 &middot; Capacity estimation</h3>
+<pre><code>WRITES
+  New URLs/day ............ 100,000,000
+  Write QPS (avg) ........ 100M / 86,400        ~= 1,160 /s
+  Write QPS (peak, 3x) ... ~3,500 /s
+
+READS (redirects)
+  Reads/day .............. 100 x 100M = 10,000,000,000  (10B)
+  Read QPS (avg) ........ 10B / 86,400          ~= 115,000 /s
+  Read QPS (peak, 3x) ... ~350,000 /s
+
+STORAGE  (per row)
+  short code ........ 7 bytes
+  long URL ......... ~200 bytes (avg; cap at 2 KB)
+  metadata ......... created_at 8, expiry 8, owner_id 8, click_count 8  = 32 bytes
+  row + index overhead .. call it ~500 bytes/row
+  Per day .......... 100M x 500 B          = 50 GB/day
+  Per year ......... 50 GB x 365           ~= 18 TB/year
+  5 years ......... ~90 TB   -> fits comfortably on a modest sharded cluster
+
+BANDWIDTH
+  Redirect response ~ 500 B (headers + Location)
+  Egress ........... 350,000 /s x 500 B    ~= 175 MB/s at peak  (trivial)
+
+CACHE  (hot set)
+  Assume 20% of links get 80% of clicks; cache the hot 20% of a day's links
+  plus a rolling week: ~ 150M entries x 500 B  ~= 75 GB
+  -> a Redis cluster of ~6 nodes (with replicas) holds the working set
+
+KEY SPACE  (base62: a-z A-Z 0-9)
+  6 chars: 62^6  ~= 5.7 x 10^10   -> exhausted in  57B / 100M  ~= 570 days  (too soon)
+  7 chars: 62^7  ~= 3.5 x 10^12   -> lasts  3.5T / 100M  ~= 96 years         (use 7)</code></pre>
+    <p>
+      What the numbers decided: <strong>7-character</strong> codes; a
+      <strong>cache is mandatory</strong> (115k read QPS vs a DB that does
+      maybe 20&ndash;50k); the write path is small enough for a
+      <strong>single logical primary</strong> (or a lightly sharded one); total
+      storage is large but not exotic, so <strong>partition by code</strong> and
+      move on.
+    </p>
+
+    <h3>3 &middot; API design</h3>
+<pre><code>POST /api/v1/urls
+  body:  { "longUrl": "https://...", "customAlias": "my-launch"?, "expiresAt": "2027-01-01"? }
+  201 -> { "shortUrl": "https://sho.rt/aB3xK9q", "code": "aB3xK9q", "expiresAt": null }
+  409 -> custom alias already taken
+  400 -> malformed URL
+
+GET /{code}
+  302 -> Location: https://original-long-url        (redirect; the hot path)
+  404 -> unknown or expired code
+  410 -> known but expired (optional, nicer than 404)
+
+GET /api/v1/urls/{code}          (owner only)
+  200 -> { code, longUrl, createdAt, expiresAt, clickCount }
+
+DELETE /api/v1/urls/{code}       (owner only)  -> 204</code></pre>
+    <p class="small">
+      301 (permanent) lets browsers cache the redirect — great for load, but
+      you lose per-click analytics and can't easily change the target. 302
+      (found) keeps every click coming to you. Given we want click counts, use
+      <strong>302</strong> and cache aggressively server-side.
+    </p>
+
+    <h3>4 &middot; High-level components</h3>
+<pre><code>              (write path)                         (read path - 100x heavier)
+
+  Client --POST--> [ LB ] --> [ Write API ]        Client --GET /code--> [ LB ]
+                                  |                                        |
+                        [ Key Generation ]                        [ Redirect API ]
+                                  |                                    |       |
+                                  v                              (hit) |       | (miss)
+                            [ Metadata DB ] <-------- read-through -----+       v
+                            (partitioned by code)                        [ Cache: Redis ]
+                                  |                                          |
+                                  +--> [ Analytics queue ] <----------- click event
+                                            |
+                                      [ Click aggregator ] --> updates click_count</code></pre>
+    <ul>
+      <li><strong>Redirect API</strong> is its own stateless service, scaled and deployed independently from the write side because it carries 100&times; the traffic and a stricter SLA.</li>
+      <li><strong>Cache (Redis)</strong> holds <code>code &rarr; longUrl</code>. Read-through: on miss, fetch from DB, populate with a TTL (say 24h) plus refresh-on-access. Hit ratio target &gt; 95%.</li>
+      <li><strong>Metadata DB</strong>: the system of record. <code>code</code> (PK), <code>long_url</code>, <code>created_at</code>, <code>expires_at</code>, <code>owner_id</code>. Partition by a hash of <code>code</code> so lookups are single-shard and point-queries.</li>
+      <li><strong>Analytics</strong> is fully async: the redirect fires a click event onto a queue and returns immediately; an aggregator batches increments to <code>click_count</code> (or a separate counter store). A lost click event is acceptable; a slow redirect is not.</li>
+    </ul>
+
+    <h3>5 &middot; Deep dive — generating the short code</h3>
+    <p>Three approaches; pick one and defend it.</p>
+
+    <p><strong>(a) Hash the URL, take a prefix.</strong>
+      <code>base62(md5(longUrl + salt))[:7]</code>. Stateless, no coordination.
+      Problems: collisions (two URLs &rarr; same 7 chars) must be detected
+      (insert with a uniqueness constraint; on conflict, re-hash with a bumped
+      salt) and the same URL submitted twice yields the same code unless you
+      add per-request entropy — sometimes desired (dedup), usually not.
+    </p>
+
+    <p><strong>(b) Distributed counter + base62 encode.</strong> A monotonically
+      increasing 64-bit id, base62-encoded, gives collision-free codes.
+      Get the ids without a global bottleneck by handing out
+      <strong>ranges</strong>: a coordination service (or an auto-increment
+      table) gives each Write API instance a block of 100,000 ids at a time;
+      the instance encodes locally and only talks to the coordinator once per
+      100k URLs. At peak 3,500 writes/s that's one coordinator call every ~30
+      seconds — trivial.
+    </p>
+<pre><code>counter value 1,000,000,007  --base62-->  "15FTGp7"   (7 chars)
+To avoid exposing "the 1,000,000,007th link" and to make codes look random,
+scramble the id before encoding with a fixed bijective transform:
+  scrambled = (id * ODD_CONSTANT) XOR MASK   (mod 62^7), fully reversible
+=> sequential ids, non-sequential-looking codes, still zero collisions.</code></pre>
+
+    <p><strong>(c) Pre-generated key pool.</strong> A separate service generates
+      random unused 7-char codes offline, validates uniqueness once, and stores
+      millions of them in a "available keys" table. The Write API pops one
+      under a transaction. Simple hot path, no encoding logic, but an extra
+      service and storage to run.
+    </p>
+
+    <p>
+      <strong>Choice:</strong> <em>(b) counter + range allocation + scramble</em>.
+      Zero collisions (no retry loop on the write path), no per-request
+      coordination, codes don't leak the sequence, and the only stateful piece
+      is a range allocator that's called ~once a minute. Custom aliases are a
+      separate <code>INSERT</code> into the same table with the user-supplied
+      code and a uniqueness constraint — a <code>409</code> on conflict.
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">Deep dive — the redirect path, traced</span>
+<pre><code>GET sho.rt/aB3xK9q
+
+1. LB -> nearest Redirect API pod                             (~1 ms)
+2. Redis GET code:aB3xK9q
+     HIT  (>95%): returns longUrl                             (~1 ms)     --> total ~5 ms
+     MISS (<5%):  SELECT long_url, expires_at FROM urls
+                  WHERE code = 'aB3xK9q'   (single shard)      (~5-10 ms)
+                  SETEX code:aB3xK9q 86400 <longUrl>
+3. if expires_at in the past -> 410, and delete cache key
+4. else  302 Location: <longUrl>
+5. fire-and-forget: XADD clicks * code aB3xK9q ts <now>       (non-blocking)
+
+p99 budget 50 ms: cache hit path ~5 ms, miss path ~15 ms, both well under.
+Even a total analytics outage doesn't touch steps 1-4.</code></pre>
+    </div>
+
+    <p><strong>Other deep-dive threads to be ready for:</strong></p>
+    <ul>
+      <li><strong>Hot link (a tweet goes viral):</strong> one code gets 50k req/s. It's a single cache key, so Redis handles it — but protect against the key expiring under load with single-flight recompute, or pin ultra-hot codes with no TTL. A CDN / edge cache on the 302 also absorbs it.</li>
+      <li><strong>Cache node loss:</strong> consistent hashing across Redis nodes means losing one drops ~1/N of the hot set; those become DB reads. With N=6 that's a ~16% miss spike &rarr; DB goes from ~5k to maybe ~25k QPS briefly — survivable with read replicas, and the cache refills in minutes.</li>
+      <li><strong>Expiry cleanup:</strong> don't scan. Lazily 410 + delete on access, plus a low-priority batch job that deletes rows past <code>expires_at</code> partition by partition.</li>
+      <li><strong>Abuse / malware URLs:</strong> check the long URL against a safe-browsing list on create (async is fine), and support takedown by flagging the row.</li>
+      <li><strong>Multi-region:</strong> the read path is read-mostly and tolerant of seconds of staleness, so replicate the DB and cache to each region and serve redirects locally; route writes to a home region.</li>
+    </ul>
+
+    <h3>6 &middot; Trade-offs &amp; wrap-up</h3>
+    <ul>
+      <li><strong>302 over 301:</strong> chose per-click visibility and mutable targets over letting browsers cache the redirect. If analytics didn't matter, 301 + long cache would cut our read traffic by a large factor.</li>
+      <li><strong>Counter + scramble over hashing:</strong> chose a collision-free write path (no retry loop) and a tiny coordination cost over the fully-stateless hash approach.</li>
+      <li><strong>Cache is load-bearing, not optional:</strong> a Redis outage takes the DB from ~5k to ~115k read QPS — it would fall over. Mitigation: multi-node cache with replicas, read replicas on the DB as a backstop, and a small in-process LRU on each Redirect pod for the very hottest codes.</li>
+      <li><strong>Analytics is best-effort:</strong> we accept losing some click events on a queue or aggregator failure in exchange for never slowing or failing a redirect.</li>
+      <li><strong>Storage grows ~18 TB/year forever:</strong> partition by code hash from day one; archive cold rows (no clicks in a year) to cheaper storage.</li>
+      <li><strong>What breaks first at 10&times;:</strong> the DB write path (~35k/s) and cache memory (~750 GB). Both scale horizontally by the partitioning we already have — this is why we picked hash partitioning on <code>code</code> up front.</li>
+    </ul>
+
+    <div id="t-url-shortener"></div>
+  </section>
+
+  <p class="backlink"><a href="index.html">&larr; Back to home &amp; dashboard</a> &nbsp;&middot;&nbsp; <a href="roadmap.html">See where this fits in the roadmap &rarr;</a></p>
+
+  <footer class="foot">
+    <p>Phase 2 of the <a href="roadmap.html">8-month roadmap</a>. Next: Full-Stack Java.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("hld", [
+  {
+    group: "Distributed systems fundamentals",
+    mount: "#t-fundamentals",
+    items: [
+      "Why go distributed: scale, availability, latency (and the network cost)",
+      "CAP is per-operation: CP vs AP during a partition; PACELC's else-clause",
+      "Consistency spectrum: strong / read-your-writes / eventual",
+      "The latency ladder (memory ~100x SSD, cross-region ~300x same-DC)",
+      "Availability math: nines as downtime; series multiplies, parallel adds nines"
+    ]
+  },
+  {
+    group: "Load balancing",
+    mount: "#t-load-balancing",
+    items: [
+      "L4 vs L7 and what L7 buys (path routing, TLS, retries, rate limits)",
+      "Algorithms: round robin, least connections, hash-on-key, weighted",
+      "Active + passive health checks; connection draining",
+      "Backends must be stateless; externalize session state",
+      "Estimate fleet size from per-server QPS + peak factor + N+2 headroom"
+    ]
+  },
+  {
+    group: "Consistent hashing",
+    mount: "#t-consistent-hashing",
+    items: [
+      "Why hash % N breaks: ~(N-1)/N of keys remap on resize",
+      "The ring: key owned by first node clockwise; only ~K/N keys move",
+      "Virtual nodes even out load and spread a failed node's share",
+      "It balances key count, not traffic - hot keys still need help",
+      "Placement not replication: store on next R distinct nodes for replicas"
+    ]
+  },
+  {
+    group: "Caching",
+    mount: "#t-caching",
+    items: [
+      "Cache-aside vs write-through vs write-back (and their failure modes)",
+      "Eviction: LRU default, LFU, FIFO, TTL as a correctness knob",
+      "Hit ratio drives backend load: 90%->95% halves DB QPS",
+      "Size the cache from the hot-key fraction, not the full dataset",
+      "Stampede protection: single-flight, locks, probabilistic early expiry"
+    ]
+  },
+  {
+    group: "Transactions: ACID & isolation",
+    mount: "#t-transactions",
+    items: [
+      "ACID: atomicity, consistency, isolation, durability (C is app-level)",
+      "Anomalies: dirty read, non-repeatable read, phantom, lost update",
+      "Isolation levels and what each permits (RC default allows lost update)",
+      "Walk the lost-update race and its fixes (FOR UPDATE, atomic UPDATE, SI+retry)",
+      "Write skew needs Serializable or a predicate lock; per-row locks don't help",
+      "Hot-row write cap ~ 1000 / lock_hold_ms; shard the counter"
+    ]
+  },
+  {
+    group: "SQL vs NoSQL decision framework",
+    mount: "#t-sql-nosql",
+    items: [
+      "Access pattern: narrow & known vs ad-hoc joins/aggregations",
+      "Multi-record ACID need; write volume vs one primary node",
+      "Schema stability; data shape (relational / document / graph / time-series)",
+      "Consistency requirement: strong-by-default vs tunable quorums",
+      "Default to Postgres; go polyglot per outgrown access pattern",
+      "Compute the threshold before claiming 'we need NoSQL for scale'"
+    ]
+  },
+  {
+    group: "Microservices trade-offs",
+    mount: "#t-microservices",
+    items: [
+      "Gains: independent deploy/scale, fault isolation, clear ownership",
+      "Costs: distributed system, no cheap cross-service txns, ops surface",
+      "It solves team-coordination scale, not traffic scale",
+      "Fan-out math: 0.999^6 = 99.4%; parallelize + degrade non-critical calls",
+      "Anti-patterns: distributed monolith, shared DB, nano-services, sync chains",
+      "Start with a modular monolith; split by business capability"
+    ]
+  },
+  {
+    group: "Distributed queues",
+    mount: "#t-queues",
+    items: [
+      "Decouple / buffer / smooth: converts latency problem into throughput",
+      "Message queue vs distributed log (replay, multiple consumer groups)",
+      "Delivery: at-least-once is default; 'exactly-once' = at-least-once + idempotency",
+      "Ordering only within a partition; partition by key; dead-letter queues",
+      "Size consumers for average, let the queue absorb peaks, autoscale on depth",
+      "Partitions >= max future consumers; monitor lag and oldest-message age"
+    ]
+  },
+  {
+    group: "System-design framework",
+    mount: "#t-framework",
+    items: [
+      "Requirements: functional vs non-functional; state what's out of scope",
+      "Capacity estimation: QPS, storage, bandwidth, cache memory - tie each to a decision",
+      "API design: endpoints, params, responses, errors before boxes",
+      "High-level components: read path and write path data flow",
+      "Deep dive: data model, partitioning, algorithm, consistency, failure modes",
+      "Trade-offs: what you chose, what you gave up, what breaks at 10x"
+    ]
+  },
+  {
+    group: "Worked example: URL shortener",
+    mount: "#t-url-shortener",
+    items: [
+      "Requirements + the read:write = 100:1 assumption",
+      "Capacity: 115k read QPS, 7-char base62 keyspace, ~75 GB hot cache",
+      "API: POST /urls, GET /{code} 302, owner-only reads/delete",
+      "Components: separate redirect service, read-through Redis, async analytics",
+      "Key generation: hash vs counter+range vs key pool - pick counter+scramble",
+      "Redirect path traced under the 50 ms p99 budget",
+      "Failure modes: hot link, cache node loss, expiry cleanup, multi-region",
+      "Trade-offs: 302 vs 301, cache is load-bearing, analytics best-effort"
+    ]
+  }
+], { pageTitle: "HLD: Scaling, Data & Distributed Systems" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("hld");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

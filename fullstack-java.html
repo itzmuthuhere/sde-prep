@@ -1,0 +1,1938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Full-Stack Java — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html" class="active">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Full-Stack Java — Spring Boot for a Backend SDE</h1>
+  <p class="lede">
+    Phase 3. Most product companies that hire Java engineers run the framework
+    round on Spring Boot: "walk me through how a request flows", "why did this
+    lazy collection throw", "how does your JWT filter fit into the chain", "show
+    me a unit test". This page is the whole Spring surface area you get asked
+    about — Core, MVC, Data JPA, Security, Actuator, testing, templating, REST
+    conventions, packaging with Docker — then a capstone eCommerce app you can
+    describe end to end and defend for ten minutes.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>How to use this page.</strong> Each section is written to be spoken
+      aloud in an interview: a short mental model, a worked example (several of
+      which are built to <em>break</em> so you learn the failure by name), and an
+      <strong>interviewer probe</strong> box with the follow-up question and the
+      answer that shows depth. Do the capstone last — it stitches every earlier
+      section into one system. Tick items to feed the
+      <a href="index.html">home dashboard</a>; aim for two sections a weeknight,
+      the capstone over a weekend.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — Spring Boot for a backend SDE</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#core">Spring Core — IoC, DI, bean lifecycle</a></li>
+      <li><a href="#mvc">Spring MVC — the request lifecycle</a></li>
+      <li><a href="#jpa">Spring Data JPA — relationships &amp; lazy vs eager</a></li>
+      <li><a href="#security">Spring Security — authn, authz, filter chain, JWT</a></li>
+      <li><a href="#actuator">Spring Boot Actuator</a></li>
+      <li><a href="#testing">JUnit 5 + Mockito</a></li>
+      <li><a href="#thymeleaf">Thymeleaf &amp; project layout</a></li>
+      <li><a href="#rest">REST API design + Postman workflow</a></li>
+      <li><a href="#exceptions">Exception handling</a></li>
+      <li><a href="#upload">File upload</a></li>
+      <li><a href="#git">Git collaboration workflow</a></li>
+      <li><a href="#docker">Docker + basic deployment</a></li>
+      <li><a href="#cloud">Spring Cloud — config server, Eureka</a></li>
+      <li><a href="#capstone">Capstone — full-stack eCommerce with login</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ================= SPRING CORE ================= -->
+  <section class="topic" id="core">
+    <h2>Spring Core — IoC, DI, bean lifecycle</h2>
+
+    <p>
+      <strong>Inversion of Control (IoC)</strong> means your classes no longer
+      build their own collaborators — a container does, and hands them in. The
+      concrete mechanism Spring uses is <strong>Dependency Injection (DI)</strong>:
+      you declare what you need (a constructor parameter), and the
+      <code>ApplicationContext</code> supplies a fully wired instance. The win is
+      testability (pass a fake in the test), swappability (one interface, several
+      implementations chosen by config), and lifecycle management (one shared,
+      thread-safe instance instead of <code>new</code> everywhere).
+    </p>
+    <p>
+      A <strong>bean</strong> is just an object the container creates and manages.
+      You declare beans with stereotype annotations
+      (<code>@Component</code>, <code>@Service</code>, <code>@Repository</code>,
+      <code>@Controller</code> — all <code>@Component</code> with intent) that
+      component-scanning picks up, or explicitly with <code>@Bean</code> methods
+      inside a <code>@Configuration</code> class (the right tool for wiring types
+      you don't own). Default <strong>scope</strong> is <code>singleton</code>:
+      one instance per container. <code>prototype</code> gives a new one per
+      injection point; <code>request</code>/<code>session</code> are web-scoped.
+    </p>
+    <p>
+      Prefer <strong>constructor injection</strong> over field injection: it makes
+      dependencies explicit and final, fails fast if a dependency is missing, and
+      needs no Spring annotations to unit-test. Field injection
+      (<code>@Autowired</code> on a private field) hides dependencies and only
+      works through reflection. When two beans satisfy one type, disambiguate
+      with <code>@Qualifier("name")</code> or mark one <code>@Primary</code>.
+    </p>
+
+    <p class="code-label">Constructor injection — the default you should write</p>
+<pre><code>public interface PricingPolicy { long priceOf(Product p); }
+
+@Component
+class StandardPricing implements PricingPolicy {
+    public long priceOf(Product p) { return p.getListPricePaise(); }
+}
+
+@Service
+public class CartService {
+    private final PricingPolicy pricing;
+    private final CartRepository carts;
+
+    // No @Autowired needed since Spring 4.3 when there is one constructor
+    public CartService(PricingPolicy pricing, CartRepository carts) {
+        this.pricing = pricing;
+        this.carts = carts;
+    }
+
+    public long total(Cart cart) {
+        return cart.getItems().stream()
+                   .mapToLong(i -&gt; pricing.priceOf(i.getProduct()) * i.getQty())
+                   .sum();
+    }
+}</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Spring is a big <code>Map&lt;name, object&gt;</code> plus rules for
+        building the objects in dependency order. "Injecting a bean" = the
+        container looks up (or lazily creates) the collaborator and passes it to
+        your constructor. Everything else — AOP proxies, transactions, security —
+        is the container wrapping those beans before it hands them out.
+      </p>
+    </div>
+
+    <h3>Bean lifecycle — the order that matters</h3>
+    <p>
+      For a singleton bean, the container: (1) instantiates it (constructor),
+      (2) populates dependencies (setter/field injection), (3) calls
+      <code>*Aware</code> callbacks (<code>BeanNameAware</code>,
+      <code>ApplicationContextAware</code>), (4) runs
+      <code>BeanPostProcessor.postProcessBeforeInitialization</code>,
+      (5) runs init callbacks — <code>@PostConstruct</code>, then
+      <code>InitializingBean.afterPropertiesSet()</code>, then a custom
+      <code>initMethod</code>, (6) runs
+      <code>postProcessAfterInitialization</code> (this is where AOP/proxy
+      wrapping happens), and the bean is ready. On shutdown it runs
+      <code>@PreDestroy</code>, then <code>DisposableBean.destroy()</code>, then a
+      custom <code>destroyMethod</code>.
+    </p>
+
+    <p class="code-label">Lifecycle hooks in practice</p>
+<pre><code>@Component
+public class ConnectionWarmup {
+
+    private final DataSource dataSource;
+    ConnectionWarmup(DataSource dataSource) { this.dataSource = dataSource; }
+
+    @PostConstruct               // after DI, before the bean serves traffic
+    void prime() {
+        try (var c = dataSource.getConnection()) {
+            c.isValid(2);        // open one connection so the first request is fast
+        } catch (SQLException e) {
+            throw new IllegalStateException("DB unreachable at startup", e);
+        }
+    }
+
+    @PreDestroy                  // on context close / SIGTERM
+    void drain() {
+        // flush metrics, close custom resources
+    }
+}</code></pre>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Field injection everywhere.</strong> Can't construct the object in a plain JUnit test without reflection; circular dependencies get silently tolerated instead of caught.</li>
+        <li><strong>Calling <code>@PostConstruct</code> logic in the constructor.</strong> Dependencies may not be injected yet if you ever switch to setter injection, and the object escapes half-built.</li>
+        <li><strong>Injecting a <code>prototype</code> bean into a <code>singleton</code></strong> and expecting a fresh one each call — you get one, captured at creation. Use <code>ObjectProvider&lt;T&gt;</code> or a lookup method.</li>
+        <li><strong>Assuming <code>@Transactional</code> / <code>@Cacheable</code> work on self-calls.</strong> They're proxy-based; a method calling another method on <code>this</code> bypasses the proxy.</li>
+        <li><strong>Putting state on a singleton bean.</strong> Singletons are shared across all request threads — mutable instance fields are a race condition.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Constructor vs field vs setter injection?" — constructor for required,
+        immutable deps (the default); setter for optional deps; field only in
+        throwaway code. "How does Spring break a circular dependency?" — for
+        setter/field injection it exposes an early bean reference from the
+        singleton cache; for constructor injection on both sides it can't, and
+        fails at startup (fix the design, or <code>@Lazy</code> one side).
+        "What is a <code>BeanPostProcessor</code>?" — the hook the framework
+        itself uses to wrap your beans in proxies for AOP, <code>@Async</code>,
+        <code>@Transactional</code>.
+      </p>
+    </div>
+
+    <div id="t-spring-core"></div>
+  </section>
+
+
+  <!-- ================= SPRING MVC ================= -->
+  <section class="topic" id="mvc">
+    <h2>Spring MVC — the request lifecycle</h2>
+
+    <p>
+      Every HTTP request into a Spring Boot web app hits one servlet:
+      <code>DispatcherServlet</code> (the "front controller"). It owns the
+      pipeline and delegates each step to a strategy bean, which is why the
+      framework is so extensible — you replace a strategy, not the servlet.
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">Request trace — <code>GET /api/products/42</code> returning JSON</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>#</th><th>Component</th><th>What happens</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Servlet container (Tomcat)</td><td>Accepts the socket, builds <code>HttpServletRequest</code>, hands it to <code>DispatcherServlet</code>.</td></tr>
+          <tr><td>2</td><td><code>Filter</code> chain</td><td><code>OncePerRequestFilter</code>s run — Spring Security, request logging, CORS. Can short-circuit here (401).</td></tr>
+          <tr><td>3</td><td><code>HandlerMapping</code></td><td><code>RequestMappingHandlerMapping</code> matches the URL + method to <code>ProductController#getOne(long)</code>.</td></tr>
+          <tr><td>4</td><td><code>HandlerInterceptor</code></td><td><code>preHandle()</code> runs (auth checks, timing start). Can veto.</td></tr>
+          <tr><td>5</td><td><code>HandlerAdapter</code></td><td>Resolves method arguments: <code>@PathVariable</code> <code>42</code> parsed to <code>long</code> via a <code>Converter</code>; <code>@RequestBody</code> would use an <code>HttpMessageConverter</code>.</td></tr>
+          <tr><td>6</td><td>Controller method</td><td>Runs your code, returns a <code>Product</code> (or <code>ResponseEntity&lt;Product&gt;</code>).</td></tr>
+          <tr><td>7</td><td>Return value handler</td><td><code>@RestController</code> ⇒ <code>@ResponseBody</code> path: <code>MappingJackson2HttpMessageConverter</code> serializes to JSON, sets <code>Content-Type</code>.</td></tr>
+          <tr><td>8</td><td>Exception (if thrown)</td><td><code>HandlerExceptionResolver</code> → your <code>@RestControllerAdvice</code> maps it to a status + body. See <a href="#exceptions">Exception handling</a>.</td></tr>
+          <tr><td>9</td><td><code>HandlerInterceptor</code></td><td><code>postHandle()</code> then <code>afterCompletion()</code> (timing stop, cleanup) — the latter runs even on exception.</td></tr>
+          <tr><td>10</td><td>Filter chain unwinds</td><td>Response flushed to the socket.</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <p>
+      For a classic server-rendered app the controller returns a
+      <strong>view name</strong> (a <code>String</code>) instead; step 7 becomes
+      <code>ViewResolver</code> → <code>View.render()</code>, which runs the
+      Thymeleaf template against the <code>Model</code> and writes HTML. Same
+      pipeline, different tail.
+    </p>
+
+    <p class="code-label">A controller that shows both tails</p>
+<pre><code>@RestController
+@RequestMapping("/api/products")
+class ProductApiController {
+    private final ProductService products;
+    ProductApiController(ProductService products) { this.products = products; }
+
+    @GetMapping("/{id}")                              // JSON tail
+    ResponseEntity&lt;ProductDto&gt; getOne(@PathVariable long id) {
+        return ResponseEntity.ok(ProductDto.from(products.require(id)));
+    }
+}
+
+@Controller
+@RequestMapping("/products")
+class ProductPageController {
+    private final ProductService products;
+    ProductPageController(ProductService products) { this.products = products; }
+
+    @GetMapping("/{id}")                              // HTML tail
+    String page(@PathVariable long id, Model model) {
+        model.addAttribute("product", products.require(id));
+        return "product/detail";                      // -&gt; templates/product/detail.html
+    }
+}</code></pre>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Confusing <code>@Controller</code> with <code>@RestController</code>.</strong> The latter adds <code>@ResponseBody</code> to every method; returning <code>"product/detail"</code> from it sends the literal string <code>product/detail</code> as the response body.</li>
+        <li><strong>Filters vs interceptors.</strong> Filters are servlet-level (no Spring MVC context, run for every request including static resources); interceptors are MVC-level and know the handler. Put security in a filter, per-handler timing in an interceptor.</li>
+        <li><strong>Doing blocking I/O on the Tomcat thread pool</strong> without sizing it — 200 threads default; a slow downstream call exhausts them and the app stops responding.</li>
+        <li><strong>Returning entities directly</strong> instead of DTOs — leaks the schema, triggers lazy-loading during serialization (see next section), and couples your API to your tables.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Walk me through what happens between the browser and your controller
+        method." — name <code>DispatcherServlet</code>, filter chain,
+        <code>HandlerMapping</code>, <code>HandlerAdapter</code>, argument
+        resolvers, return-value handlers, <code>HttpMessageConverter</code>.
+        "Where does JSON (de)serialization happen?" — <code>HttpMessageConverter</code>
+        (Jackson), driven by <code>Accept</code> / <code>Content-Type</code>.
+        "How would you add a request ID to every log line?" — a
+        <code>OncePerRequestFilter</code> that puts it in the SLF4J <code>MDC</code>
+        and clears it in a <code>finally</code>.
+      </p>
+    </div>
+
+    <div id="t-spring-mvc"></div>
+  </section>
+
+
+  <!-- ================= SPRING DATA JPA ================= -->
+  <section class="topic" id="jpa">
+    <h2>Spring Data JPA — relationships &amp; lazy vs eager loading</h2>
+
+    <p>
+      Spring Data JPA sits on top of an ORM (Hibernate). You define
+      <code>@Entity</code> classes that map to tables, and
+      <code>Repository</code> interfaces whose method names Spring turns into
+      queries (<code>findByCustomerIdAndStatus</code>). The behaviour that trips
+      people up in interviews and in production is <strong>when</strong> related
+      rows get loaded.
+    </p>
+
+    <h3>Relationship mapping</h3>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Annotation</th><th>Default fetch</th><th>Owning side</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td><code>@ManyToOne</code></td><td><strong>EAGER</strong></td><td>the <code>@ManyToOne</code> side (has the FK column)</td><td>Override to <code>LAZY</code> almost always.</td></tr>
+        <tr><td><code>@OneToMany</code></td><td>LAZY</td><td><code>mappedBy</code> points to the owner</td><td>Collection is a proxy until touched.</td></tr>
+        <tr><td><code>@OneToOne</code></td><td>EAGER</td><td>side with the FK (or <code>@JoinColumn</code>)</td><td>LAZY only reliably works on the owning side.</td></tr>
+        <tr><td><code>@ManyToMany</code></td><td>LAZY</td><td>either; needs a join table</td><td>Prefer two <code>@OneToMany</code> to an explicit link entity.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="code-label">The domain we'll break — Order 1─* OrderItem *─1 Product</p>
+<pre><code>@Entity
+public class Order {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String status;
+    private Instant placedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)          // FK: order.customer_id
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List&lt;OrderItem&gt; items = new ArrayList&lt;&gt;();
+    // getters/setters/helpers
+}
+
+@Entity
+public class OrderItem {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private int qty;
+    private long unitPricePaise;
+
+    @ManyToOne(fetch = FetchType.LAZY)          // FK: order_item.order_id
+    @JoinColumn(name = "order_id")
+    private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY)          // FK: order_item.product_id
+    @JoinColumn(name = "product_id")
+    private Product product;
+}</code></pre>
+
+    <h3>The example that breaks</h3>
+    <p>
+      Naive service and controller. The service opens a transaction, loads the
+      order, and returns the entity. The transaction commits (and the Hibernate
+      <code>Session</code> closes) when the service method returns. Then the
+      controller serializes it.
+    </p>
+<pre><code>@Service
+class OrderService {
+    private final OrderRepository orders;
+    OrderService(OrderRepository orders) { this.orders = orders; }
+
+    @Transactional(readOnly = true)
+    public Order getOrder(long id) {
+        return orders.findById(id)
+                     .orElseThrow(() -&gt; new NotFoundException("order " + id));
+    }   // &lt;-- transaction commits here, Session closes
+}
+
+@RestController
+class OrderController {
+    private final OrderService service;
+    OrderController(OrderService service) { this.service = service; }
+
+    @GetMapping("/api/orders/{id}")
+    Order get(@PathVariable long id) {
+        Order o = service.getOrder(id);
+        return o;   // Jackson now walks o.getItems() ... to serialize it
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">What actually happens</span>
+      <p>
+        <code>orders.findById(id)</code> emits <strong>one</strong> SQL:
+        <code>SELECT * FROM orders WHERE id = ?</code>. <code>items</code> is a
+        lazy <code>PersistentBag</code> proxy — <em>not</em> loaded. The method
+        returns, the transaction commits, the <code>Session</code> is closed.
+      </p>
+      <p>
+        Back in the controller, Jackson calls <code>order.getItems().size()</code>.
+        The proxy tries to run its initialization <code>SELECT</code> — but there
+        is no open <code>Session</code>. Hibernate throws:
+      </p>
+<pre><code>org.hibernate.LazyInitializationException:
+  failed to lazily initialize a collection of role:
+  com.shop.Order.items: could not initialize proxy - no Session</code></pre>
+      <p>
+        If you "fix" it by enabling <em>open-session-in-view</em> (Spring Boot's
+        default, actually), the exception disappears but you get the
+        <strong>N+1 problem</strong> instead: 1 query for the order, 1 for the
+        items collection, then 1 <code>SELECT</code> per <code>OrderItem</code> to
+        load its <code>product</code>. An order with 20 lines = <strong>1 + 1 + 20
+        = 22 queries</strong> for one endpoint, executed lazily during JSON
+        serialization where you can't even see them in your service code.
+      </p>
+    </div>
+
+    <h3>Why it breaks — and the four real fixes</h3>
+    <p>
+      The root cause: <strong>lazy loading needs an open persistence context, and
+      the context's lifetime is the transaction, which ends inside the service.</strong>
+      Serialization happens after. The fixes, best first:
+    </p>
+    <ol>
+      <li>
+        <strong>Return a DTO, assembled inside the transaction.</strong> The
+        service maps <code>Order</code> → <code>OrderDto</code> while the session
+        is open, so every field it needs is fetched deliberately. The controller
+        serializes a plain object with no proxies. This also decouples the API
+        from the schema.
+      </li>
+      <li>
+        <strong><code>JOIN FETCH</code> in the query</strong> so the data arrives
+        in one round trip:
+<pre><code>@Query("""
+    select distinct o from Order o
+    join fetch o.items i
+    join fetch i.product
+    where o.id = :id
+""")
+Optional&lt;Order&gt; findWithItems(@Param("id") long id);</code></pre>
+      </li>
+      <li>
+        <strong><code>@EntityGraph</code></strong> — declarative fetch plan on a
+        derived query, same effect as <code>JOIN FETCH</code> without JPQL:
+<pre><code>@EntityGraph(attributePaths = {"items", "items.product"})
+Optional&lt;Order&gt; findById(Long id);</code></pre>
+      </li>
+      <li>
+        <strong>Batch fetching</strong> for the collection-of-collections case:
+        <code>@BatchSize(size = 50)</code> or
+        <code>spring.jpa.properties.hibernate.default_batch_fetch_size=50</code>
+        turns "N queries" into "N/50 queries" using <code>IN (...)</code>.
+      </li>
+    </ol>
+    <p>
+      Do <strong>not</strong> fix it by making everything <code>EAGER</code>:
+      then every query for an <code>Order</code> drags the whole object graph,
+      including from screens that only need the status. Eager is a decision you
+      can't undo per-query; lazy + explicit fetch is.
+    </p>
+
+    <p class="code-label">The fixed service — DTO assembled in-transaction</p>
+<pre><code>@Service
+class OrderService {
+    private final OrderRepository orders;
+    OrderService(OrderRepository orders) { this.orders = orders; }
+
+    @Transactional(readOnly = true)
+    public OrderDto getOrder(long id) {
+        Order o = orders.findWithItems(id)
+                        .orElseThrow(() -&gt; new NotFoundException("order " + id));
+        // still inside the tx: proxies resolve against the open Session
+        List&lt;OrderLineDto&gt; lines = o.getItems().stream()
+            .map(it -&gt; new OrderLineDto(
+                    it.getProduct().getName(),
+                    it.getQty(),
+                    it.getUnitPricePaise()))
+            .toList();
+        return new OrderDto(o.getId(), o.getStatus(), lines);
+    }
+}</code></pre>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Serializing entities from controllers.</strong> The single biggest source of <code>LazyInitializationException</code>, N+1, and accidental schema leaks.</li>
+        <li><strong>Relying on open-session-in-view.</strong> It hides N+1 and holds a DB connection for the whole request including view rendering. Many teams disable it (<code>spring.jpa.open-in-view=false</code>) to surface the problem at dev time.</li>
+        <li><strong><code>JOIN FETCH</code> with pagination.</strong> Fetching a collection + <code>Pageable</code> makes Hibernate paginate in memory (warns in the log). Use <code>@EntityGraph</code> on the entity IDs, or a two-step "IDs then fetch" query.</li>
+        <li><strong><code>@ManyToOne</code> left EAGER.</strong> It's the default; a chain of eager <code>@ManyToOne</code>s can load half the database for one <code>findById</code>.</li>
+        <li><strong><code>equals()</code>/<code>hashCode()</code> using the generated ID.</strong> The ID is null before persist; use a business key or a stable UUID assigned in the constructor.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "You call <code>getItems()</code> in the controller and it throws — why?"
+        — session closed with the transaction; the lazy proxy has nothing to
+        query against. "How do you fix N+1?" — <code>JOIN FETCH</code> /
+        <code>@EntityGraph</code> for a known path, batch fetch size for the
+        general case, DTO projection to fetch exactly the columns. "Why not make
+        it eager?" — eager is global and un-opt-out-able per query; you trade one
+        bug for a slower everything. "What's the owning side of
+        <code>@OneToMany</code>?" — the <em>many</em> side with the FK;
+        <code>mappedBy</code> names the field there.
+      </p>
+    </div>
+
+    <div id="t-jpa"></div>
+  </section>
+
+
+  <!-- ================= SPRING SECURITY ================= -->
+  <section class="topic" id="security">
+    <h2>Spring Security — authentication, authorization, the filter chain, JWT</h2>
+
+    <p>
+      <strong>Authentication</strong> answers "who are you?" — verify a
+      credential (password, token, certificate) and establish a principal.
+      <strong>Authorization</strong> answers "are you allowed to do this?" —
+      check the authenticated principal's authorities/roles against the rule
+      guarding a URL or method. Authentication happens once per request (early);
+      authorization happens at the point of access (later, possibly per method).
+    </p>
+
+    <h3>The filter chain</h3>
+    <p>
+      Spring Security is a single servlet <code>Filter</code>
+      (<code>FilterChainProxy</code>, registered as
+      <code>springSecurityFilterChain</code>) that internally runs an ordered
+      list of security filters before your <code>DispatcherServlet</code> ever
+      sees the request. The ones that matter:
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Order</th><th>Filter</th><th>Job</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>SecurityContextPersistenceFilter</code> / <code>SecurityContextHolderFilter</code></td><td>Load any existing <code>SecurityContext</code> (from the session, or nothing for stateless).</td></tr>
+        <tr><td>2</td><td><code>CsrfFilter</code></td><td>Validate the CSRF token for state-changing requests (disabled for stateless APIs).</td></tr>
+        <tr><td>3</td><td><code>LogoutFilter</code></td><td>Handle <code>POST /logout</code>.</td></tr>
+        <tr><td>4</td><td><strong>Authentication filter</strong> — <code>UsernamePasswordAuthenticationFilter</code>, or your custom <code>JwtAuthFilter</code></td><td>Extract the credential, build an <code>Authentication</code>, delegate to the <code>AuthenticationManager</code>, store the result in the <code>SecurityContextHolder</code>.</td></tr>
+        <tr><td>5</td><td><code>ExceptionTranslationFilter</code></td><td>Catch <code>AuthenticationException</code> (→ 401, entry point) and <code>AccessDeniedException</code> (→ 403).</td></tr>
+        <tr><td>6</td><td><code>AuthorizationFilter</code> (was <code>FilterSecurityInterceptor</code>)</td><td>The last filter: apply the <code>authorizeHttpRequests</code> rules. Passes → your controller runs.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="code-label">A stateless JWT security config (Spring Security 6 / Boot 3)</p>
+<pre><code>@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity                 // enables @PreAuthorize
+public class SecurityConfig {
+
+    private final JwtAuthFilter jwtAuthFilter;
+    SecurityConfig(JwtAuthFilter jwtAuthFilter) { this.jwtAuthFilter = jwtAuthFilter; }
+
+    @Bean
+    SecurityFilterChain chain(HttpSecurity http) throws Exception {
+        http
+          .csrf(csrf -&gt; csrf.disable())                       // stateless: no cookie, no CSRF
+          .sessionManagement(sm -&gt; sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+          .authorizeHttpRequests(auth -&gt; auth
+              .requestMatchers("/api/auth/**", "/actuator/health").permitAll()
+              .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+              .requestMatchers("/api/admin/**").hasRole("ADMIN")
+              .anyRequest().authenticated())
+          .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+          .exceptionHandling(e -&gt; e
+              .authenticationEntryPoint((req, res, ex) -&gt; res.sendError(401))
+              .accessDeniedHandler((req, res, ex) -&gt; res.sendError(403)));
+        return http.build();
+    }
+
+    @Bean PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+
+    @Bean
+    AuthenticationManager authManager(AuthenticationConfiguration c) throws Exception {
+        return c.getAuthenticationManager();
+    }
+}</code></pre>
+
+    <p class="code-label">The JWT filter — runs once per request</p>
+<pre><code>@Component
+public class JwtAuthFilter extends OncePerRequestFilter {
+
+    private final JwtService jwt;
+    private final UserDetailsService users;
+    JwtAuthFilter(JwtService jwt, UserDetailsService users) { this.jwt = jwt; this.users = users; }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
+                                    FilterChain chain) throws ServletException, IOException {
+        String header = req.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            chain.doFilter(req, res);                 // no token -> let authz reject it later
+            return;
+        }
+        String token = header.substring(7);
+        try {
+            String username = jwt.extractUsername(token);   // parse + verify signature + exp
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails user = users.loadUserByUsername(username);
+                if (jwt.isValid(token, user)) {
+                    var authn = new UsernamePasswordAuthenticationToken(
+                            user, null, user.getAuthorities());
+                    authn.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
+                    SecurityContextHolder.getContext().setAuthentication(authn);
+                }
+            }
+        } catch (JwtException invalid) {
+            // leave context empty; ExceptionTranslationFilter -&gt; 401
+        }
+        chain.doFilter(req, res);
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">JWT request flow — login, then a protected call</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>#</th><th>Step</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>POST /api/auth/login</code> <code>{email, password}</code></td><td><code>permitAll</code>. <code>AuthController</code> calls <code>authenticationManager.authenticate(...)</code>.</td></tr>
+          <tr><td>2</td><td><code>DaoAuthenticationProvider</code></td><td>Loads the user via <code>UserDetailsService</code>, checks <code>BCrypt.matches(raw, hash)</code>.</td></tr>
+          <tr><td>3</td><td>Issue token</td><td><code>JwtService.generate(user)</code> — header <code>{alg:HS256}</code>, claims <code>{sub:email, roles:[...], iat, exp:+15m}</code>, HMAC signature with the server secret.</td></tr>
+          <tr><td>4</td><td>Response</td><td><code>{ "accessToken": "eyJ...", "refreshToken": "..." }</code>. Client stores it (memory / httpOnly cookie).</td></tr>
+          <tr><td>5</td><td><code>GET /api/orders/mine</code> <code>Authorization: Bearer eyJ...</code></td><td>Enters the filter chain.</td></tr>
+          <tr><td>6</td><td><code>JwtAuthFilter</code></td><td>Strips <code>Bearer </code>, verifies signature with the secret, checks <code>exp</code>, loads <code>UserDetails</code>, builds an <code>Authentication</code>, puts it in <code>SecurityContextHolder</code>.</td></tr>
+          <tr><td>7</td><td><code>AuthorizationFilter</code></td><td><code>anyRequest().authenticated()</code> — context has an <code>Authentication</code> ⇒ pass. (Admin URL would also check <code>hasRole("ADMIN")</code>.)</td></tr>
+          <tr><td>8</td><td>Controller</td><td>Runs. <code>@AuthenticationPrincipal UserDetails me</code> is injected; <code>@PreAuthorize</code> can do a finer check.</td></tr>
+          <tr><td>9</td><td>Response sent</td><td><code>SecurityContextHolder.clearContext()</code> at end of request (it's a <code>ThreadLocal</code>; the thread returns to the pool).</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Token expired at step 6 ⇒ filter leaves the context empty ⇒ step 7 sees
+        no auth ⇒ <code>ExceptionTranslationFilter</code> invokes the entry point
+        ⇒ <strong>401</strong>. Client then calls
+        <code>POST /api/auth/refresh</code> with the refresh token to get a new
+        access token.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Storing JWTs in <code>localStorage</code>.</strong> Any XSS steals them. Prefer an httpOnly, Secure, SameSite cookie, or keep the access token in memory only.</li>
+        <li><strong>Long-lived access tokens.</strong> You can't revoke a stateless JWT — keep it short (5–15 min) and use a refresh token (revocable, stored server-side) for longevity.</li>
+        <li><strong><code>ROLE_</code> prefix confusion.</strong> <code>hasRole("ADMIN")</code> checks the authority <code>ROLE_ADMIN</code>; <code>hasAuthority("ADMIN")</code> checks <code>ADMIN</code>. Pick one convention.</li>
+        <li><strong>Not disabling CSRF for a stateless API</strong> (requests silently 403 on POST), or disabling it for a cookie-session app (now CSRF-vulnerable).</li>
+        <li><strong>Putting the JWT filter after <code>UsernamePasswordAuthenticationFilter</code></strong> — use <code>addFilterBefore</code>.</li>
+        <li><strong>Trusting claims without verifying the signature</strong>, or accepting <code>alg: none</code>.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Authentication vs authorization — where in the chain?" — authn in a
+        dedicated filter early; authz in <code>AuthorizationFilter</code> last,
+        plus <code>@PreAuthorize</code> at the method. "How does a stateless
+        request stay authenticated with no session?" — it doesn't; every request
+        re-authenticates from the token. "How do you log someone out of a JWT
+        system?" — delete the client token + revoke/rotate the refresh token +
+        optionally a short deny-list of access-token JTIs until they expire.
+        "Where is the principal stored during the request?" —
+        <code>SecurityContextHolder</code>, a <code>ThreadLocal</code>, cleared
+        when the request ends.
+      </p>
+    </div>
+
+    <div id="t-security"></div>
+  </section>
+
+
+  <!-- ================= ACTUATOR ================= -->
+  <section class="topic" id="actuator">
+    <h2>Spring Boot Actuator</h2>
+
+    <p>
+      Actuator adds production-readiness endpoints under <code>/actuator</code>
+      with almost no code: health, metrics, environment, loggers, thread dump,
+      HTTP exchange history. It's how your app tells Kubernetes it's alive, and
+      how Prometheus scrapes it.
+    </p>
+
+    <p class="code-label">Typical config</p>
+<pre><code># build.gradle: implementation "org.springframework.boot:spring-boot-starter-actuator"
+
+management.endpoints.web.exposure.include=health,info,metrics,prometheus
+management.endpoint.health.show-details=when_authorized
+management.endpoint.health.probes.enabled=true        # /actuator/health/liveness + /readiness
+management.metrics.tags.application=${spring.application.name}</code></pre>
+
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Endpoint</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td><code>/actuator/health</code></td><td>Aggregated <code>UP</code>/<code>DOWN</code> from all <code>HealthIndicator</code>s (DB, disk, Redis...). Wire to k8s liveness/readiness probes.</td></tr>
+        <tr><td><code>/actuator/health/readiness</code></td><td><code>DOWN</code> during startup and graceful shutdown ⇒ load balancer stops routing before the app dies.</td></tr>
+        <tr><td><code>/actuator/metrics/{name}</code></td><td>Micrometer meters: <code>http.server.requests</code>, <code>jvm.memory.used</code>, <code>hikaricp.connections.active</code>.</td></tr>
+        <tr><td><code>/actuator/prometheus</code></td><td>Same meters in Prometheus text format for scraping → Grafana dashboards.</td></tr>
+        <tr><td><code>/actuator/loggers/{logger}</code></td><td><code>POST</code> to change a log level at runtime without a redeploy.</td></tr>
+        <tr><td><code>/actuator/env</code>, <code>/actuator/threaddump</code>, <code>/actuator/heapdump</code></td><td>Debugging a running instance. Sensitive — lock down.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="code-label">A custom health indicator + a business metric</p>
+<pre><code>@Component
+class PaymentGatewayHealth implements HealthIndicator {
+    private final PaymentGatewayClient client;
+    PaymentGatewayHealth(PaymentGatewayClient client) { this.client = client; }
+
+    public Health health() {
+        return client.ping()
+            ? Health.up().withDetail("latencyMs", client.lastLatencyMs()).build()
+            : Health.down().withDetail("reason", "gateway timeout").build();
+    }
+}
+
+@Service
+class CheckoutService {
+    private final Counter ordersPlaced;
+    CheckoutService(MeterRegistry registry) {
+        this.ordersPlaced = registry.counter("shop.orders.placed");
+    }
+    void placeOrder(Order o) { /* ... */ ordersPlaced.increment(); }
+}</code></pre>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Exposing all endpoints publicly</strong> (<code>exposure.include=*</code>) — <code>/actuator/env</code> and <code>/heapdump</code> leak secrets. Expose the minimum; put the rest behind auth or a separate management port (<code>management.server.port</code>).</li>
+        <li><strong>Using <code>/health</code> as a deep check</strong> that pings every downstream — a slow dependency then flaps your pods. Keep liveness shallow; put dependency checks in readiness.</li>
+        <li><strong>Not adding an <code>application</code> tag</strong> — metrics from every service collide in Prometheus.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Liveness vs readiness?" — liveness failing ⇒ restart the pod; readiness
+        failing ⇒ keep it running but stop sending traffic (startup, warmup,
+        shutdown, transient dependency loss). "How would you expose a custom
+        metric?" — inject <code>MeterRegistry</code>, create a
+        <code>Counter</code>/<code>Timer</code>/<code>Gauge</code>. "How do you
+        bump a log level in prod without redeploying?" — <code>POST /actuator/loggers</code>.
+      </p>
+    </div>
+
+    <div id="t-actuator"></div>
+  </section>
+
+
+  <!-- ================= TESTING ================= -->
+  <section class="topic" id="testing">
+    <h2>JUnit 5 + Mockito</h2>
+
+    <p>
+      Interviewers ask for a test to see whether you isolate the unit under test.
+      The pattern: <strong>mock the collaborators, stub their behaviour, run the
+      method, assert on the result and on the interactions.</strong> Use
+      <code>@ExtendWith(MockitoExtension.class)</code> for a fast unit test with
+      no Spring context; use <code>@SpringBootTest</code> / <code>@DataJpaTest</code>
+      / <code>@WebMvcTest</code> only when you're testing the wiring.
+    </p>
+
+    <p class="code-label">Unit test — service logic, repository &amp; gateway mocked</p>
+<pre><code>@ExtendWith(MockitoExtension.class)
+class CheckoutServiceTest {
+
+    @Mock  OrderRepository orders;
+    @Mock  PaymentGateway  payments;
+    @Mock  InventoryService inventory;
+    @InjectMocks CheckoutService checkout;      // constructor-injected with the mocks
+
+    @Test
+    void placesOrder_whenPaymentSucceeds() {
+        Cart cart = TestData.cartWith(2_000_00);                 // ₹2000
+        given(inventory.reserve(cart.getItems())).willReturn(true);
+        given(payments.charge("cust-1", 2_000_00))
+                .willReturn(new PaymentResult("pay_123", true));
+        given(orders.save(any(Order.class)))
+                .willAnswer(inv -&gt; { Order o = inv.getArgument(0); o.setId(42L); return o; });
+
+        OrderResult result = checkout.placeOrder("cust-1", cart);
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.orderId()).isEqualTo(42L);
+
+        ArgumentCaptor&lt;Order&gt; saved = ArgumentCaptor.forClass(Order.class);
+        verify(orders).save(saved.capture());
+        assertThat(saved.getValue().getStatus()).isEqualTo("PAID");
+        verify(inventory, never()).release(any());
+    }
+
+    @Test
+    void releasesStock_andFails_whenPaymentDeclined() {
+        Cart cart = TestData.cartWith(500_00);
+        given(inventory.reserve(any())).willReturn(true);
+        given(payments.charge(anyString(), anyLong()))
+                .willReturn(new PaymentResult(null, false));
+
+        OrderResult result = checkout.placeOrder("cust-1", cart);
+
+        assertThat(result.success()).isFalse();
+        verify(inventory).release(cart.getItems());   // compensating action ran
+        verify(orders, never()).save(any());
+    }
+
+    @Test
+    void propagates_whenGatewayThrows() {
+        given(inventory.reserve(any())).willReturn(true);
+        given(payments.charge(anyString(), anyLong()))
+                .willThrow(new GatewayTimeoutException());
+
+        assertThatThrownBy(() -&gt; checkout.placeOrder("cust-1", TestData.cartWith(100_00)))
+                .isInstanceOf(GatewayTimeoutException.class);
+        verify(inventory).release(any());
+    }
+}</code></pre>
+
+    <p class="code-label">Slice test — the web layer only</p>
+<pre><code>@WebMvcTest(ProductApiController.class)          // loads MVC infra + this controller, nothing else
+class ProductApiControllerTest {
+
+    @Autowired MockMvc mvc;
+    @MockBean  ProductService products;           // the controller's dependency, mocked
+
+    @Test
+    void returns404_whenProductMissing() throws Exception {
+        given(products.require(99L)).willThrow(new NotFoundException("product 99"));
+
+        mvc.perform(get("/api/products/99"))
+           .andExpect(status().isNotFound())
+           .andExpect(jsonPath("$.message").value("product 99"));
+    }
+}</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A unit test fails for exactly one reason: the code under test is wrong.
+        Every dependency that could fail for its own reason is a mock with
+        scripted behaviour. <code>given(...).willReturn(...)</code> sets up the
+        world; <code>verify(...)</code> asserts your code drove the collaborators
+        correctly (especially the compensating actions on the failure path).
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Reaching for <code>@SpringBootTest</code> for a logic test.</strong> It boots the whole context (seconds per test) to test a method that needs three mocks.</li>
+        <li><strong>Mocking value objects / DTOs.</strong> Mock things with behaviour and side effects, not data holders — just <code>new</code> them.</li>
+        <li><strong>Over-verifying.</strong> <code>verify</code> every getter call and the test breaks on every refactor. Assert outcomes; verify only the interactions that matter (saves, sends, compensations).</li>
+        <li><strong>Stubbing what you don't call</strong> — <code>MockitoExtension</code> is strict and fails on unnecessary stubbing, which is a feature.</li>
+        <li><strong>Testing Spring Data repository methods.</strong> Trust the framework; test <em>your</em> <code>@Query</code> methods with <code>@DataJpaTest</code> against an in-memory or Testcontainers DB.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "<code>@Mock</code> vs <code>@MockBean</code>?" — <code>@Mock</code> is
+        plain Mockito (no Spring); <code>@MockBean</code> replaces a bean in the
+        Spring context (use in slice/integration tests). "How do you test the
+        failure path?" — stub the collaborator to throw/return failure, assert
+        the compensating action via <code>verify</code>. "What's a test double
+        that isn't a mock?" — a stub (canned answers), a fake (working
+        lightweight impl, e.g. in-memory repo), a spy (real object, some methods
+        stubbed).
+      </p>
+    </div>
+
+    <div id="t-testing"></div>
+  </section>
+
+
+  <!-- ================= THYMELEAF ================= -->
+  <section class="topic" id="thymeleaf">
+    <h2>Thymeleaf &amp; project layout</h2>
+
+    <p>
+      Thymeleaf is a server-side template engine: HTML files with
+      <code>th:*</code> attributes that Spring MVC renders against the
+      <code>Model</code>. The files are valid HTML you can open in a browser
+      directly (attributes are ignored), which is the selling point over JSP.
+      Templates live in <code>src/main/resources/templates/</code>; static
+      assets in <code>src/main/resources/static/</code>.
+    </p>
+
+    <p class="code-label">Standard Spring Boot project layout</p>
+<pre><code>src/main/java/com/shop/
+├── ShopApplication.java            # @SpringBootApplication + main()
+├── config/                         # SecurityConfig, WebConfig, beans
+├── web/                            # @Controller / @RestController + DTOs
+│   ├── ProductPageController.java
+│   └── dto/ProductDto.java
+├── service/                        # @Service — business logic, @Transactional
+│   └── ProductService.java
+├── domain/                         # @Entity classes + enums
+│   └── Product.java
+├── repository/                     # Spring Data interfaces
+│   └── ProductRepository.java
+└── exception/                      # custom exceptions + @RestControllerAdvice
+
+src/main/resources/
+├── application.yml                 # + application-dev.yml, application-prod.yml
+├── db/migration/                   # Flyway V1__init.sql, V2__add_orders.sql
+├── templates/
+│   ├── layout.html                 # fragment: head, nav, footer
+│   ├── product/list.html
+│   └── product/detail.html
+└── static/{css,js,img}/</code></pre>
+
+    <p class="code-label">A layout fragment and a page that uses it</p>
+<pre><code>&lt;!-- templates/layout.html --&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html xmlns:th="http://www.thymeleaf.org"&gt;
+&lt;head th:fragment="head(title)"&gt;
+  &lt;title th:text="${title}"&gt;Shop&lt;/title&gt;
+  &lt;link rel="stylesheet" th:href="@{/css/app.css}"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;nav th:fragment="nav"&gt;
+    &lt;a th:href="@{/products}"&gt;Products&lt;/a&gt;
+    &lt;span sec:authorize="isAuthenticated()" th:text="${#authentication.name}"&gt;user&lt;/span&gt;
+    &lt;a sec:authorize="!isAuthenticated()" th:href="@{/login}"&gt;Log in&lt;/a&gt;
+  &lt;/nav&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- templates/product/detail.html --&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"&gt;
+&lt;head th:replace="~{layout :: head(${product.name})}"&gt;&lt;/head&gt;
+&lt;body&gt;
+  &lt;nav th:replace="~{layout :: nav}"&gt;&lt;/nav&gt;
+
+  &lt;h1 th:text="${product.name}"&gt;Name&lt;/h1&gt;
+  &lt;p th:text="${#numbers.formatDecimal(product.pricePaise / 100.0, 1, 2)}"&gt;0.00&lt;/p&gt;
+  &lt;p th:if="${product.stock == 0}" class="oos"&gt;Out of stock&lt;/p&gt;
+
+  &lt;form th:action="@{/cart/add}" method="post"&gt;
+    &lt;input type="hidden" name="productId" th:value="${product.id}"&gt;
+    &lt;input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"&gt;
+    &lt;button type="submit" th:disabled="${product.stock == 0}"&gt;Add to cart&lt;/button&gt;
+  &lt;/form&gt;
+
+  &lt;ul&gt;
+    &lt;li th:each="r : ${product.reviews}" th:text="${r.text}"&gt;review&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Hard-coding URLs</strong> instead of <code>@{/path}</code> — breaks under a context path; <code>@{}</code> also adds the CSRF token to form actions when using the Spring Security dialect.</li>
+        <li><strong>Passing entities to the template</strong> and hitting <code>LazyInitializationException</code> mid-render (open-session-in-view masks it but see the JPA section). Pass view models.</li>
+        <li><strong>Business logic in the template.</strong> Templates format; compute in the service/controller.</li>
+        <li><strong><code>th:text</code> vs <code>th:utext</code></strong> — <code>th:text</code> escapes (safe default); <code>th:utext</code> is raw HTML and an XSS vector if the value is user-supplied.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Thymeleaf vs a JS SPA?" — Thymeleaf for content sites, admin panels,
+        forms, SEO-critical pages, small teams; a SPA when the UI is
+        app-like and stateful. "How does the CSRF token get into the form?" —
+        the Spring Security dialect injects a hidden field on
+        <code>th:action</code> forms; a manual form needs
+        <code>${_csrf}</code>. "<code>th:replace</code> vs <code>th:insert</code>
+        vs <code>th:include</code>?" — replace swaps the host tag, insert keeps it
+        and nests the fragment inside.
+      </p>
+    </div>
+
+    <div id="t-thymeleaf"></div>
+  </section>
+
+
+  <!-- ================= REST + POSTMAN ================= -->
+  <section class="topic" id="rest">
+    <h2>REST API design + Postman workflow</h2>
+
+    <p>
+      A REST resource is a noun with a stable URL; HTTP verbs are the operations;
+      status codes are the result. Design for the client: predictable URLs,
+      consistent envelopes, meaningful errors, and no surprises on retries.
+    </p>
+
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Verb</th><th>URL</th><th>Meaning</th><th>Success</th><th>Idempotent?</th></tr></thead>
+      <tbody>
+        <tr><td>GET</td><td><code>/api/products?category=books&amp;page=0&amp;size=20</code></td><td>list / filter / paginate</td><td>200</td><td>yes</td></tr>
+        <tr><td>GET</td><td><code>/api/products/42</code></td><td>fetch one</td><td>200 / 404</td><td>yes</td></tr>
+        <tr><td>POST</td><td><code>/api/products</code></td><td>create</td><td>201 + <code>Location</code></td><td>no</td></tr>
+        <tr><td>PUT</td><td><code>/api/products/42</code></td><td>full replace</td><td>200 / 204</td><td>yes</td></tr>
+        <tr><td>PATCH</td><td><code>/api/products/42</code></td><td>partial update</td><td>200</td><td>no (usually)</td></tr>
+        <tr><td>DELETE</td><td><code>/api/products/42</code></td><td>remove</td><td>204 / 404</td><td>yes</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="code-label">A well-formed controller</p>
+<pre><code>@RestController
+@RequestMapping("/api/products")
+class ProductApiController {
+    private final ProductService products;
+    ProductApiController(ProductService products) { this.products = products; }
+
+    @GetMapping
+    Page&lt;ProductDto&gt; list(@RequestParam(required = false) String category,
+                          @PageableDefault(size = 20) Pageable pageable) {
+        return products.search(category, pageable).map(ProductDto::from);
+    }
+
+    @GetMapping("/{id}")
+    ProductDto get(@PathVariable long id) {
+        return ProductDto.from(products.require(id));   // throws NotFoundException -&gt; 404 via advice
+    }
+
+    @PostMapping
+    ResponseEntity&lt;ProductDto&gt; create(@Valid @RequestBody CreateProductRequest body) {
+        Product created = products.create(body);
+        URI location = URI.create("/api/products/" + created.getId());
+        return ResponseEntity.created(location).body(ProductDto.from(created));
+    }
+
+    @PutMapping("/{id}")
+    ProductDto replace(@PathVariable long id, @Valid @RequestBody UpdateProductRequest body) {
+        return ProductDto.from(products.replace(id, body));
+    }
+
+    @DeleteMapping("/{id}")
+    ResponseEntity&lt;Void&gt; delete(@PathVariable long id) {
+        products.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}</code></pre>
+
+    <h3>Design checklist</h3>
+    <ul>
+      <li><strong>Versioning:</strong> <code>/api/v1/...</code> or a header. Pick one before you ship.</li>
+      <li><strong>Pagination:</strong> always paginate list endpoints; return <code>{content, page, size, totalElements}</code>.</li>
+      <li><strong>Filtering/sorting</strong> via query params: <code>?status=PAID&amp;sort=placedAt,desc</code>.</li>
+      <li><strong>Validation:</strong> <code>@Valid</code> + Bean Validation annotations on the request DTO ⇒ 400 with field errors.</li>
+      <li><strong>Errors:</strong> one shape everywhere (see <a href="#exceptions">Exception handling</a>) — <code>{timestamp, status, error, message, path, fieldErrors}</code>.</li>
+      <li><strong>Idempotency for POST</strong> that must not double-charge: an <code>Idempotency-Key</code> header the server dedupes on.</li>
+      <li><strong>HATEOAS</strong> only if a client actually consumes links; most don't.</li>
+    </ul>
+
+    <h3>Postman workflow</h3>
+    <ol>
+      <li><strong>Collection per service</strong>, folders per resource. Requests named by intent ("Create product — happy path", "Create product — missing name → 400").</li>
+      <li><strong>Environments</strong> (<code>local</code>, <code>staging</code>) holding <code>{{baseUrl}}</code> and secrets. Never hard-code hosts in requests.</li>
+      <li><strong>Auth once:</strong> a "Login" request whose <em>Tests</em> script saves the token —
+<pre><code>const json = pm.response.json();
+pm.environment.set("accessToken", json.accessToken);
+pm.test("login 200", () =&gt; pm.response.to.have.status(200));</code></pre>
+        then set collection-level auth to <code>Bearer {{accessToken}}</code>.</li>
+      <li><strong>Chain requests:</strong> "Create product" saves <code>{{productId}}</code> from the response; "Get product" uses it; "Delete product" cleans up.</li>
+      <li><strong>Tests tab</strong> on every request: status, schema, key fields. Run the whole collection with the <strong>Collection Runner</strong> or <code>newman</code> in CI.</li>
+      <li><strong>Export the collection</strong> to the repo (<code>/postman/shop.postman_collection.json</code>) so it's reviewed and versioned.</li>
+    </ol>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Verbs in URLs</strong> — <code>/getProduct</code>, <code>/api/createOrder</code>. The verb is the HTTP method.</li>
+        <li><strong>200 for everything</strong>, with <code>{"success": false}</code> in the body. Use the status line; clients and proxies rely on it.</li>
+        <li><strong>Returning 500 for client mistakes.</strong> Bad input is 400/422, missing is 404, conflict is 409, unauthenticated 401, forbidden 403.</li>
+        <li><strong>Leaking stack traces</strong> in error responses.</li>
+        <li><strong>Unbounded list endpoints</strong> that return 50k rows and OOM under load.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "PUT vs PATCH?" — PUT replaces the whole resource (idempotent), PATCH
+        applies a partial change. "Is POST idempotent? How do you make it safe to
+        retry?" — no; an idempotency key the server stores and returns the first
+        result for. "201 vs 200 on create?" — 201 with a <code>Location</code>
+        header pointing at the new resource. "How do you test this API without a
+        UI?" — Postman collection with environments, a login request that
+        captures the token, per-request test scripts, run in CI with newman.
+      </p>
+    </div>
+
+    <div id="t-rest"></div>
+  </section>
+
+
+  <!-- ================= EXCEPTION HANDLING ================= -->
+  <section class="topic" id="exceptions">
+    <h2>Exception handling</h2>
+
+    <p>
+      Centralize it. Throw meaningful exceptions from the service layer; map them
+      to HTTP once, in a <code>@RestControllerAdvice</code>. Controllers stay
+      free of try/catch, and every error response has the same shape.
+    </p>
+
+    <p class="code-label">Domain exceptions + one advice</p>
+<pre><code>public class NotFoundException extends RuntimeException {
+    public NotFoundException(String msg) { super(msg); }
+}
+public class BusinessRuleException extends RuntimeException {
+    public BusinessRuleException(String msg) { super(msg); }
+}
+
+public record ApiError(Instant timestamp, int status, String error,
+                       String message, String path,
+                       Map&lt;String, String&gt; fieldErrors) {}
+
+@RestControllerAdvice
+class GlobalExceptionHandler {
+
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    ApiError handleNotFound(NotFoundException ex, HttpServletRequest req) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), req, Map.of());
+    }
+
+    @ExceptionHandler(BusinessRuleException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    ApiError handleBusiness(BusinessRuleException ex, HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, Map.of());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)   // @Valid failures
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    ApiError handleValidation(MethodArgumentNotValidException ex, HttpServletRequest req) {
+        Map&lt;String, String&gt; fields = ex.getBindingResult().getFieldErrors().stream()
+            .collect(Collectors.toMap(FieldError::getField,
+                                      FieldError::getDefaultMessage, (a, b) -&gt; a));
+        return build(HttpStatus.BAD_REQUEST, "validation failed", req, fields);
+    }
+
+    @ExceptionHandler(Exception.class)                          // the catch-all
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    ApiError handleUnknown(Exception ex, HttpServletRequest req) {
+        log.error("unhandled exception at {}", req.getRequestURI(), ex);  // log the trace
+        return build(HttpStatus.INTERNAL_SERVER_ERROR,
+                     "something went wrong", req, Map.of());              // don't leak it
+    }
+
+    private ApiError build(HttpStatus s, String msg, HttpServletRequest req,
+                           Map&lt;String, String&gt; fields) {
+        return new ApiError(Instant.now(), s.value(), s.getReasonPhrase(),
+                            msg, req.getRequestURI(), fields);
+    }
+}</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Exceptions are the return channel for "can't do that". The service says
+        <em>what</em> went wrong in domain terms (<code>NotFoundException</code>);
+        the advice translates <em>how</em> to report it in HTTP terms (404). One
+        translation layer ⇒ one consistent error contract, and the mapping is
+        visible in one file.
+      </p>
+    </div>
+
+    <p class="small">
+      For server-rendered (Thymeleaf) apps, use <code>@ControllerAdvice</code>
+      with methods that return a view name (<code>"error/404"</code>) and add
+      attributes to the <code>Model</code>, or drop templates in
+      <code>templates/error/404.html</code> / <code>5xx.html</code> for Boot's
+      default resolver to pick up.
+    </p>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>try/catch in every controller method.</strong> Duplicated, inconsistent, easy to forget one.</li>
+        <li><strong>Catching <code>Exception</code> and returning 200</strong> with an error body.</li>
+        <li><strong>Logging <em>and</em> rethrowing</strong> at every layer ⇒ the same stack trace five times in the logs. Log once, at the boundary.</li>
+        <li><strong>Leaking internals</strong> — SQL errors, class names, stack traces in the response.</li>
+        <li><strong>Swallowing <code>InterruptedException</code></strong> without restoring the interrupt flag.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Checked vs unchecked for domain errors?" — unchecked
+        (<code>RuntimeException</code>) so the signature isn't polluted through
+        every layer; the advice is the single handler. "Where do you log the
+        stack trace?" — in the catch-all handler (or a filter) at the edge, once.
+        "How does <code>@RestControllerAdvice</code> find the exception?" — it's a
+        specialized <code>HandlerExceptionResolver</code>; Spring matches the
+        thrown type to the most specific <code>@ExceptionHandler</code>.
+      </p>
+    </div>
+
+    <div id="t-exceptions"></div>
+  </section>
+
+
+  <!-- ================= FILE UPLOAD ================= -->
+  <section class="topic" id="upload">
+    <h2>File upload</h2>
+
+    <p>
+      A <code>multipart/form-data</code> request; Spring binds each part to a
+      <code>MultipartFile</code>. The endpoint's job: validate (size, type),
+      store somewhere durable (object storage, not the pod's disk), and persist a
+      reference.
+    </p>
+
+    <p class="code-label">Config + endpoint</p>
+<pre><code># application.yml
+spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 20MB        # several files per request
+
+@RestController
+@RequestMapping("/api/products/{id}/image")
+class ProductImageController {
+
+    private final ProductService products;
+    private final FileStorage storage;         // wraps S3 / MinIO / local dir
+    ProductImageController(ProductService products, FileStorage storage) {
+        this.products = products; this.storage = storage;
+    }
+
+    private static final Set&lt;String&gt; ALLOWED = Set.of("image/png", "image/jpeg", "image/webp");
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ResponseEntity&lt;ImageDto&gt; upload(@PathVariable long id,
+                                    @RequestParam("file") MultipartFile file) {
+        if (file.isEmpty())
+            throw new BusinessRuleException("empty file");
+        if (!ALLOWED.contains(file.getContentType()))
+            throw new BusinessRuleException("unsupported type: " + file.getContentType());
+
+        String key = "products/%d/%s".formatted(id, UUID.randomUUID());
+        String url;
+        try (InputStream in = file.getInputStream()) {
+            url = storage.put(key, in, file.getSize(), file.getContentType());
+        } catch (IOException e) {
+            throw new UncheckedIOException("upload failed", e);
+        }
+        products.attachImage(id, url);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ImageDto(url));
+    }
+}</code></pre>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Trusting the client's <code>Content-Type</code> / filename.</strong> Sniff the magic bytes for real validation; sanitize or discard the original filename (path-traversal via <code>../../</code>).</li>
+        <li><strong>Storing on the container filesystem.</strong> Gone on restart, not shared across replicas. Use object storage; keep only the key/URL in the DB.</li>
+        <li><strong><code>file.getBytes()</code> for large files</strong> — loads it all into heap. Stream via <code>getInputStream()</code>.</li>
+        <li><strong>No size cap</strong> ⇒ a 2GB upload OOMs the pod. Cap in config <em>and</em> at the ingress/LB.</li>
+        <li><strong>Serving user uploads from your app's domain</strong> without <code>Content-Disposition</code> / a separate origin — stored-XSS risk for HTML/SVG.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "10,000 users uploading 5MB images — where does it go?" — object storage
+        (S3/GCS), app returns a pre-signed URL so the browser uploads directly
+        and never streams through your JVM. "How do you validate it's really a
+        PNG?" — check the magic number, not the extension or header. "Big file,
+        flaky network?" — multipart/resumable upload to the store, not one POST.
+      </p>
+    </div>
+
+    <div id="t-upload"></div>
+  </section>
+
+
+  <!-- ================= GIT WORKFLOW ================= -->
+  <section class="topic" id="git">
+    <h2>Git collaboration workflow</h2>
+
+    <p>
+      The expectation on a team: small branches, reviewed PRs, a green CI gate, a
+      linear-ish history, and never a force-push to a shared branch. The exact
+      model (trunk-based vs GitHub flow vs Gitflow) varies; the habits don't.
+    </p>
+
+    <p class="code-label">Day-to-day (GitHub / trunk-based flow)</p>
+<pre><code>git switch main &amp;&amp; git pull --ff-only          # start from current main
+git switch -c feat/order-idempotency-key        # short-lived topic branch
+
+# ... work, committing in logical chunks ...
+git add -p                                        # stage hunks deliberately
+git commit -m "Add Idempotency-Key dedup to POST /orders"
+
+git fetch origin
+git rebase origin/main                            # keep history linear; resolve conflicts here
+git push -u origin feat/order-idempotency-key
+
+# open a Pull Request -> CI runs (build + tests + lint) -> review -> squash &amp; merge
+git switch main &amp;&amp; git pull --ff-only
+git branch -d feat/order-idempotency-key</code></pre>
+
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Situation</th><th>Command</th></tr></thead>
+      <tbody>
+        <tr><td>Pulled and got a merge commit you didn't want</td><td><code>git config --global pull.ff only</code> (then rebase manually)</td></tr>
+        <tr><td>Committed to <code>main</code> by mistake</td><td><code>git switch -c feat/x</code>; <code>git switch main</code>; <code>git reset --hard origin/main</code></td></tr>
+        <tr><td>Need one commit from another branch</td><td><code>git cherry-pick &lt;sha&gt;</code></td></tr>
+        <tr><td>Half-done work, must switch tasks</td><td><code>git stash push -m "wip"</code> … <code>git stash pop</code></td></tr>
+        <tr><td>Last commit message/content wrong (not pushed)</td><td><code>git commit --amend</code></td></tr>
+        <tr><td>Undo a pushed commit safely</td><td><code>git revert &lt;sha&gt;</code> (new inverse commit)</td></tr>
+        <tr><td>Find which commit broke a test</td><td><code>git bisect start / good / bad</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Resolving a rebase conflict</h3>
+<pre><code>git rebase origin/main
+# CONFLICT in CheckoutService.java
+#   &lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD (their change from main)
+#   ... incoming ...
+#   =======
+#   ... your change ...
+#   &gt;&gt;&gt;&gt;&gt;&gt;&gt; feat/order-idempotency-key
+# edit the file to the correct combined result, then:
+git add CheckoutService.java
+git rebase --continue          # or: git rebase --abort to bail out</code></pre>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong><code>git push --force</code> to a shared branch.</strong> Use <code>--force-with-lease</code>, and only on your own topic branch.</li>
+        <li><strong>Giant PRs.</strong> 2,000-line PRs get rubber-stamped. Keep them under ~400 lines; stack them if needed.</li>
+        <li><strong>Committing secrets / <code>target/</code> / IDE files.</strong> A real <code>.gitignore</code> from the start; <code>git-secrets</code> or a pre-commit hook.</li>
+        <li><strong>Merge commits from <code>git pull</code></strong> polluting history — configure <code>pull.ff only</code> or <code>pull.rebase true</code>.</li>
+        <li><strong>Vague messages</strong> — "fix", "wip", "changes". Write the <em>what</em> and <em>why</em>; the diff shows the how.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Merge vs rebase?" — merge preserves context and is safe on shared
+        branches; rebase gives linear history and is for your own unpushed work.
+        "You force-pushed and a teammate lost commits — recover?" —
+        <code>git reflog</code> to find the lost SHA, <code>git branch rescue
+        &lt;sha&gt;</code>. "How do you revert a bad deploy?" —
+        <code>git revert</code> the merge commit (<code>-m 1</code>), or roll
+        forward with a fix; never <code>reset</code> a shared branch.
+      </p>
+    </div>
+
+    <div id="t-git"></div>
+  </section>
+
+
+  <!-- ================= DOCKER ================= -->
+  <section class="topic" id="docker">
+    <h2>Docker + basic deployment</h2>
+
+    <p>
+      Package the app as an image so it runs the same on your laptop, CI, and
+      prod. For Spring Boot: a multi-stage build (build with the JDK, run on a
+      slim JRE), layered so dependency layers cache across builds.
+    </p>
+
+    <p class="code-label">Multi-stage Dockerfile</p>
+<pre><code># ---- build stage ----
+FROM eclipse-temurin:21-jdk-alpine AS build
+WORKDIR /app
+COPY gradlew settings.gradle build.gradle ./
+COPY gradle ./gradle
+RUN ./gradlew dependencies --no-daemon        # cached unless build files change
+COPY src ./src
+RUN ./gradlew bootJar --no-daemon
+
+# ---- run stage ----
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+RUN addgroup -S app &amp;&amp; adduser -S app -G app
+USER app                                       # don't run as root
+COPY --from=build /app/build/libs/*.jar app.jar
+EXPOSE 8080
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseZGC"
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]</code></pre>
+
+    <p class="code-label">docker-compose for local dev (app + DB)</p>
+<pre><code>services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shop
+      POSTGRES_PASSWORD: dev
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+  app:
+    build: .
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/shop
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: dev
+    ports: ["8080:8080"]</code></pre>
+
+    <h3>From image to running service</h3>
+    <ol>
+      <li><code>docker build -t registry.example.com/shop:1.4.0 .</code></li>
+      <li><code>docker push registry.example.com/shop:1.4.0</code> (CI does this on a tag / merge to main).</li>
+      <li>Deploy target pulls the tag: a <code>docker run</code> on a VM, an ECS/Cloud Run service, or a Kubernetes <code>Deployment</code> whose <code>image:</code> is bumped and rolled out (readiness probe → <code>/actuator/health/readiness</code>).</li>
+      <li>Config comes from <strong>environment variables</strong> / secrets, never baked into the image. Spring maps <code>SPRING_DATASOURCE_URL</code> → <code>spring.datasource.url</code> automatically.</li>
+      <li>DB schema changes run as a <strong>Flyway/Liquibase migration</strong> on startup or as a separate job — never Hibernate <code>ddl-auto=update</code> in prod.</li>
+    </ol>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Single-stage build</strong> shipping the whole JDK + Gradle cache + source — a 700MB image instead of ~180MB.</li>
+        <li><strong><code>COPY . .</code> before <code>RUN ./gradlew dependencies</code></strong> — every source edit busts the dependency cache.</li>
+        <li><strong>Running as root</strong>; no <code>USER</code> directive.</li>
+        <li><strong>Fixed <code>-Xmx</code></strong> that ignores the container limit. Use <code>-XX:MaxRAMPercentage</code>; modern JVMs are container-aware.</li>
+        <li><strong>Secrets in <code>ENV</code> / the Dockerfile</strong> — they're in the image layers forever.</li>
+        <li><strong><code>latest</code> tag</strong> in prod — you can't tell what's running or roll back.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Why multi-stage?" — build needs the JDK + build tool; runtime needs only
+        a JRE + the jar. Smaller image, smaller attack surface, faster pulls.
+        "How does the app get its DB password?" — injected env var / mounted
+        secret at deploy time. "Container gets OOM-killed — why?" — JVM heap set
+        without regard to the cgroup limit, or native memory (threads, metaspace,
+        direct buffers) not accounted for.
+      </p>
+    </div>
+
+    <div id="t-docker"></div>
+  </section>
+
+
+  <!-- ================= SPRING CLOUD ================= -->
+  <section class="topic" id="cloud">
+    <h2>Spring Cloud — a light intro (config server, Eureka)</h2>
+
+    <p>
+      Once you have several Spring Boot services, two problems appear: (1) where
+      does configuration live, and (2) how do services find each other. Spring
+      Cloud's answers are the <strong>Config Server</strong> and a
+      <strong>service registry</strong> (Eureka). You won't build a full mesh in
+      an interview — you should be able to explain the shape.
+    </p>
+
+    <h3>Config Server</h3>
+    <p>
+      A standalone service (<code>@EnableConfigServer</code>) that serves
+      configuration from a backing store — usually a Git repo of
+      <code>{app}-{profile}.yml</code> files. Each service, at startup, asks the
+      config server for its config instead of reading a local file.
+    </p>
+<pre><code>// config-server: application.yml
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/acme/service-config
+          default-label: main
+
+// order-service: application.yml  (or spring.config.import)
+spring:
+  application:
+    name: order-service
+  config:
+    import: "optional:configserver:http://config-server:8888"
+// -&gt; fetches order-service.yml + order-service-prod.yml from the git repo</code></pre>
+    <p>
+      Combined with <code>/actuator/refresh</code> (or Spring Cloud Bus), a
+      config change in Git can propagate to running services without a redeploy.
+      Secrets are usually kept out of Git and pulled from Vault or the platform's
+      secret store.
+    </p>
+
+    <h3>Service discovery — Eureka</h3>
+    <p>
+      A registry where each service <strong>registers</strong> its
+      host:port on startup and <strong>renews a lease</strong> (heartbeat) every
+      30s; instances that stop heartbeating are evicted. Callers ask the registry
+      for "the instances of <code>payment-service</code>" and client-side
+      load-balance across them — so you call
+      <code>http://payment-service/api/charge</code> by <em>name</em>, and the IP
+      is resolved at call time.
+    </p>
+<pre><code>// eureka-server: @EnableEurekaServer
+
+// payment-service &amp; order-service: just add the client starter
+spring.application.name: payment-service
+eureka.client.service-url.defaultZone: http://eureka:8761/eureka
+
+// order-service calling payment-service, load-balanced by name:
+@Bean @LoadBalanced RestClient.Builder restClientBuilder() { return RestClient.builder(); }
+
+restClient.post()
+    .uri("http://payment-service/api/charge")   // "payment-service" -&gt; a live instance
+    .body(chargeRequest)
+    .retrieve()
+    .body(ChargeResult.class);</code></pre>
+
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Concern</th><th>Spring Cloud piece</th><th>Common alternative</th></tr></thead>
+      <tbody>
+        <tr><td>Central config</td><td>Config Server (+ Bus)</td><td>Kubernetes ConfigMap/Secret, Consul, AWS AppConfig</td></tr>
+        <tr><td>Service discovery</td><td>Eureka</td><td>Kubernetes DNS + Services, Consul</td></tr>
+        <tr><td>Client load balancing</td><td>Spring Cloud LoadBalancer</td><td>kube-proxy, service mesh (Istio/Linkerd)</td></tr>
+        <tr><td>API gateway</td><td>Spring Cloud Gateway</td><td>NGINX, Kong, cloud API gateway</td></tr>
+        <tr><td>Resilience</td><td>Resilience4j (retry, circuit breaker, bulkhead)</td><td>mesh-level policies</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Adding Spring Cloud on Kubernetes</strong> where DNS + Services already do discovery and ConfigMaps do config — you're duplicating the platform.</li>
+        <li><strong>Config server as a hard startup dependency</strong> with no fallback — it goes down, nothing boots. Use <code>optional:</code> and sane local defaults.</li>
+        <li><strong>Secrets in the config Git repo.</strong></li>
+        <li><strong>No circuit breaker</strong> on inter-service calls — one slow service cascades.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "How does <code>order-service</code> find <code>payment-service</code>?"
+        — asks the registry by name, gets a list of healthy instances,
+        client-side load-balances. "What happens when an instance dies?" — it
+        stops heartbeating, the registry evicts it after a few missed leases,
+        callers refresh their instance list. "Config server vs env vars?" —
+        config server centralizes and versions config across many services and
+        can refresh at runtime; env vars are simpler and enough for a few
+        services or on a platform that already provides config.
+      </p>
+    </div>
+
+    <div id="t-cloud"></div>
+  </section>
+
+
+  <!-- ================= CAPSTONE ================= -->
+  <section class="topic" id="capstone">
+    <h2>Capstone — a full-stack eCommerce app with Spring Security login</h2>
+
+    <p>
+      One project that exercises every section above: server-rendered storefront,
+      form login, cart and checkout, an admin area, REST endpoints for a future
+      SPA, tests, Docker. This is the "tell me about a project" answer — know its
+      architecture, why each choice was made, and where it would break at scale.
+    </p>
+
+    <h3>Architecture</h3>
+    <p class="code-label">Entities (domain model)</p>
+<pre><code>User            id, email (unique), passwordHash, enabled, Set&lt;Role&gt;
+Role            id, name (ROLE_CUSTOMER | ROLE_ADMIN)
+Category        id, name, slug
+Product         id, name, slug, description, pricePaise, stock, category (@ManyToOne LAZY),
+                imageUrl, createdAt
+Cart            id, user (@OneToOne), List&lt;CartItem&gt; (@OneToMany cascade)
+CartItem        id, cart (@ManyToOne), product (@ManyToOne LAZY), qty
+Order           id, user (@ManyToOne LAZY), status (PENDING|PAID|SHIPPED|CANCELLED),
+                totalPaise, placedAt, shippingAddress (@Embedded), List&lt;OrderItem&gt;
+OrderItem       id, order (@ManyToOne LAZY), product (@ManyToOne LAZY),
+                qty, unitPricePaise            // price copied at purchase time
+Payment         id, order (@OneToOne), provider, providerRef, status, idempotencyKey (unique)</code></pre>
+
+    <p class="code-label">Layered structure</p>
+<pre><code>web/
+  StorefrontController      GET  /              -&gt; templates/home.html (featured products)
+                           GET  /products, /products/{slug}
+  CartController            POST /cart/add, POST /cart/update, GET /cart      [authenticated]
+  CheckoutController        GET  /checkout, POST /checkout                    [authenticated]
+  OrderController           GET  /orders, GET /orders/{id}                    [authenticated, ownership check]
+  AuthController            GET  /login, GET /register, POST /register
+  admin/AdminProductController  /admin/products/**  CRUD + image upload      [ROLE_ADMIN]
+  api/ProductApiController      /api/products/**    (public GET, admin write)
+  api/OrderApiController        /api/orders/**      (JWT, for a future SPA)
+
+service/
+  ProductService, CartService, CheckoutService, OrderService,
+  UserService (registration, UserDetailsService impl), PaymentService (idempotent)
+
+repository/   Spring Data interfaces per aggregate root
+domain/       @Entity classes + enums + @Embeddable Address
+config/       SecurityConfig, WebConfig, DataInitializer
+exception/    NotFoundException, BusinessRuleException, GlobalExceptionHandler
+</code></pre>
+
+    <p class="code-label">Security config — form login for pages, JWT for /api</p>
+<pre><code>@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+class SecurityConfig {
+
+    // Chain 1: the JSON API — stateless, JWT
+    @Bean @Order(1)
+    SecurityFilterChain api(HttpSecurity http, JwtAuthFilter jwt) throws Exception {
+        http.securityMatcher("/api/**")
+            .csrf(c -&gt; c.disable())
+            .sessionManagement(s -&gt; s.sessionCreationPolicy(STATELESS))
+            .authorizeHttpRequests(a -&gt; a
+                .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated())
+            .addFilterBefore(jwt, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    // Chain 2: the server-rendered site — session + form login
+    @Bean @Order(2)
+    SecurityFilterChain web(HttpSecurity http) throws Exception {
+        http.authorizeHttpRequests(a -&gt; a
+                .requestMatchers("/", "/products/**", "/css/**", "/js/**", "/register").permitAll()
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/cart/**", "/checkout/**", "/orders/**").authenticated()
+                .anyRequest().authenticated())
+            .formLogin(f -&gt; f.loginPage("/login").defaultSuccessUrl("/", false))
+            .logout(l -&gt; l.logoutSuccessUrl("/"));
+        return http.build();
+    }
+
+    @Bean PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+}</code></pre>
+    <p>
+      <code>UserService implements UserDetailsService</code> — loads the
+      <code>User</code> by email, maps <code>Role</code>s to
+      <code>SimpleGrantedAuthority</code>. Registration: validate the email is
+      free, <code>passwordEncoder.encode(raw)</code>, save with
+      <code>ROLE_CUSTOMER</code>.
+    </p>
+
+    <p class="code-label">Checkout — the transactional heart</p>
+<pre><code>@Service
+class CheckoutService {
+    private final CartRepository carts;
+    private final ProductRepository products;
+    private final OrderRepository orders;
+    private final PaymentService payments;
+    // constructor ...
+
+    @Transactional
+    public Order checkout(User user, Address shipTo, String idempotencyKey) {
+        Cart cart = carts.findByUserIdWithItems(user.getId())
+                         .orElseThrow(() -&gt; new BusinessRuleException("empty cart"));
+        if (cart.getItems().isEmpty()) throw new BusinessRuleException("empty cart");
+
+        Order order = new Order(user, shipTo);
+        for (CartItem ci : cart.getItems()) {
+            Product p = products.findByIdForUpdate(ci.getProduct().getId())   // SELECT ... FOR UPDATE
+                                .orElseThrow();
+            if (p.getStock() &lt; ci.getQty())
+                throw new BusinessRuleException("out of stock: " + p.getName());
+            p.setStock(p.getStock() - ci.getQty());                          // decrement under lock
+            order.addLine(p, ci.getQty(), p.getPricePaise());                // copy price now
+        }
+        order.recalculateTotal();
+        orders.save(order);
+
+        PaymentResult pr = payments.charge(order, idempotencyKey);           // idempotent
+        if (!pr.success()) throw new BusinessRuleException("payment declined"); // tx rolls back -> stock restored
+        order.markPaid(pr.reference());
+        cart.clear();
+        return order;
+    }
+}</code></pre>
+
+    <h3>Thymeleaf views</h3>
+    <ul>
+      <li><code>layout.html</code> — <code>head</code>, <code>nav</code> (shows login/logout via <code>sec:authorize</code>), <code>footer</code> fragments.</li>
+      <li><code>home.html</code>, <code>products/list.html</code> (grid + pagination), <code>products/detail.html</code> (add-to-cart form with CSRF token).</li>
+      <li><code>cart.html</code>, <code>checkout.html</code> (address form, <code>@Valid</code> backing bean, field errors via <code>th:errors</code>).</li>
+      <li><code>orders/list.html</code>, <code>orders/detail.html</code>.</li>
+      <li><code>auth/login.html</code>, <code>auth/register.html</code>.</li>
+      <li><code>admin/products/form.html</code> — create/edit + <code>multipart</code> image upload.</li>
+      <li><code>error/404.html</code>, <code>error/5xx.html</code>.</li>
+    </ul>
+
+    <h3>Build order (how you'd actually construct it)</h3>
+    <ol>
+      <li><strong>Skeleton:</strong> Spring Initializr (Web, Thymeleaf, Data JPA, Security, Validation, Actuator, PostgreSQL, Lombok optional). <code>docker-compose</code> with Postgres. Flyway <code>V1__init.sql</code>.</li>
+      <li><strong>Domain + repositories:</strong> entities, enums, <code>@DataJpaTest</code> for custom queries.</li>
+      <li><strong>Catalog (read path):</strong> <code>ProductService</code>, <code>StorefrontController</code>, list/detail templates. Seed data via a <code>DataInitializer</code>.</li>
+      <li><strong>Auth:</strong> <code>User</code>/<code>Role</code>, <code>UserDetailsService</code>, <code>SecurityConfig</code> chain 2, login + register pages, <code>BCrypt</code>.</li>
+      <li><strong>Cart:</strong> <code>CartService</code>, add/update/remove, cart page — now behind <code>authenticated()</code>.</li>
+      <li><strong>Checkout + orders:</strong> <code>CheckoutService</code> (transaction, stock lock, price snapshot), <code>PaymentService</code> (fake gateway, idempotency key), order history with an ownership check (<code>@PreAuthorize</code> or a service-level guard).</li>
+      <li><strong>Admin:</strong> product CRUD, image upload to object storage, <code>ROLE_ADMIN</code>.</li>
+      <li><strong>REST API + JWT:</strong> <code>SecurityConfig</code> chain 1, <code>JwtAuthFilter</code>, <code>/api/auth/login</code>, product + order endpoints, Postman collection.</li>
+      <li><strong>Cross-cutting:</strong> <code>GlobalExceptionHandler</code>, Bean Validation on every request DTO, Actuator endpoints, request-id filter + MDC logging.</li>
+      <li><strong>Tests:</strong> unit (services + mocks), <code>@WebMvcTest</code> (controllers), <code>@DataJpaTest</code> (queries), one <code>@SpringBootTest</code> happy-path checkout with Testcontainers.</li>
+      <li><strong>Package &amp; ship:</strong> multi-stage Dockerfile, CI (build → test → image → push), deploy with env-var config and a Flyway migration step.</li>
+    </ol>
+
+    <div class="box dryrun">
+      <span class="box-title">End-to-end trace — a logged-in customer buys one item</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>#</th><th>Request</th><th>What the stack does</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>POST /login</code> (form)</td><td>Web chain → <code>UsernamePasswordAuthenticationFilter</code> → <code>DaoAuthenticationProvider</code> → <code>UserDetailsService</code> → <code>BCrypt.matches</code> → session created, <code>JSESSIONID</code> cookie set.</td></tr>
+          <tr><td>2</td><td><code>GET /products/aeron-chair</code></td><td>Web chain (permitAll) → <code>StorefrontController</code> → <code>ProductService.requireBySlug</code> (one query) → <code>product/detail.html</code> rendered with a CSRF-tokened add-to-cart form.</td></tr>
+          <tr><td>3</td><td><code>POST /cart/add</code> <code>productId=7&amp;qty=1</code> + CSRF token</td><td><code>CsrfFilter</code> validates token → <code>AuthorizationFilter</code> (authenticated ✓) → <code>CartController</code> → <code>CartService</code> upserts a <code>CartItem</code> → redirect to <code>/cart</code>.</td></tr>
+          <tr><td>4</td><td><code>GET /checkout</code></td><td>Renders the address form bound to a <code>CheckoutForm</code> object.</td></tr>
+          <tr><td>5</td><td><code>POST /checkout</code> (address + idempotency key)</td><td><code>@Valid</code> passes → <code>CheckoutService.checkout</code> in one transaction: load cart with items (<code>JOIN FETCH</code>), <code>SELECT ... FOR UPDATE</code> the product, check + decrement stock, snapshot price into <code>OrderItem</code>, save <code>Order(PENDING)</code>, <code>PaymentService.charge</code> (idempotent on the key) → success → <code>Order.markPaid</code>, clear cart, commit.</td></tr>
+          <tr><td>6</td><td>Redirect → <code>GET /orders/12</code></td><td>Ownership check: <code>order.user.id == currentUser.id</code> else 403 → <code>orders/detail.html</code>.</td></tr>
+          <tr><td>—</td><td>If payment had declined</td><td><code>BusinessRuleException</code> → transaction rolls back → stock decrement undone, no order persisted → <code>@ControllerAdvice</code> re-renders checkout with an error.</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <h3>Likely interview questions about this project</h3>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <ul>
+        <li><strong>"Why two security filter chains?"</strong> — the site is stateful (session cookie, CSRF, form login, redirects); the API is stateless (JWT, no CSRF, 401 not a redirect). <code>securityMatcher</code> + <code>@Order</code> routes each request to the right one.</li>
+        <li><strong>"Two customers buy the last unit at the same time — what happens?"</strong> — <code>SELECT ... FOR UPDATE</code> on the product row inside the checkout transaction serializes them; the second sees <code>stock &lt; qty</code> and gets a <code>BusinessRuleException</code>, its transaction rolls back. Alternative: optimistic locking with a <code>@Version</code> column and retry.</li>
+        <li><strong>"Why copy the price into <code>OrderItem</code>?"</strong> — an order is a historical record; if the product price changes tomorrow, past orders must not.</li>
+        <li><strong>"The payment webhook fires twice — double charge?"</strong> — no; <code>Payment.idempotencyKey</code> is unique and <code>PaymentService</code> returns the existing result for a repeat key.</li>
+        <li><strong>"Where does <code>LazyInitializationException</code> bite you here?"</strong> — rendering <code>orders/detail.html</code> which walks <code>order.items[].product</code>; fixed with a <code>JOIN FETCH</code> query or an <code>@EntityGraph</code>, or a view-model assembled in the service.</li>
+        <li><strong>"How do you test checkout?"</strong> — unit test with mocked repos/gateway for the stock and rollback logic; one <code>@SpringBootTest</code> + Testcontainers Postgres for the real transaction + <code>FOR UPDATE</code> behaviour.</li>
+        <li><strong>"Scale it: 10k req/s on the product pages?"</strong> — cache the catalog (read-mostly) in Redis / CDN, paginate, add read replicas, keep checkout on the primary. See <a href="hld.html">HLD</a>.</li>
+        <li><strong>"Admin uploads a product image — where does it go?"</strong> — object storage via a <code>FileStorage</code> abstraction; the DB stores the URL; validate magic bytes + size.</li>
+        <li><strong>"How is config managed across dev/prod?"</strong> — <code>application-{profile}.yml</code>, secrets as env vars / mounted secrets, never in the image; Flyway for schema.</li>
+        <li><strong>"One thing you'd refactor?"</strong> — have an honest answer ready (e.g. "move cart to Redis with a TTL instead of a DB table", "extract payment into its own service once a second provider is added").</li>
+      </ul>
+    </div>
+
+    <div id="t-capstone"></div>
+  </section>
+
+  <p class="backlink"><a href="index.html">← Back to home &amp; dashboard</a> &nbsp;·&nbsp; <a href="fullstack-js.html">Full-Stack JS →</a></p>
+
+  <footer class="foot">
+    <p>Phase 3 of the <a href="roadmap.html">8-month roadmap</a>. Next: Full-Stack JS — enough React/Node/Mongo to work across the stack.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("fullstack-java", [
+  {
+    group: "Spring Framework Core",
+    mount: "#t-spring-core",
+    items: [
+      "IoC & Dependency Injection",
+      "Bean scopes & stereotypes",
+      "Bean lifecycle & lifecycle hooks"
+    ]
+  },
+  {
+    group: "Web Layer",
+    mount: "#t-spring-mvc",
+    items: [
+      "Spring MVC request lifecycle (DispatcherServlet)",
+      "Filters vs interceptors",
+      "@Controller vs @RestController & message converters"
+    ]
+  },
+  {
+    group: "Data & Persistence",
+    mount: "#t-jpa",
+    items: [
+      "JPA entity relationships & owning side",
+      "Lazy vs eager — the LazyInitializationException",
+      "N+1 problem & fixes (JOIN FETCH / @EntityGraph / batch)",
+      "DTO projection instead of returning entities"
+    ]
+  },
+  {
+    group: "Security",
+    mount: "#t-security",
+    items: [
+      "Authentication vs authorization",
+      "The security filter chain",
+      "JWT auth request flow",
+      "Stateless config & method security"
+    ]
+  },
+  {
+    group: "Operations & Testing",
+    mount: "#t-actuator",
+    items: [
+      "Actuator endpoints (health, metrics, loggers)",
+      "Liveness vs readiness probes",
+      "Custom HealthIndicator & Micrometer metric"
+    ]
+  },
+  {
+    group: "JUnit 5 + Mockito",
+    mount: "#t-testing",
+    items: [
+      "Unit test with @Mock / @InjectMocks",
+      "given/willReturn & verify (incl. failure path)",
+      "Slice tests: @WebMvcTest / @DataJpaTest / @MockBean"
+    ]
+  },
+  {
+    group: "Templating & Project Layout",
+    mount: "#t-thymeleaf",
+    items: [
+      "Thymeleaf syntax & fragments",
+      "Standard Spring Boot package layout",
+      "CSRF token in forms, th:text vs th:utext"
+    ]
+  },
+  {
+    group: "REST & Tooling",
+    mount: "#t-rest",
+    items: [
+      "REST verb/URL/status design",
+      "Pagination, validation, versioning",
+      "Postman collection, environments & token capture"
+    ]
+  },
+  {
+    group: "Exception Handling",
+    mount: "#t-exceptions",
+    items: [
+      "@RestControllerAdvice & one error shape",
+      "Domain exceptions → HTTP status mapping",
+      "Validation errors (MethodArgumentNotValidException)"
+    ]
+  },
+  {
+    group: "File Upload",
+    mount: "#t-upload",
+    items: [
+      "MultipartFile endpoint & size limits",
+      "Validate magic bytes, stream not getBytes()",
+      "Store in object storage, persist the URL"
+    ]
+  },
+  {
+    group: "Git Collaboration",
+    mount: "#t-git",
+    items: [
+      "Branch → PR → CI → squash-merge flow",
+      "Rebase vs merge & resolving conflicts",
+      "Recovery: reflog, revert, force-with-lease"
+    ]
+  },
+  {
+    group: "Docker & Deployment",
+    mount: "#t-docker",
+    items: [
+      "Multi-stage Dockerfile for Spring Boot",
+      "docker-compose app + DB for local dev",
+      "Env-var config & Flyway migrations in prod"
+    ]
+  },
+  {
+    group: "Spring Cloud (intro)",
+    mount: "#t-cloud",
+    items: [
+      "Config Server (Git-backed) + /actuator/refresh",
+      "Eureka service discovery & client load balancing"
+    ]
+  },
+  {
+    group: "Capstone: eCommerce App",
+    mount: "#t-capstone",
+    items: [
+      "Entity model & layered architecture",
+      "Dual security chains (form login + JWT API)",
+      "Transactional checkout (stock lock, price snapshot, idempotency)",
+      "Build order end to end",
+      "Interview Q&A about the project"
+    ]
+  }
+], { pageTitle: "Full-Stack Java: Spring Boot for a Backend SDE" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("fullstack-java");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

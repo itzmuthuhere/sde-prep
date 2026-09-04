@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSA · Non-linear — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html" class="active">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>DSA — Non-linear Structures &amp; Dynamic Programming</h1>
+  <p class="lede">
+    Phase 1, second half. Everything here branches: a node points at two or more
+    others, and the work is defined by <em>recursion on structure</em> rather than
+    a walk from index <code>0</code> to <code>n&minus;1</code>. This page is
+    organised by structure and then by the technique that structure unlocks —
+    trees and their traversals, ordered trees (BSTs), prefix trees (tries),
+    priority queues (heaps), graphs and the four algorithms you are actually asked
+    for (BFS, DFS, topological sort, union-find), and finally the deepest topic in
+    the interview, dynamic programming, where every classic recurrence is derived
+    one line at a time.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>How to use this page.</strong> For each topic: read the explanation,
+      re-type the worked example and run it, trace the dry run on paper once, then
+      read the recognition section twice — that is the part that transfers to an
+      unseen prompt. For dynamic programming, <em>derive each recurrence yourself</em>
+      before reading the code: name the subproblem, list the choices, take the best.
+      Then solve the practice problems (all on LeetCode; the number in brackets is
+      the problem ID) and tick each one off — the bars feed the
+      <a href="index.html">home dashboard</a>. Budget one topic per 2–3 study
+      nights; give DP two full weekends.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — all practice problems</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#trees">Trees &amp; Traversals</a></li>
+      <li><a href="#bst">Binary Search Trees</a></li>
+      <li><a href="#tries">Tries (Prefix Trees)</a></li>
+      <li><a href="#heaps">Heaps &amp; Priority Queues</a></li>
+      <li><a href="#graphs">Graphs — BFS, DFS, Topological Sort, Union-Find</a></li>
+      <li><a href="#greedy">Greedy Algorithms</a></li>
+      <li><a href="#dp">Dynamic Programming</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ================= 1. TREES & TRAVERSALS ================= -->
+  <section class="topic" id="trees">
+    <h2>1 · Trees &amp; Traversals</h2>
+
+    <p>
+      A binary tree node holds a value and two child references,
+      <code>left</code> and <code>right</code>, either of which may be
+      <code>null</code>. There is no array backing it and no index arithmetic —
+      the only way to reach a node is to follow references from the root. Because
+      the structure is defined recursively (a tree is a node whose children are
+      themselves trees), almost every tree algorithm is a three-line recursion:
+      handle <code>null</code>, recurse left, recurse right, combine. The height
+      <code>h</code> is the longest root-to-leaf path; it is
+      <code>O(log n)</code> for a balanced tree and <code>O(n)</code> for a
+      degenerate one, and it bounds both the recursion depth and the cost of a
+      single root-to-leaf descent.
+    </p>
+    <p>
+      The four traversals differ only in <em>when</em> you process the current
+      node relative to its subtrees. <strong>Pre-order</strong> (node, left,
+      right) processes a parent before its children — use it to copy or serialise
+      a tree. <strong>In-order</strong> (left, node, right) processes the left
+      subtree, then the node, then the right — on a BST this yields values in
+      sorted order. <strong>Post-order</strong> (left, right, node) processes both
+      children before the node — use it when a node's answer depends on its
+      children's answers (subtree sums, heights, deletion). <strong>Level-order</strong>
+      (breadth-first) visits the tree row by row using a queue, and is the tool
+      for "shortest path in the tree", "nodes at depth k", or anything phrased per
+      level.
+    </p>
+    <p>
+      Recursive traversals are trivial to write but consume call-stack proportional
+      to <code>h</code>, which overflows on a skewed tree of ~10<sup>4</sup>–10<sup>5</sup>
+      nodes. The <strong>iterative</strong> forms use an explicit
+      <code>Deque</code> as a stack and give you the control some follow-ups
+      demand (pause mid-traversal, bound memory, iterator API). Iterative
+      in-order is the one worth memorising: push the entire left spine, then
+      repeatedly pop, visit, and dive into the popped node's right child.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Ask one question of the current node: "can I answer for the whole subtree
+        rooted here if someone hands me the answers for my left and right
+        children?" If yes, it is a post-order recursion and the combine step is
+        the whole problem. If the node's job is to pass information <em>downward</em>
+        (a running path sum, a valid range), thread that as a parameter in a
+        pre-order recursion.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — iterative in-order traversal with an explicit stack</p>
+<pre><code>import java.util.*;
+
+class TreeNode { int val; TreeNode left, right; TreeNode(int v){ val = v; } }
+
+public class IterativeInorder {
+    static List&lt;Integer&gt; inorder(TreeNode root) {
+        List&lt;Integer&gt; out = new ArrayList&lt;&gt;();
+        Deque&lt;TreeNode&gt; stack = new ArrayDeque&lt;&gt;();
+        TreeNode curr = root;
+        while (curr != null || !stack.isEmpty()) {
+            while (curr != null) {        // push the whole left spine
+                stack.push(curr);
+                curr = curr.left;
+            }
+            curr = stack.pop();           // leftmost unvisited node
+            out.add(curr.val);            // visit
+            curr = curr.right;            // then explore its right subtree
+        }
+        return out;
+    }
+
+    public static void main(String[] args) {
+        TreeNode root = new TreeNode(4);
+        root.left = new TreeNode(2);
+        root.right = new TreeNode(6);
+        root.left.left = new TreeNode(1);
+        root.left.right = new TreeNode(3);
+        System.out.println(inorder(root));   // [1, 2, 3, 4, 6]
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — tree with root 4, left child 2 (children 1, 3), right child 6</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>step</th><th>action</th><th>stack (top → bottom)</th><th>curr</th><th>output</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>push left spine from 4</td><td>[1, 2, 4]</td><td>null</td><td>[]</td></tr>
+          <tr><td>2</td><td>pop 1, visit, go right</td><td>[2, 4]</td><td>null</td><td>[1]</td></tr>
+          <tr><td>3</td><td>pop 2, visit, go right</td><td>[4]</td><td>3</td><td>[1, 2]</td></tr>
+          <tr><td>4</td><td>push left spine from 3</td><td>[3, 4]</td><td>null</td><td>[1, 2]</td></tr>
+          <tr><td>5</td><td>pop 3, visit, go right</td><td>[4]</td><td>null</td><td>[1, 2, 3]</td></tr>
+          <tr><td>6</td><td>pop 4, visit, go right</td><td>[]</td><td>6</td><td>[1, 2, 3, 4]</td></tr>
+          <tr><td>7</td><td>push left spine from 6</td><td>[6]</td><td>null</td><td>[1, 2, 3, 4]</td></tr>
+          <tr><td>8</td><td>pop 6, visit, go right</td><td>[]</td><td>null</td><td>[1, 2, 3, 4, 6]</td></tr>
+          <tr><td>9</td><td>curr null &amp; stack empty → stop</td><td>[]</td><td>null</td><td>[1, 2, 3, 4, 6]</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Each node is pushed once and popped once → <code>O(n)</code> time,
+        <code>O(h)</code> stack. Swap the visit line to before the left-spine push
+        and you have pre-order; level-order is the same shape with an
+        <code>ArrayDeque</code> used as a FIFO queue and a snapshot of
+        <code>queue.size()</code> taken at the top of each level.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>Input is a <code>TreeNode root</code> — the traversal choice <em>is</em> the algorithm design.</li>
+        <li>"Sum / height / diameter / count of a subtree", "is this subtree balanced / a BST" → post-order recursion returning a small struct or an <code>int</code>.</li>
+        <li>"Path from the root", "does a root-to-leaf path sum to <code>target</code>" → pre-order carrying an accumulator.</li>
+        <li>"Level by level", "right side view", "zigzag", "minimum depth", "nodes at distance k" → BFS with a per-level size snapshot.</li>
+        <li>"k-th smallest in a BST", "validate BST", "recover BST" → in-order traversal (recursive or the iterative form above).</li>
+        <li>"Serialize / deserialize", "clone" → pre-order with explicit null markers.</li>
+        <li>Recursion depth could hit 10<sup>5</sup> on a skewed tree → use the iterative traversal or BFS.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>No <code>null</code> base case, or checking <code>node.left</code>/<code>node.right</code> for null instead of <code>node</code> itself.</li>
+        <li>Level-order without snapshotting <code>queue.size()</code> before the inner loop → levels bleed together.</li>
+        <li>Returning early from a recursion and skipping the other subtree (e.g. path-sum stopping at the first hit when you need all paths).</li>
+        <li>Using a global mutable field for the answer and forgetting to reset it between test cases.</li>
+        <li>Confusing <em>height</em> (edges/nodes down to a leaf) with <em>depth</em> (down from the root) — off-by-one on the answer.</li>
+        <li>Deep recursion on a 10<sup>5</sup>-node skewed tree → <code>StackOverflowError</code>.</li>
+        <li>Post-order iterative done with one stack and no "last visited" pointer → visiting a node before its right child.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-trees"></div>
+  </section>
+
+
+  <!-- ================= 2. BINARY SEARCH TREES ================= -->
+  <section class="topic" id="bst">
+    <h2>2 · Binary Search Trees</h2>
+
+    <p>
+      A binary search tree adds one invariant to a binary tree: for every node,
+      <em>every</em> value in its left subtree is smaller and <em>every</em> value
+      in its right subtree is larger (assume distinct keys unless told otherwise).
+      The invariant is recursive — it is not enough for a node to be larger than
+      its immediate left child; it must be larger than the maximum of the whole
+      left subtree. The single most useful consequence: an in-order traversal of a
+      BST emits the keys in sorted order, so "k-th smallest", "next larger",
+      "is this a valid BST", and "range sum" all reduce to a controlled in-order
+      walk.
+    </p>
+    <p>
+      Search, insert, and delete all cost <code>O(h)</code>: you compare the
+      target with the current node and descend left or right, halving the problem
+      only if the tree is balanced. A plain BST built from sorted input degenerates
+      into a linked list with <code>h = n</code>; self-balancing variants
+      (red-black, AVL) keep <code>h = O(log n)</code>, and Java's
+      <code>TreeMap</code> / <code>TreeSet</code> are red-black trees you should
+      reach for when you need an ordered structure with
+      <code>ceiling</code>/<code>floor</code>/<code>higher</code>/<code>lower</code>
+      in logarithmic time.
+    </p>
+    <p>
+      Deletion is the one fiddly operation. If the node is a leaf, detach it. If it
+      has one child, splice that child into its place. If it has two children,
+      replace the node's value with its <strong>in-order successor</strong> (the
+      minimum of the right subtree — the leftmost node reachable by going right
+      once then left as far as possible), then delete that successor from the right
+      subtree, which is now an easy one-or-zero-child case.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        "BST" means "sorted array you can insert into in <code>O(log n)</code>."
+        Whenever a problem wants order statistics <em>and</em> mutation, that is
+        the trade a BST buys. To check validity, don't compare a node to its
+        parent — pass an allowed open interval <code>(low, high)</code> down the
+        recursion and tighten it: everything left of a node must be below its
+        value, everything right must be above it.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — validate a BST by carrying a (low, high) bound downward</p>
+<pre><code>class TreeNode { int val; TreeNode left, right; TreeNode(int v){ val = v; } }
+
+public class ValidateBST {
+    static boolean isValid(TreeNode node, Long low, Long high) {
+        if (node == null) return true;
+        if (node.val &lt;= low || node.val &gt;= high) return false;   // outside the allowed open interval
+        return isValid(node.left,  low, (long) node.val)          // left subtree must stay below node.val
+            &amp;&amp; isValid(node.right, (long) node.val, high);        // right subtree must stay above node.val
+    }
+    static boolean isValidBST(TreeNode root) {
+        return isValid(root, Long.MIN_VALUE, Long.MAX_VALUE);
+    }
+
+    public static void main(String[] args) {
+        TreeNode root = new TreeNode(5);
+        root.left  = new TreeNode(3);
+        root.right = new TreeNode(8);
+        root.right.left  = new TreeNode(4);   // 4 sits in 5's right subtree but 4 &lt; 5 → invalid
+        root.right.right = new TreeNode(9);
+        System.out.println(isValidBST(root)); // false
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — root 5; left 3; right 8 with children 4 and 9</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>call</th><th>(low, high)</th><th>node.val</th><th>in interval?</th><th>result</th></tr></thead>
+        <tbody>
+          <tr><td>isValid(5, …)</td><td>(−∞, +∞)</td><td>5</td><td>yes</td><td>recurse both sides</td></tr>
+          <tr><td>isValid(3, …)</td><td>(−∞, 5)</td><td>3</td><td>yes</td><td>children null → true</td></tr>
+          <tr><td>isValid(8, …)</td><td>(5, +∞)</td><td>8</td><td>yes</td><td>recurse both sides</td></tr>
+          <tr><td>isValid(4, …)</td><td>(5, 8)</td><td>4</td><td><strong>no</strong> — 4 ≤ 5</td><td>false</td></tr>
+          <tr><td>—</td><td>—</td><td>—</td><td>false propagates up through <code>&amp;&amp;</code></td><td>isValidBST → false</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        A parent-only check (<code>4 &lt; 8</code> ✓, <code>4</code> is a left
+        child of <code>8</code> ✓) would wrongly accept this tree. The bound
+        <code>(5, 8)</code> — inherited from the ancestor <code>5</code> — is what
+        catches it. Using <code>Long</code> bounds avoids overflow when a node
+        holds <code>Integer.MIN_VALUE</code> or <code>MAX_VALUE</code>.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>The prompt literally says "binary search tree", or the tree is stated to be sorted-by-structure.</li>
+        <li>"k-th smallest / largest", "in-order successor / predecessor", "closest value to <code>x</code>" → in-order walk, stop when the count or the target is reached.</li>
+        <li>"Validate", "recover two swapped nodes" → in-order should be strictly increasing; find where it isn't.</li>
+        <li>"Insert / delete and keep it a BST", "trim to a range <code>[lo, hi]</code>" → recurse on the one side the comparison allows.</li>
+        <li>"Lowest common ancestor" in a BST → walk down from the root; the first node that splits the two targets (or equals one) is the LCA — <code>O(h)</code>, no recursion into both subtrees.</li>
+        <li>"Build a balanced BST from a sorted array" → recurse on the middle element.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Validating with a parent comparison instead of an inherited interval.</li>
+        <li>Bounds as <code>Integer.MIN_VALUE</code>/<code>MAX_VALUE</code> then a node actually holds that value → false negative; use <code>Long</code> or nullable <code>Integer</code>.</li>
+        <li><code>&lt;=</code> vs <code>&lt;</code>: decide up front whether duplicates are allowed and on which side.</li>
+        <li>Deletion with two children: forgetting to then remove the successor from the right subtree, leaving it duplicated.</li>
+        <li>Assuming <code>O(log n)</code> — an adversarial/sorted insertion order gives <code>O(n)</code> height.</li>
+        <li>LCA in a BST written as the general-tree LCA (recurse both subtrees) — correct but wastes the ordering; <code>O(h)</code> is available.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-bst"></div>
+  </section>
+
+
+  <!-- ================= 3. TRIES ================= -->
+  <section class="topic" id="tries">
+    <h2>3 · Tries (Prefix Trees)</h2>
+
+    <p>
+      A trie stores a set of strings as a tree of characters: the root is the
+      empty prefix, and each edge is labelled with one character, so the path from
+      the root to a node spells that node's prefix. A boolean flag on a node marks
+      whether that prefix is also a complete stored word. Children are held either
+      in a fixed array (size 26 for lowercase English — fastest, simplest indexing
+      with <code>c - 'a'</code>) or in a <code>HashMap&lt;Character, Node&gt;</code>
+      when the alphabet is large or unknown.
+    </p>
+    <p>
+      The payoff is that <code>insert</code>, exact <code>search</code>, and
+      <code>startsWith</code> (prefix query) all run in <code>O(L)</code> where
+      <code>L</code> is the length of the query string — completely independent of
+      how many words the trie holds. A <code>HashSet&lt;String&gt;</code> also
+      gives <code>O(L)</code> exact lookup, but it cannot answer "how many stored
+      words begin with <code>cat</code>" without scanning every key. Tries also let
+      you walk a candidate string and a dictionary in lock-step, which is what
+      makes them the backbone of "word search on a board", wildcard matching, and
+      autocomplete.
+    </p>
+    <p>
+      The cost is memory: each node reserves space for its whole child set (26
+      references even if one is used), and there is one node per distinct prefix
+      character across all words. When strings share long prefixes this is a win;
+      when they don't, a trie can use far more memory than a plain list, and a
+      compressed/radix trie (edges labelled with substrings) is the usual fix.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A trie turns "search a dictionary" into "walk a single path, one character
+        per step." If a problem repeatedly asks about prefixes, or needs to try
+        many dictionary words against the same text position, the trie lets every
+        one of those queries share the work of matching their common prefix once.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — insert, exact search, and prefix query</p>
+<pre><code>class Trie {
+    private final Trie[] next = new Trie[26];
+    private boolean end;
+
+    public void insert(String word) {
+        Trie node = this;
+        for (char c : word.toCharArray()) {
+            int i = c - 'a';
+            if (node.next[i] == null) node.next[i] = new Trie();
+            node = node.next[i];
+        }
+        node.end = true;
+    }
+
+    public boolean search(String word)      { Trie n = walk(word);   return n != null &amp;&amp; n.end; }
+    public boolean startsWith(String prefix) { return walk(prefix) != null; }
+
+    private Trie walk(String s) {
+        Trie node = this;
+        for (char c : s.toCharArray()) {
+            node = node.next[c - 'a'];
+            if (node == null) return null;
+        }
+        return node;
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — insert "cat", insert "car", then four queries</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>operation</th><th>path walked</th><th>effect / result</th></tr></thead>
+        <tbody>
+          <tr><td>insert "cat"</td><td>root → c → a → t</td><td>create nodes c, a, t; set <code>t.end = true</code></td></tr>
+          <tr><td>insert "car"</td><td>root → c → a → r</td><td>c, a already exist; create r; set <code>r.end = true</code></td></tr>
+          <tr><td>startsWith("ca")</td><td>root → c → a</td><td>node a exists → <strong>true</strong></td></tr>
+          <tr><td>search("ca")</td><td>root → c → a</td><td>node a exists but <code>a.end == false</code> → <strong>false</strong></td></tr>
+          <tr><td>search("car")</td><td>root → c → a → r</td><td><code>r.end == true</code> → <strong>true</strong></td></tr>
+          <tr><td>search("care")</td><td>root → c → a → r → ?</td><td><code>r.next['e'] == null</code> → <strong>false</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Total nodes after both inserts: 4 (c, a, t, r) plus the root — the shared
+        prefix <code>ca</code> is stored once. Every query touches at most
+        <code>L</code> nodes. The <code>end</code> flag is what separates
+        "<code>ca</code> is a prefix" from "<code>ca</code> is a word."
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"Implement autocomplete / search suggestions", "words that start with a prefix".</li>
+        <li>A dictionary of words plus a grid or a text, and you must match many words at once ("Word Search II", "Concatenated Words").</li>
+        <li>Wildcard or "." matches-any-character search over a word set → trie with a branching DFS on <code>.</code>.</li>
+        <li>"Maximum XOR of two numbers in an array" and other bitwise-greedy problems → a binary trie on the 32 bits of each number.</li>
+        <li>"Replace words with their shortest root", "longest word buildable one character at a time".</li>
+        <li>Repeated prefix membership tests where a <code>HashSet</code> would re-scan keys.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Treating "walk succeeded" as "word found" — you must also check the <code>end</code> flag.</li>
+        <li>Array children for a large or mixed-case alphabet (wasted memory) or a <code>HashMap</code> for plain lowercase (slower, boxing overhead).</li>
+        <li>Not handling the empty string, or an off-alphabet character crashing <code>c - 'a'</code>.</li>
+        <li>Word Search II: not pruning trie branches after a word is found, or not deleting exhausted leaves → revisits and TLE.</li>
+        <li>Rebuilding the trie inside a loop instead of once up front.</li>
+        <li>Recursion over the trie deep enough to overflow when word length is large — iterate where you can.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-tries"></div>
+  </section>
+
+
+  <!-- ================= 4. HEAPS ================= -->
+  <section class="topic" id="heaps">
+    <h2>4 · Heaps &amp; Priority Queues</h2>
+
+    <p>
+      A binary heap is a complete binary tree (every level full except possibly
+      the last, which fills left to right) stored implicitly in an array: the
+      children of index <code>i</code> are <code>2i+1</code> and
+      <code>2i+2</code>, the parent is <code>(i-1)/2</code>. A <em>min-heap</em>
+      maintains the property that every parent is ≤ both children, so the smallest
+      element is always at index <code>0</code>. Reading that minimum is
+      <code>O(1)</code>; inserting (append, then "sift up" while smaller than the
+      parent) and removing the min (move the last element to the root, then "sift
+      down" toward the smaller child) are both <code>O(log n)</code>. Building a
+      heap from an existing array is <code>O(n)</code>.
+    </p>
+    <p>
+      Java's <code>PriorityQueue</code> is a min-heap by default;
+      <code>new PriorityQueue&lt;&gt;(Comparator.reverseOrder())</code> or a custom
+      comparator gives a max-heap or priority-by-field. Use a heap whenever you
+      need repeated access to the current extreme of a changing set but not full
+      sorted order: "k largest / smallest", "k-th element", "merge k sorted
+      lists", "schedule the highest-priority task", and Dijkstra's shortest path.
+      The two-heap trick (a max-heap of the lower half, a min-heap of the upper
+      half) maintains a running median in <code>O(log n)</code> per insert.
+    </p>
+    <p>
+      For "k-th largest", the efficient shape is a <strong>size-<code>k</code>
+      min-heap</strong>: push every element, and whenever the heap exceeds
+      <code>k</code> entries, poll the smallest. What remains are the <code>k</code>
+      largest seen, and the root is the k-th largest. This is <code>O(n log k)</code>
+      time and <code>O(k)</code> space — better than sorting (<code>O(n log n)</code>)
+      when <code>k ≪ n</code>.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A heap is the right structure when you keep asking "what's the
+        smallest/largest right now?" while the set keeps changing. It gives you
+        that one element cheaply and nothing else — no search, no ordered
+        iteration. If you need the top <code>k</code> and <code>k</code> is small,
+        hold a heap of size <code>k</code> of the <em>opposite</em> polarity so the
+        element you might evict is the one at the root.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — k-th largest element via a size-k min-heap</p>
+<pre><code>import java.util.PriorityQueue;
+
+public class KthLargest {
+    static int findKthLargest(int[] nums, int k) {
+        PriorityQueue&lt;Integer&gt; pq = new PriorityQueue&lt;&gt;();   // min-heap
+        for (int x : nums) {
+            pq.offer(x);
+            if (pq.size() &gt; k) pq.poll();                    // drop the current smallest
+        }
+        return pq.peek();                                     // root = k-th largest overall
+    }
+
+    public static void main(String[] args) {
+        System.out.println(findKthLargest(new int[]{3, 2, 1, 5, 6, 4}, 2)); // 5
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — nums = {3, 2, 1, 5, 6, 4}, k = 2</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>x</th><th>heap after offer(x)</th><th>size &gt; k?</th><th>poll</th><th>heap after</th></tr></thead>
+        <tbody>
+          <tr><td>3</td><td>{3}</td><td>no</td><td>—</td><td>{3}</td></tr>
+          <tr><td>2</td><td>{2, 3}</td><td>no</td><td>—</td><td>{2, 3}</td></tr>
+          <tr><td>1</td><td>{1, 3, 2}</td><td>yes</td><td>1</td><td>{2, 3}</td></tr>
+          <tr><td>5</td><td>{2, 3, 5}</td><td>yes</td><td>2</td><td>{3, 5}</td></tr>
+          <tr><td>6</td><td>{3, 5, 6}</td><td>yes</td><td>3</td><td>{5, 6}</td></tr>
+          <tr><td>4</td><td>{4, 6, 5}</td><td>yes</td><td>4</td><td>{5, 6}</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <code>peek()</code> → <code>5</code>. The heap never holds more than
+        <code>k + 1 = 3</code> elements, so each operation is
+        <code>O(log k)</code> and the whole pass is <code>O(n log k)</code>. Note
+        the heap's array order (<code>{4, 6, 5}</code>) is <em>not</em> sorted —
+        only index 0 is guaranteed.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"k largest / smallest / most frequent / closest", "k-th largest" — especially as a stream.</li>
+        <li>"Merge k sorted lists / arrays" → min-heap of the current head of each list.</li>
+        <li>"Median of a data stream", "sliding window median" → two heaps.</li>
+        <li>"Always process the item with the highest priority / earliest deadline / smallest cost next" → Dijkstra, task scheduler, meeting rooms.</li>
+        <li>"Minimum cost to connect / combine" repeatedly merging the two cheapest → heap (Huffman-style).</li>
+        <li>You need the extreme repeatedly <em>and</em> the set changes — if it never changes, just sort once.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Forgetting Java's <code>PriorityQueue</code> is a <em>min</em>-heap — max-heap needs an explicit comparator.</li>
+        <li>Iterating a <code>PriorityQueue</code> and expecting sorted order — only <code>poll()</code> gives that.</li>
+        <li>Using a size-<code>n</code> heap when a size-<code>k</code> heap of opposite polarity suffices — <code>O(n log n)</code> instead of <code>O(n log k)</code>.</li>
+        <li>Comparator written as <code>a - b</code> on values that can overflow — use <code>Integer.compare</code>.</li>
+        <li>Mutating an object's key after it is in the heap — the heap order is now silently wrong; remove and re-insert instead.</li>
+        <li>Reaching for a heap when a full sort is simpler and <code>k ≈ n</code>, or when counting-sort bounds apply.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-heaps"></div>
+  </section>
+
+
+  <!-- ================= 5. GRAPHS ================= -->
+  <section class="topic" id="graphs">
+    <h2>5 · Graphs — BFS, DFS, Topological Sort, Union-Find</h2>
+
+    <p>
+      A graph is a set of vertices and edges; edges may be directed or undirected,
+      weighted or not. Two representations dominate. An <strong>adjacency list</strong>
+      (<code>List&lt;List&lt;Integer&gt;&gt;</code> or a map) stores, per vertex,
+      the vertices it connects to — <code>O(V + E)</code> space, and iterating a
+      vertex's neighbours is proportional to its degree. An <strong>adjacency
+      matrix</strong> (<code>boolean[V][V]</code>) answers "is there an edge u→v"
+      in <code>O(1)</code> but costs <code>O(V²)</code> space and makes neighbour
+      iteration <code>O(V)</code> regardless of how sparse the graph is. Interview
+      graphs are almost always sparse, so default to the adjacency list; use a
+      matrix only for dense graphs or when you constantly test specific edges.
+    </p>
+    <p>
+      <strong>BFS</strong> explores outward in layers from the source using a FIFO
+      queue, marking each vertex visited as it is <em>enqueued</em>. In an
+      unweighted graph the layer number is the shortest-path distance, so BFS is
+      the tool for "fewest steps / moves / edges". It runs in <code>O(V + E)</code>
+      but its frontier can hold <code>O(V)</code> vertices at once.
+      <strong>DFS</strong> goes as deep as possible before backtracking, via
+      recursion or an explicit stack, also <code>O(V + E)</code>; its memory is the
+      current path length, <code>O(V)</code> worst case but typically much less. DFS
+      is natural for connectivity, cycle detection, enumerating paths, and
+      topological sort; it does <em>not</em> give shortest paths, and deep
+      recursion on a 10<sup>5</sup>-vertex graph can overflow the call stack —
+      switch to an explicit stack or BFS there.
+    </p>
+    <p>
+      <strong>Topological sort</strong> orders the vertices of a directed acyclic
+      graph so that every edge <code>u → v</code> points forward in the order — the
+      classic "which order can I take these prerequisite-linked courses" question.
+      Kahn's algorithm does it with BFS: compute every vertex's in-degree, start a
+      queue with the in-degree-0 vertices, and repeatedly remove one, appending it
+      to the order and decrementing its neighbours' in-degrees, enqueuing any that
+      hit zero. If the final order is missing vertices, the graph had a cycle and
+      no topological order exists.
+    </p>
+    <p>
+      <strong>Union-Find</strong> (disjoint-set union) tracks a partition of
+      vertices into connected components under a stream of "connect u and v"
+      operations. <code>find(x)</code> returns the representative of x's
+      component; <code>union(a, b)</code> merges two components. Two optimisations
+      make it near-constant time: <em>union by size/rank</em> always hangs the
+      smaller tree under the larger root, and <em>path compression</em> flattens
+      the path to the root every time you call <code>find</code>. Together they
+      give <code>O(α(n))</code> amortised per operation, where <code>α</code> is
+      the inverse-Ackermann function — effectively ≤ 4 for any real input. Use it
+      for "number of connected components", cycle detection in an undirected
+      graph, Kruskal's minimum spanning tree, and dynamic connectivity.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Pick the traversal by what the answer is: <em>shortest / fewest</em> → BFS;
+        <em>exists a path / all paths / is there a cycle / ordering</em> → DFS or
+        Kahn. Pick the data structure by what changes: the graph is fixed and you
+        explore it → adjacency list + BFS/DFS; edges are added one at a time and
+        you keep asking "are these two connected yet" → union-find. Union-find
+        answers connectivity without ever materialising the components.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example A — topological sort (Kahn's algorithm)</p>
+<pre><code>import java.util.*;
+
+public class TopoSort {
+    static int[] topoSort(int n, int[][] edges) {   // edges: [from, to], meaning from must precede to
+        List&lt;List&lt;Integer&gt;&gt; adj = new ArrayList&lt;&gt;();
+        for (int i = 0; i &lt; n; i++) adj.add(new ArrayList&lt;&gt;());
+        int[] indeg = new int[n];
+        for (int[] e : edges) { adj.get(e[0]).add(e[1]); indeg[e[1]]++; }
+
+        Deque&lt;Integer&gt; q = new ArrayDeque&lt;&gt;();
+        for (int i = 0; i &lt; n; i++) if (indeg[i] == 0) q.offer(i);
+
+        int[] order = new int[n];
+        int idx = 0;
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            order[idx++] = u;
+            for (int v : adj.get(u))
+                if (--indeg[v] == 0) q.offer(v);
+        }
+        return idx == n ? order : new int[0];   // fewer than n emitted ⇒ cycle ⇒ no valid order
+    }
+
+    public static void main(String[] args) {
+        int[][] edges = {{0,1},{0,2},{1,3},{2,3}};
+        System.out.println(Arrays.toString(topoSort(4, edges))); // [0, 1, 2, 3]
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — 4 vertices, edges 0→1, 0→2, 1→3, 2→3</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>step</th><th>pop</th><th>order</th><th>in-degrees after decrement</th><th>queue</th></tr></thead>
+        <tbody>
+          <tr><td>init</td><td>—</td><td>[]</td><td>0:0  1:1  2:1  3:2</td><td>[0]</td></tr>
+          <tr><td>1</td><td>0</td><td>[0]</td><td>1:0  2:0  3:2</td><td>[1, 2]</td></tr>
+          <tr><td>2</td><td>1</td><td>[0, 1]</td><td>3:1</td><td>[2]</td></tr>
+          <tr><td>3</td><td>2</td><td>[0, 1, 2]</td><td>3:0</td><td>[3]</td></tr>
+          <tr><td>4</td><td>3</td><td>[0, 1, 2, 3]</td><td>—</td><td>[]</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        4 of 4 vertices emitted → acyclic, order valid. If we added edge
+        <code>3 → 0</code>, no vertex would ever start at in-degree 0, the queue
+        would begin empty, <code>idx</code> would stay <code>0</code>, and the
+        function would return the empty array to signal the cycle.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example B — union-find with path compression and union by size</p>
+<pre><code>class DSU {
+    private final int[] parent, size;
+
+    DSU(int n) {
+        parent = new int[n];
+        size   = new int[n];
+        for (int i = 0; i &lt; n; i++) { parent[i] = i; size[i] = 1; }
+    }
+
+    int find(int x) {
+        while (parent[x] != x) {
+            parent[x] = parent[parent[x]];   // path compression (halving): point x at its grandparent
+            x = parent[x];
+        }
+        return x;
+    }
+
+    boolean union(int a, int b) {
+        int ra = find(a), rb = find(b);
+        if (ra == rb) return false;          // already in one component ⇒ this edge would close a cycle
+        if (size[ra] &lt; size[rb]) { int t = ra; ra = rb; rb = t; }   // attach smaller under larger
+        parent[rb] = ra;
+        size[ra] += size[rb];
+        return true;
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — n = 5; union(0,1), union(2,3), union(1,3), then union(0,2)</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>operation</th><th>find(a), find(b)</th><th><code>parent</code> after</th><th>note</th></tr></thead>
+        <tbody>
+          <tr><td>init</td><td>—</td><td>[0, 1, 2, 3, 4]</td><td>five singletons</td></tr>
+          <tr><td>union(0, 1)</td><td>0, 1</td><td>[0, 0, 2, 3, 4]</td><td>equal size → 1 hangs under 0; size[0] = 2</td></tr>
+          <tr><td>union(2, 3)</td><td>2, 3</td><td>[0, 0, 2, 2, 4]</td><td>3 hangs under 2; size[2] = 2</td></tr>
+          <tr><td>union(1, 3)</td><td>0, 2</td><td>[0, 0, 0, 2, 4]</td><td>roots differ; 2 hangs under 0; size[0] = 4</td></tr>
+          <tr><td>find(3)</td><td>→ 0</td><td>[0, 0, 0, 0, 4]</td><td>path-halving repoints <code>parent[3]</code> from 2 to 0</td></tr>
+          <tr><td>union(0, 2)</td><td>0, 0</td><td>[0, 0, 0, 0, 4]</td><td>same root → returns <strong>false</strong> (cycle)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        After the first three unions, <code>{0,1,2,3}</code> is one component and
+        <code>{4}</code> is another — <code>find</code> on any of 0–3 returns
+        <code>0</code>. The final <code>union(0,2)</code> detects that adding that
+        edge to an undirected graph would create a cycle. Kruskal's MST is exactly
+        this: sort edges by weight, add each one whose <code>union</code> returns
+        <code>true</code>.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>A grid where you move between adjacent cells ("islands", "rotting oranges", "walls and gates") — it's a graph; BFS for shortest, DFS/union-find for connectivity.</li>
+        <li>"Fewest moves / steps / transformations", "shortest path" in an unweighted graph → BFS.</li>
+        <li>"Can all nodes be reached", "detect a cycle", "all paths from s to t", "clone the graph" → DFS.</li>
+        <li>"Course prerequisites", "build order", "alien dictionary", "task scheduling with dependencies" → topological sort.</li>
+        <li>"Number of connected components / provinces / friend circles", "redundant connection", "accounts merge", "is this a valid tree" → union-find.</li>
+        <li>"Minimum spanning tree", "connect all points at minimum cost" → Kruskal (union-find) or Prim (heap).</li>
+        <li>Weighted edges, non-negative, single-source shortest path → Dijkstra (BFS with a min-heap).</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>BFS marking visited at dequeue instead of enqueue → the same vertex is queued many times, blowing up memory and time.</li>
+        <li>No visited set at all on a graph with cycles → infinite loop.</li>
+        <li>Recursive DFS on a 10<sup>5</sup>-node graph → <code>StackOverflowError</code>; use an explicit stack or BFS.</li>
+        <li>Adding an undirected edge only one way, or a directed edge both ways.</li>
+        <li>Topological sort: not checking that all <code>n</code> vertices were emitted → silently returning a partial order for a cyclic graph.</li>
+        <li>Union-Find with neither path compression nor union by size → <code>find</code> degrades to <code>O(n)</code>, whole algorithm <code>O(n²)</code>.</li>
+        <li>Comparing <code>x == root</code> or <code>parent[a] == parent[b]</code> instead of <code>find(a) == find(b)</code>.</li>
+        <li>Using BFS for shortest path on a <em>weighted</em> graph — you need Dijkstra / Bellman-Ford.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-graphs"></div>
+  </section>
+
+
+  <!-- ================= 6. GREEDY ================= -->
+  <section class="topic" id="greedy">
+    <h2>6 · Greedy Algorithms</h2>
+
+    <p>
+      A greedy algorithm builds an answer in steps, and at each step takes the
+      choice that looks best <em>right now</em>, never revisiting it. When it
+      works it is wonderfully cheap — usually a sort plus one linear pass,
+      <code>O(n log n)</code>, and a few lines of code. The catch is that "looks
+      best now" is only safe when the problem has the <strong>greedy-choice
+      property</strong>: there exists an optimal solution that agrees with the
+      greedy first choice. If a locally worse move now can unlock a much better
+      outcome later, greedy fails, and the honest way to know is to try to build a
+      small counterexample.
+    </p>
+    <p>
+      You prove a greedy correct with an <strong>exchange argument</strong>: take
+      any optimal solution, and show that you can swap in the greedy choice
+      without making it worse (and without breaking feasibility). Repeat, and the
+      optimal solution is transformed step by step into the greedy one, so the
+      greedy one is also optimal. The canonical case is <em>interval scheduling</em>
+      — to fit the most non-overlapping intervals, always take the one that
+      <em>finishes earliest</em> among those still compatible: it leaves the most
+      room for everything after it.
+    </p>
+    <p>
+      Greedy is <strong>provably correct</strong> for interval scheduling and
+      interval "point cover" (arrows/balloons), for Huffman coding, for Dijkstra
+      with non-negative weights, for minimum spanning trees (Kruskal, Prim), for
+      the fractional knapsack (take the highest value-per-weight until full), and
+      for reachability problems like Jump Game. It is a <strong>trap</strong> for
+      the 0/1 knapsack (you cannot take a fraction of an item — that needs DP), for
+      coin change with arbitrary denominations (with coins <code>{1, 3, 4}</code>
+      making <code>6</code>, greedy takes <code>4 + 1 + 1</code> = three coins, but
+      <code>3 + 3</code> = two is optimal), for longest-path problems, and for most
+      partitioning problems.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Before you commit to greedy, ask: "if I make the locally optimal move now,
+        can an adversary arrange the rest so I regret it?" If you can't construct
+        that regret and you can sketch an exchange argument, greedy is safe. If you
+        find even one small case where a worse-looking early move wins, you are in
+        DP territory — the difference is exactly whether future choices depend on
+        which option you took now.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — maximum number of non-overlapping intervals (sort by finish time)</p>
+<pre><code>import java.util.*;
+
+public class IntervalScheduling {
+    static int maxNonOverlapping(int[][] intervals) {
+        Arrays.sort(intervals, (a, b) -&gt; Integer.compare(a[1], b[1]));  // by finish time, ascending
+        int count = 0, lastEnd = Integer.MIN_VALUE;
+        for (int[] iv : intervals) {
+            if (iv[0] &gt;= lastEnd) {   // starts at or after the last kept interval finished
+                count++;
+                lastEnd = iv[1];
+            }
+        }
+        return count;
+    }
+
+    public static void main(String[] args) {
+        int[][] iv = {{1,3},{2,4},{3,5},{7,9}};
+        System.out.println(maxNonOverlapping(iv)); // 3  → [1,3], [3,5], [7,9]
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — intervals {{1,3},{2,4},{3,5},{7,9}} (already sorted by finish)</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>interval</th><th>iv[0] ≥ lastEnd?</th><th>action</th><th>count</th><th>lastEnd</th></tr></thead>
+        <tbody>
+          <tr><td>[1, 3]</td><td>1 ≥ −∞ → yes</td><td>keep</td><td>1</td><td>3</td></tr>
+          <tr><td>[2, 4]</td><td>2 ≥ 3 → no</td><td>skip</td><td>1</td><td>3</td></tr>
+          <tr><td>[3, 5]</td><td>3 ≥ 3 → yes</td><td>keep</td><td>2</td><td>5</td></tr>
+          <tr><td>[7, 9]</td><td>7 ≥ 5 → yes</td><td>keep</td><td>3</td><td>9</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <strong>Why earliest-finish is optimal (exchange argument).</strong> Let
+        greedy's first pick be <code>g</code>, the interval that finishes
+        earliest. Take any optimal set and let its earliest-finishing interval be
+        <code>o</code>. Since <code>g</code> finishes no later than <code>o</code>,
+        replacing <code>o</code> with <code>g</code> still overlaps nothing that
+        came after <code>o</code> — the set stays valid and the same size. Now
+        recurse on the intervals starting after <code>g</code>. So greedy matches
+        an optimal solution at every step.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"Maximum number of / minimum number of" over intervals, and a sort by one endpoint makes the choice obvious.</li>
+        <li>"Can you reach the end", "minimum jumps" → track the furthest reachable index.</li>
+        <li>"Assign / match to maximise pairs" with two sorted lists → two pointers, take the smallest feasible.</li>
+        <li>Repeatedly "merge the two cheapest / smallest" → greedy with a heap.</li>
+        <li>A proof by exchange argument is easy to sketch, and you cannot find a counterexample after honestly trying.</li>
+        <li><strong>Not</strong> greedy: choosing item <code>i</code> changes what is optimal for the rest (0/1 knapsack, general coin change, most "count the ways" / "best partition" problems) → dynamic programming.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Sorting by start time or by length when the correct key is finish time (or vice versa for a different problem).</li>
+        <li>Assuming greedy works because it passed the examples — always attempt a counterexample first.</li>
+        <li>Applying greedy to the 0/1 knapsack or arbitrary-denomination coin change.</li>
+        <li>Comparator <code>(a, b) -&gt; a[1] - b[1]</code> overflowing for large coordinates — use <code>Integer.compare</code>.</li>
+        <li>Boundary confusion: do touching intervals <code>[1,3]</code> and <code>[3,5]</code> count as overlapping? Decide, then use <code>&gt;=</code> or <code>&gt;</code> consistently.</li>
+        <li>Greedy that needs a tie-break rule (e.g. equal finish times) and doesn't specify one.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-greedy"></div>
+  </section>
+
+
+  <!-- ================= 7. DYNAMIC PROGRAMMING ================= -->
+  <section class="topic" id="dp">
+    <h2>7 · Dynamic Programming</h2>
+
+    <p>
+      Dynamic programming is brute-force recursion with a memory: you write down
+      the answer to every subproblem the first time you compute it, so you never
+      recompute it. It applies when a problem has <strong>optimal substructure</strong>
+      (the optimal answer is built from optimal answers to smaller subproblems)
+      and <strong>overlapping subproblems</strong> (a naive recursion would solve
+      the same subproblem many times). If subproblems don't overlap, it's plain
+      divide-and-conquer; if there's no real choice at each step, it's ordinary
+      recursion; if a local choice is provably safe, it's greedy. DP is what's
+      left: several choices per step, and which one is best depends on subproblems
+      you'll reuse.
+    </p>
+
+    <h3>7.1 · How to recognise a DP problem</h3>
+    <p>
+      The reliable tells: the problem asks for an <em>optimum</em>
+      (longest / shortest / min / max), a <em>count of ways</em>, or a
+      <em>yes/no feasibility</em> — usually <em>not</em> the actual arrangement.
+      You can describe the solution as a sequence of decisions, each choosing among
+      a few options ("take this item or don't", "match these characters or skip
+      one"). And the brute-force recursion visibly recomputes states. The practical
+      recipe is always the same four steps:
+    </p>
+    <div class="box note">
+      <span class="box-title">The recipe</span>
+      <ul>
+        <li><strong>State.</strong> Write the recursion first: "at position <code>i</code> with situation <code>s</code>, the answer is…". The parameters that change become your DP dimensions / memo key.</li>
+        <li><strong>Choices.</strong> At each state, enumerate the handful of moves. They must be mutually exclusive and cover every possibility.</li>
+        <li><strong>Recurrence.</strong> Combine the choices — <code>max</code> / <code>min</code> / <code>sum</code> of the sub-results, plus any immediate cost or gain.</li>
+        <li><strong>Base cases &amp; order.</strong> The smallest states (empty string, zero capacity, single cell) get direct answers; then fill larger states in an order where every dependency is already known.</li>
+      </ul>
+    </div>
+
+    <h3>7.2 · Top-down (memoization) vs bottom-up (tabulation)</h3>
+    <p>
+      <strong>Top-down</strong> keeps the recursion and caches each result in an
+      array or map keyed by the state. It only ever computes states you actually
+      reach, it follows the recurrence directly so it's easy to write, and it
+      handles awkward or sparse state spaces without you working out an iteration
+      order. The costs are recursion overhead and stack-depth limits.
+      <strong>Bottom-up</strong> fills a table iteratively in dependency order. It
+      has no recursion, predictable performance, and makes space optimisation
+      (keep only the last row/column) straightforward — but you must find a valid
+      fill order, and you may compute states you never needed. They have identical
+      asymptotic complexity; converting one to the other is mechanical once you
+      have the recurrence.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Find the recursion and the state; the table is just bookkeeping. If you
+        can write <code>solve(state)</code> as "the best over a few
+        <code>solve(smaller state)</code> calls plus a local term", you have a DP —
+        memoise it, then (optionally) rewrite the memo as a loop that fills the
+        same values in order.
+      </p>
+    </div>
+
+    <h3>7.3 · 0/1 Knapsack — deriving the recurrence</h3>
+    <p>
+      <em>n</em> items; item <code>i</code> has weight <code>w[i]</code> and value
+      <code>v[i]</code>; a bag of capacity <code>W</code>; each item taken zero or
+      one times; maximise total value.
+    </p>
+    <ol>
+      <li><strong>Subproblem.</strong> Let <code>dp[i][c]</code> = the maximum value achievable using only items <code>1..i</code> with capacity <code>c</code>.</li>
+      <li><strong>Choices for item <code>i</code>.</strong> Exactly two, and they're exhaustive:
+        <ul>
+          <li><em>Skip it.</em> Value = <code>dp[i-1][c]</code> — same capacity, one fewer item to consider.</li>
+          <li><em>Take it</em> (only possible if <code>w[i] &le; c</code>). Value = <code>v[i] + dp[i-1][c - w[i]]</code> — gain <code>v[i]</code>, spend <code>w[i]</code> of capacity, move on to items <code>1..i-1</code> (it's <code>i-1</code>, not <code>i</code>, because the item is used up).</li>
+        </ul>
+      </li>
+      <li><strong>Recurrence.</strong>
+        <code>dp[i][c] = max( dp[i-1][c],  w[i] &le; c ? v[i] + dp[i-1][c - w[i]] : −∞ )</code>
+      </li>
+      <li><strong>Base case.</strong> <code>dp[0][c] = 0</code> for every <code>c</code> (no items → no value).</li>
+      <li><strong>Answer.</strong> <code>dp[n][W]</code>. Time and space <code>O(nW)</code>; space drops to <code>O(W)</code> with a 1-D array iterated <strong>right-to-left</strong>, so that <code>dp[c - w[i]]</code> still holds the previous row's value.</li>
+    </ol>
+
+    <p class="code-label">Worked example — 0/1 knapsack, space-optimised to one row</p>
+<pre><code>public class Knapsack01 {
+    static int knapsack(int[] w, int[] v, int W) {
+        int[] dp = new int[W + 1];
+        for (int i = 0; i &lt; w.length; i++)
+            for (int c = W; c &gt;= w[i]; c--)                 // right-to-left ⇒ dp[c - w[i]] is still "row i-1"
+                dp[c] = Math.max(dp[c], v[i] + dp[c - w[i]]);
+        return dp[W];
+    }
+
+    public static void main(String[] args) {
+        int[] w = {2, 3, 4, 5}, v = {3, 4, 5, 6};
+        System.out.println(knapsack(w, v, 5));   // 7  → items (2,3) + (3,4)
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — items (w,v) = (2,3),(3,4),(4,5),(5,6); W = 5 (full 2-D table)</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>after item</th><th>c=0</th><th>c=1</th><th>c=2</th><th>c=3</th><th>c=4</th><th>c=5</th></tr></thead>
+        <tbody>
+          <tr><td>0 — none</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+          <tr><td>1 — (2,3)</td><td>0</td><td>0</td><td>3</td><td>3</td><td>3</td><td>3</td></tr>
+          <tr><td>2 — (3,4)</td><td>0</td><td>0</td><td>3</td><td>4</td><td>4</td><td><strong>7</strong></td></tr>
+          <tr><td>3 — (4,5)</td><td>0</td><td>0</td><td>3</td><td>4</td><td>5</td><td>7</td></tr>
+          <tr><td>4 — (5,6)</td><td>0</td><td>0</td><td>3</td><td>4</td><td>5</td><td><strong>7</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Cell <code>dp[2][5]</code>: skip item 2 → <code>dp[1][5] = 3</code>; take
+        item 2 → <code>4 + dp[1][5-3] = 4 + dp[1][2] = 4 + 3 = 7</code>. Max is
+        <code>7</code>. Cell <code>dp[4][5]</code>: skip → <code>7</code>; take
+        item 4 → <code>6 + dp[3][0] = 6</code>. Max stays <code>7</code>. Final
+        answer <code>dp[4][5] = 7</code>.
+      </p>
+    </div>
+
+    <h3>7.4 · Unbounded Knapsack — deriving the recurrence</h3>
+    <p>
+      Same setup, but each item may be taken <em>any</em> number of times (rod
+      cutting, coin change).
+    </p>
+    <ol>
+      <li><strong>Subproblem.</strong> <code>dp[c]</code> = best value for capacity <code>c</code>. The item index drops out of the state — because items are reusable, "which items remain" is always "all of them".</li>
+      <li><strong>Choice.</strong> For capacity <code>c</code>, either stop, or take one more copy of some item <code>i</code> with <code>w[i] &le; c</code>, leaving sub-state <code>dp[c - w[i]]</code> — and note it's <code>dp[c - w[i]]</code>, not a smaller item set, because item <code>i</code> is still available afterwards.</li>
+      <li><strong>Recurrence.</strong>
+        <code>dp[c] = max over all i with w[i] &le; c of ( v[i] + dp[c - w[i]] )</code>, with <code>dp[0] = 0</code>.
+      </li>
+      <li><strong>Order.</strong> Iterate capacity <strong>left-to-right</strong> — the opposite of 0/1 — so that <code>dp[c - w[i]]</code> already reflects having used item <code>i</code>.</li>
+    </ol>
+
+<pre><code>static int knapsackUnbounded(int[] w, int[] v, int W) {
+    int[] dp = new int[W + 1];
+    for (int c = 1; c &lt;= W; c++)
+        for (int i = 0; i &lt; w.length; i++)
+            if (w[i] &lt;= c) dp[c] = Math.max(dp[c], v[i] + dp[c - w[i]]);
+    return dp[W];
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — coin-change variant: coins {1, 3, 4}, fewest coins to make 6</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>amount c</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr></thead>
+        <tbody>
+          <tr><td>min coins dp[c]</td><td>0</td><td>1</td><td>2</td><td>1</td><td>1</td><td>2</td><td><strong>2</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <code>dp[6] = min(1 + dp[5], 1 + dp[3], 1 + dp[2]) = min(3, 2, 3) = 2</code>
+        (two 3-coins). A greedy "take the largest coin ≤ remaining" would pick
+        <code>4 + 1 + 1</code> = three coins — this is the counterexample that
+        shows coin change needs DP, not greedy. (For the min-coins version,
+        initialise <code>dp[1..W]</code> to a large sentinel and take
+        <code>min</code>.)
+      </p>
+    </div>
+
+    <h3>7.5 · LCS &amp; Edit Distance — deriving the recurrence</h3>
+    <p>
+      <strong>Longest common subsequence.</strong> Strings <code>A</code> (length
+      <code>m</code>) and <code>B</code> (length <code>n</code>); find the longest
+      sequence of characters appearing in both in the same relative order (not
+      necessarily contiguous).
+    </p>
+    <ol>
+      <li><strong>Subproblem.</strong> <code>dp[i][j]</code> = LCS length of the prefixes <code>A[0..i)</code> and <code>B[0..j)</code>.</li>
+      <li><strong>Choice — look at the last characters <code>A[i-1]</code> and <code>B[j-1]</code>.</strong>
+        <ul>
+          <li>If they're <em>equal</em>, that character can end the LCS, and removing it from both prefixes is a strictly smaller subproblem: <code>dp[i][j] = 1 + dp[i-1][j-1]</code>.</li>
+          <li>If they <em>differ</em>, at least one of them is not in the LCS, so try dropping each: <code>dp[i][j] = max( dp[i-1][j], dp[i][j-1] )</code>.</li>
+        </ul>
+      </li>
+      <li><strong>Base case.</strong> <code>dp[0][j] = dp[i][0] = 0</code> (an empty prefix shares nothing).</li>
+      <li><strong>Answer.</strong> <code>dp[m][n]</code>, in <code>O(mn)</code> time and space (reducible to <code>O(min(m,n))</code>).</li>
+    </ol>
+    <p>
+      <strong>Edit distance</strong> is the same skeleton with three edit
+      operations and unit costs. If <code>A[i-1] == B[j-1]</code>, no work:
+      <code>dp[i][j] = dp[i-1][j-1]</code>. Otherwise pay 1 for the cheapest fix:
+      <code>dp[i][j] = 1 + min( dp[i-1][j-1] </code>(replace)<code>, dp[i-1][j] </code>(delete from A)<code>, dp[i][j-1] </code>(insert into A)<code> )</code>.
+      Base cases <code>dp[i][0] = i</code> (delete everything) and
+      <code>dp[0][j] = j</code> (insert everything).
+    </p>
+
+<pre><code>static int lcs(String a, String b) {
+    int m = a.length(), n = b.length();
+    int[][] dp = new int[m + 1][n + 1];
+    for (int i = 1; i &lt;= m; i++)
+        for (int j = 1; j &lt;= n; j++)
+            dp[i][j] = a.charAt(i - 1) == b.charAt(j - 1)
+                     ? 1 + dp[i - 1][j - 1]
+                     : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    return dp[m][n];
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — LCS of A = "AGCAT", B = "GAC" → 2</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th></th><th>""</th><th>G</th><th>A</th><th>C</th></tr></thead>
+        <tbody>
+          <tr><td>""</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+          <tr><td>A</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+          <tr><td>G</td><td>0</td><td>1</td><td>1</td><td>1</td></tr>
+          <tr><td>C</td><td>0</td><td>1</td><td>1</td><td>2</td></tr>
+          <tr><td>A</td><td>0</td><td>1</td><td>2</td><td>2</td></tr>
+          <tr><td>T</td><td>0</td><td>1</td><td>2</td><td><strong>2</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <code>dp[1][2]</code> (<code>A</code> vs <code>GA</code>): last chars
+        <code>A == A</code> → <code>1 + dp[0][1] = 1</code>. <code>dp[3][3]</code>
+        (<code>AGC</code> vs <code>GAC</code>): <code>C == C</code> →
+        <code>1 + dp[2][2] = 1 + 1 = 2</code>. <code>dp[5][3]</code>: last chars
+        <code>T</code> vs <code>C</code> differ →
+        <code>max(dp[4][3], dp[5][2]) = max(2, 2) = 2</code>.
+      </p>
+    </div>
+
+    <h3>7.6 · Palindromic Subsequence — deriving the recurrence</h3>
+    <p>
+      Longest palindromic subsequence of a string <code>s</code> of length
+      <code>n</code>. This is an <em>interval</em> DP: the state is a range of
+      <code>s</code>, not a prefix.
+    </p>
+    <ol>
+      <li><strong>Subproblem.</strong> <code>dp[i][j]</code> = length of the longest palindromic subsequence within <code>s[i..j]</code> (inclusive).</li>
+      <li><strong>Choice — compare the two ends <code>s[i]</code> and <code>s[j]</code>.</strong>
+        <ul>
+          <li>If <code>s[i] == s[j]</code>, both ends wrap around the best palindrome strictly inside: <code>dp[i][j] = 2 + dp[i+1][j-1]</code> (treat <code>dp[i+1][j-1]</code> as <code>0</code> when <code>i+1 &gt; j-1</code>).</li>
+          <li>Otherwise at least one end is unused: <code>dp[i][j] = max( dp[i+1][j], dp[i][j-1] )</code>.</li>
+        </ul>
+      </li>
+      <li><strong>Base case.</strong> <code>dp[i][i] = 1</code> (one character is a palindrome).</li>
+      <li><strong>Order.</strong> Fill by increasing range length (equivalently: <code>i</code> from <code>n-1</code> down to <code>0</code>, <code>j</code> from <code>i+1</code> up to <code>n-1</code>), so <code>dp[i+1][j-1]</code>, <code>dp[i+1][j]</code>, <code>dp[i][j-1]</code> are ready. <strong>Answer:</strong> <code>dp[0][n-1]</code>. (Equivalent shortcut: <code>LPS(s) = LCS(s, reverse(s))</code>.)</li>
+    </ol>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — s = "bbbab" → 4 (the subsequence "bbbb")</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>range length</th><th>cells computed</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>dp[i][i] = 1 for all i</td></tr>
+          <tr><td>2</td><td>dp[0][1]=2, dp[1][2]=2, dp[2][3]=1 (b≠a), dp[3][4]=2</td></tr>
+          <tr><td>3</td><td>dp[0][2]= 2+dp[1][1] = 3; dp[1][3]= max(dp[2][3], dp[1][2]) = 2; dp[2][4]= 2+dp[3][3] = 3</td></tr>
+          <tr><td>4</td><td>dp[0][3]= max(dp[1][3], dp[0][2]) = 3; dp[1][4]= 2+dp[2][3] = 3</td></tr>
+          <tr><td>5</td><td>dp[0][4]: s[0]=s[4]='b' → 2 + dp[1][3] = 2 + 2 = <strong>4</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        The final step pairs the two outer <code>b</code>'s and adds the best
+        palindrome inside <code>s[1..3] = "bba"</code>, which is <code>"bb"</code>
+        of length 2 → total 4.
+      </p>
+    </div>
+
+    <h3>7.7 · Grid DP — deriving the recurrence</h3>
+    <p>
+      An <code>m &times; n</code> grid; you move only right or down from the
+      top-left to the bottom-right.
+    </p>
+    <ol>
+      <li><strong>Subproblem.</strong> <code>dp[i][j]</code> = the answer for reaching cell <code>(i, j)</code>.</li>
+      <li><strong>Choice — you entered <code>(i, j)</code> from above or from the left.</strong> Those are the only two predecessors, so:
+        <ul>
+          <li><em>Count of paths:</em> <code>dp[i][j] = dp[i-1][j] + dp[i][j-1]</code> (an obstacle forces <code>dp[i][j] = 0</code>).</li>
+          <li><em>Minimum path sum:</em> <code>dp[i][j] = g[i][j] + min( dp[i-1][j], dp[i][j-1] )</code>.</li>
+        </ul>
+      </li>
+      <li><strong>Base case.</strong> <code>dp[0][0]</code> is the start cell's own value (or <code>1</code> path). The first row and first column have only one predecessor each, so they accumulate in a single direction.</li>
+      <li><strong>Order.</strong> Row by row, left to right — both dependencies are already filled. Space reduces to <code>O(n)</code>: one row updated left-to-right, where <code>dp[j]</code> is "from above" (old value) and <code>dp[j-1]</code> is "from the left" (just updated).</li>
+    </ol>
+
+<pre><code>static int minPathSum(int[][] g) {
+    int m = g.length, n = g[0].length;
+    int[] dp = new int[n];
+    dp[0] = g[0][0];
+    for (int j = 1; j &lt; n; j++) dp[j] = dp[j - 1] + g[0][j];   // first row
+    for (int i = 1; i &lt; m; i++) {
+        dp[0] += g[i][0];                                       // first column
+        for (int j = 1; j &lt; n; j++)
+            dp[j] = g[i][j] + Math.min(dp[j], dp[j - 1]);
+    }
+    return dp[n - 1];
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — minimum path sum of [[1,3,1],[1,5,1],[4,2,1]] → 7</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>row</th><th>col 0</th><th>col 1</th><th>col 2</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>1</td><td>1+3 = 4</td><td>4+1 = 5</td></tr>
+          <tr><td>1</td><td>1+1 = 2</td><td>5 + min(4, 2) = 7</td><td>1 + min(5, 7) = 6</td></tr>
+          <tr><td>2</td><td>2+4 = 6</td><td>2 + min(7, 6) = 8</td><td>1 + min(6, 8) = <strong>7</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        The optimal path is <code>1 → 3 → 1 → 1 → 1</code> (right, right, down,
+        down), total <code>7</code>. Each cell only ever looks up and left, which
+        is why one row of memory suffices.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"Maximum / minimum / longest / shortest" over a sequence of decisions, or "how many ways", or "is it possible to reach exactly".</li>
+        <li>"Choose a subset with sum / count property" → knapsack family (0/1 if each item once, unbounded if reusable).</li>
+        <li>Two strings and an alignment / similarity / transformation → LCS / edit-distance grid.</li>
+        <li>One string and a question about palindromes, or about splitting it → interval DP on <code>[i, j]</code>.</li>
+        <li>A grid with restricted moves and a cost or a count → grid DP.</li>
+        <li>The brute-force recursion has 2 or 3 branches and obviously revisits the same <code>(i, state)</code> pairs.</li>
+        <li>You catch yourself wanting greedy but can build a small case where a worse move now wins → it's DP.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>State missing a parameter that actually varies (a running remainder, "is item <code>i</code> still available", a parity/flag).</li>
+        <li>0/1 vs unbounded knapsack: iterating the 1-D capacity loop in the wrong direction.</li>
+        <li>Off-by-one between "first <code>i</code> items" / "index <code>i</code>" and "prefix of length <code>i</code>".</li>
+        <li>Base cases unset, or using <code>0</code> where the identity should be <code>+∞</code> / <code>−∞</code> (min/max problems).</li>
+        <li>Top-down memo not keyed on the <em>full</em> state, or a "0 = not computed" sentinel colliding with a real answer of 0.</li>
+        <li>Tabulation filled in an order where a needed cell isn't ready yet — especially interval DP.</li>
+        <li>Returning <code>dp[n]</code> when the answer is a <code>max</code> over all states (longest increasing subsequence, maximum subarray, longest palindromic <em>substring</em>).</li>
+        <li>Space-optimising to a rolling array before the plain 2-D version is verified correct.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-dp"></div>
+  </section>
+
+
+  <div class="box note">
+    <span class="box-title">Where this leads next</span>
+    <p class="small">
+      These seven topics close out Phase 1. Trees, BSTs, and tries are recursion
+      (from the linear page) applied to branching data; heaps and graphs are where
+      most medium interview questions live; greedy and DP are the "which technique"
+      decision that separates a passable candidate from a strong one. Drill until
+      you can state the recurrence for any knapsack / LCS / grid variant from
+      memory, then move to <a href="roadmap.html">Phase 2</a> — SQL and design.
+    </p>
+  </div>
+
+  <p class="backlink"><a href="index.html">← Back to home &amp; dashboard</a> &nbsp;·&nbsp; <a href="dsa-linear.html">← DSA · Linear</a> &nbsp;·&nbsp; <a href="roadmap.html">See where this fits in the roadmap →</a></p>
+
+  <footer class="foot">
+    <p>Phase 1 (second half) of the <a href="roadmap.html">8-month roadmap</a>. Next: Phase 2 — SQL, then Low- and High-Level Design.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("dsa-nonlinear", [
+  {
+    group: "Trees & Traversals",
+    mount: "#t-trees",
+    items: [
+      "Binary Tree Inorder Traversal - iterative (94)",
+      "Binary Tree Level Order Traversal (102)",
+      "Maximum Depth of Binary Tree (104)",
+      "Symmetric Tree (101)",
+      "Path Sum II (113)",
+      "Lowest Common Ancestor of a Binary Tree (236)",
+      "Binary Tree Right Side View (199)",
+      "Serialize and Deserialize Binary Tree (297)"
+    ]
+  },
+  {
+    group: "Binary Search Trees",
+    mount: "#t-bst",
+    items: [
+      "Validate Binary Search Tree (98)",
+      "Search in a Binary Search Tree (700)",
+      "Insert into a Binary Search Tree (701)",
+      "Delete Node in a BST (450)",
+      "Kth Smallest Element in a BST (230)",
+      "Lowest Common Ancestor of a BST (235)",
+      "Convert Sorted Array to Binary Search Tree (108)",
+      "Recover Binary Search Tree (99)"
+    ]
+  },
+  {
+    group: "Tries",
+    mount: "#t-tries",
+    items: [
+      "Implement Trie - Prefix Tree (208)",
+      "Design Add and Search Words Data Structure (211)",
+      "Word Search II (212)",
+      "Replace Words (648)",
+      "Longest Word in Dictionary (720)",
+      "Maximum XOR of Two Numbers in an Array (421)",
+      "Search Suggestions System (1268)"
+    ]
+  },
+  {
+    group: "Heaps & Priority Queues",
+    mount: "#t-heaps",
+    items: [
+      "Kth Largest Element in an Array (215)",
+      "Top K Frequent Elements (347)",
+      "K Closest Points to Origin (973)",
+      "Merge k Sorted Lists (23)",
+      "Find Median from Data Stream (295)",
+      "Task Scheduler (621)",
+      "Last Stone Weight (1046)",
+      "Reorganize String (767)"
+    ]
+  },
+  {
+    group: "Graphs",
+    mount: "#t-graphs",
+    items: [
+      "Number of Islands (200)",
+      "Clone Graph (133)",
+      "Course Schedule (207)",
+      "Course Schedule II - topological sort (210)",
+      "Number of Connected Components in an Undirected Graph (323)",
+      "Redundant Connection - union-find (684)",
+      "Rotting Oranges - multi-source BFS (994)",
+      "Word Ladder (127)"
+    ]
+  },
+  {
+    group: "Greedy Algorithms",
+    mount: "#t-greedy",
+    items: [
+      "Jump Game (55)",
+      "Jump Game II (45)",
+      "Non-overlapping Intervals (435)",
+      "Minimum Number of Arrows to Burst Balloons (452)",
+      "Gas Station (134)",
+      "Partition Labels (763)",
+      "Assign Cookies (455)",
+      "Merge Intervals (56)"
+    ]
+  },
+  {
+    group: "Dynamic Programming",
+    mount: "#t-dp",
+    items: [
+      "Climbing Stairs (70)",
+      "House Robber (198)",
+      "Coin Change (322)",
+      "Partition Equal Subset Sum - 0/1 knapsack (416)",
+      "Coin Change II - unbounded knapsack (518)",
+      "Longest Common Subsequence (1143)",
+      "Edit Distance (72)",
+      "Longest Palindromic Subsequence (516)",
+      "Unique Paths II - grid DP (63)"
+    ]
+  }
+], { pageTitle: "DSA: Non-linear Structures & Dynamic Programming" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("dsa-nonlinear");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

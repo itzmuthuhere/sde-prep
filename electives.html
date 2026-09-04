@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Electives — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html" class="active">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Electives — The Long Tail That Still Shows Up</h1>
+  <p class="lede">
+    Phase 5. Topics that aren't your core story as a Java backend engineer but
+    still turn up: a hard segment-tree question in an online round, a "design a
+    chess site" HLD, "what happens when you type a URL", a processes-vs-threads
+    follow-up. This page is <strong>deliberately condensed</strong> — enough to
+    reason out loud and not freeze, with practice problems to go deeper where you
+    need to.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>How to use this page.</strong> Skim a subtopic, do 2–3 of the
+      named problems (for DSA), and tick the checklist. Treat
+      <a href="#mobile">Mobile Development</a> as optional — it's here so you can
+      hold a conversation about it, not so you can build production apps.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — electives</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#adv-dsa">Advanced DSA</a>
+        <ol>
+          <li><a href="#segtree">Segment trees</a></li>
+          <li><a href="#kmp">String matching (KMP)</a></li>
+          <li><a href="#adv-dp">Advanced DP</a></li>
+          <li><a href="#adv-graph">Advanced graph algorithms</a></li>
+        </ol>
+      </li>
+      <li><a href="#sd-cases">System design case studies</a>
+        <ol>
+          <li><a href="#chess">Chess website (HLD)</a></li>
+          <li><a href="#streaming">Live streaming — Hotstar (HLD)</a></li>
+          <li><a href="#netflix-fe">Netflix frontend architecture</a></li>
+          <li><a href="#whatsapp-web">WhatsApp Web frontend</a></li>
+        </ol>
+      </li>
+      <li><a href="#networks">Computer networks essentials</a>
+        <ol>
+          <li><a href="#dns">DNS</a></li>
+          <li><a href="#tcpip">TCP/IP</a></li>
+          <li><a href="#http-life">HTTP request lifecycle</a></li>
+        </ol>
+      </li>
+      <li><a href="#os">Operating systems essentials</a>
+        <ol>
+          <li><a href="#proc-thread">Processes vs threads</a></li>
+          <li><a href="#memory">Memory management</a></li>
+          <li><a href="#scheduling">CPU scheduling</a></li>
+        </ol>
+      </li>
+      <li><a href="#mobile">Optional: mobile development</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ============================================================
+       ADVANCED DSA
+       ============================================================ -->
+  <section class="topic" id="adv-dsa">
+    <h2>Advanced DSA</h2>
+    <p>
+      You already have the core patterns from <a href="dsa-linear.html">DSA ·
+      Linear</a> and <a href="dsa-nonlinear.html">DSA · Non-linear</a>. This is
+      the next layer — the structures and recurrences that show up in the harder
+      online-assessment questions and the occasional "we want to see how you
+      handle something unfamiliar" onsite problem.
+    </p>
+
+
+    <!-- ---------- Segment trees ---------- -->
+    <h3 id="segtree">Segment trees</h3>
+    <p>
+      A segment tree answers <strong>range queries</strong> (sum, min, max, gcd)
+      and applies <strong>updates</strong> on an array, both in
+      <strong>O(log n)</strong>, after an O(n) build. Each node covers a
+      contiguous range; a leaf covers one element, an internal node's value is
+      built from its two children. A query splits into O(log n) node ranges that
+      exactly tile the query interval; a point update walks one root-to-leaf path
+      and re-combines on the way back up.
+    </p>
+    <p>
+      <strong>Lazy propagation</strong> extends this to <em>range</em> updates
+      ("add 5 to every element in [l, r]"). Instead of touching every leaf, you
+      stamp the update on the highest nodes fully inside the range and store a
+      pending "lazy" value; you push it down to children only when a later query
+      or update actually needs to descend through that node. Still O(log n) per
+      operation.
+    </p>
+
+    <p class="code-label">Recursive segment tree — range-sum, range-add (lazy)</p>
+<pre><code>class SegTree:
+    def __init__(self, a):
+        self.n = len(a)
+        self.tree = [0] * (4 * self.n)
+        self.lazy = [0] * (4 * self.n)
+        self._build(a, 1, 0, self.n - 1)
+
+    def _build(self, a, node, lo, hi):
+        if lo == hi:
+            self.tree[node] = a[lo]; return
+        mid = (lo + hi) // 2
+        self._build(a, 2*node,   lo,    mid)
+        self._build(a, 2*node+1, mid+1, hi)
+        self.tree[node] = self.tree[2*node] + self.tree[2*node+1]
+
+    def _push(self, node, lo, hi):           # apply & propagate pending add
+        if self.lazy[node]:
+            self.tree[node] += self.lazy[node] * (hi - lo + 1)
+            if lo != hi:
+                self.lazy[2*node]   += self.lazy[node]
+                self.lazy[2*node+1] += self.lazy[node]
+            self.lazy[node] = 0
+
+    def update(self, l, r, val, node=1, lo=0, hi=None):
+        if hi is None: hi = self.n - 1
+        self._push(node, lo, hi)
+        if r &lt; lo or hi &lt; l:            return          # no overlap
+        if l &lt;= lo and hi &lt;= r:                          # full overlap
+            self.lazy[node] += val
+            self._push(node, lo, hi); return
+        mid = (lo + hi) // 2                             # partial overlap
+        self.update(l, r, val, 2*node,   lo,    mid)
+        self.update(l, r, val, 2*node+1, mid+1, hi)
+        self.tree[node] = self.tree[2*node] + self.tree[2*node+1]
+
+    def query(self, l, r, node=1, lo=0, hi=None):
+        if hi is None: hi = self.n - 1
+        self._push(node, lo, hi)
+        if r &lt; lo or hi &lt; l:      return 0
+        if l &lt;= lo and hi &lt;= r:   return self.tree[node]
+        mid = (lo + hi) // 2
+        return (self.query(l, r, 2*node,   lo,    mid) +
+                self.query(l, r, 2*node+1, mid+1, hi))</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A segment tree is a <strong>balanced binary tree over array
+        intervals</strong> where every node stores an aggregate of its range.
+        Any interval decomposes into O(log n) node ranges, so any associative
+        query is O(log n). If you only need <em>prefix</em> sums with point
+        updates, a <strong>Fenwick / BIT</strong> is simpler and faster (same
+        big-O, tiny constant). Reach for a segment tree when you need arbitrary
+        range queries, range updates, or non-invertible ops like min/max.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Sizing <code>tree</code> as <code>2n</code></strong> for the recursive version — use <code>4n</code> to be safe (or <code>2 * 2^ceil(log2 n)</code>).</li>
+        <li><strong>Forgetting to push lazy</strong> before reading a node, or before recursing into children.</li>
+        <li><strong>Using min/max with a wrong identity</strong> — 0 is fine for sum, but you need <code>+inf</code> / <code>-inf</code> for min / max.</li>
+        <li><strong>Reaching for a segment tree when sorting + prefix sums, or a heap, already solves it.</strong></li>
+      </ul>
+    </div>
+
+    <p class="small muted">
+      <strong>Practice:</strong> Range Sum Query – Mutable (LC 307), Range Sum
+      Query 2D – Mutable (LC 308), Count of Range Sum (LC 327), My Calendar III
+      (LC 732), Falling Squares (LC 699), Longest Increasing Subsequence II
+      (LC 2407).
+    </p>
+    <div id="t-segment-trees"></div>
+
+
+    <!-- ---------- KMP ---------- -->
+    <h3 id="kmp">String matching — KMP</h3>
+    <p>
+      Naive substring search re-scans the text every time a match breaks:
+      O(n·m). <strong>KMP</strong> (Knuth–Morris–Pratt) gets O(n + m) by
+      precomputing, for the pattern, a <strong>prefix function</strong> (a.k.a.
+      failure / LPS array): <code>lps[i]</code> = length of the longest proper
+      prefix of <code>pattern[0..i]</code> that is also a suffix of it. When a
+      mismatch happens at pattern index <code>j</code>, you don't restart — you
+      jump to <code>lps[j-1]</code>, because those characters are guaranteed to
+      already match.
+    </p>
+
+    <p class="code-label">Prefix function + search</p>
+<pre><code>def build_lps(p):
+    lps = [0] * len(p)
+    k = 0                                # length of current longest prefix-suffix
+    for i in range(1, len(p)):
+        while k &gt; 0 and p[i] != p[k]:
+            k = lps[k-1]                 # fall back
+        if p[i] == p[k]:
+            k += 1
+        lps[i] = k
+    return lps
+
+def kmp(text, p):
+    if not p: return 0
+    lps = build_lps(p)
+    k = 0
+    for i, ch in enumerate(text):
+        while k &gt; 0 and ch != p[k]:
+            k = lps[k-1]
+        if ch == p[k]:
+            k += 1
+        if k == len(p):
+            return i - k + 1            # first match start index
+    return -1
+
+# lps("ABABC") -> [0,0,1,2,0]   ;   lps("AAAA") -> [0,1,2,3]</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        The <code>lps</code> array is "how much of what I've already matched can
+        I reuse after a mismatch." <strong>Rabin–Karp</strong> (rolling hash) and
+        the <strong>Z-function</strong> solve the same problem; KMP is the one
+        interviewers most often ask you to derive. The prefix function alone —
+        without the search — answers a surprising number of string questions
+        (periodicity, shortest repeating unit, shortest palindrome by prefixing).
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Confusing "proper prefix"</strong> — it can't be the whole string, so <code>lps[i] &lt; i + 1</code> always.</li>
+        <li><strong>Using <code>lps[k]</code> instead of <code>lps[k-1]</code></strong> on fallback.</li>
+        <li><strong>Not resetting / continuing <code>k</code> correctly</strong> after a full match if you need <em>all</em> matches (set <code>k = lps[k-1]</code>).</li>
+      </ul>
+    </div>
+
+    <p class="small muted">
+      <strong>Practice:</strong> Implement strStr() (LC 28), Repeated Substring
+      Pattern (LC 459), Shortest Palindrome (LC 214), Longest Happy Prefix
+      (LC 1392), Find Beautiful Indices in the Given Array I/II (LC 3006 / 3008),
+      Sum of Scores of Built Strings (LC 2223, Z-function).
+    </p>
+    <div id="t-string-matching-kmp"></div>
+
+
+    <!-- ---------- Advanced DP ---------- -->
+    <h3 id="adv-dp">Advanced DP</h3>
+    <p>
+      Beyond the classic 1-D / grid recurrences from
+      <a href="dsa-nonlinear.html#dp">DSA · Non-linear</a>, four shapes recur:
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Shape</th><th>State</th><th>Signal in the prompt</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Bitmask DP</strong></td><td><code>dp[mask]</code> = best over the subset <code>mask</code> of items visited/used</td><td>n ≤ ~20, "visit all", assignment / matching, TSP-like</td><td>O(2ⁿ · n)</td></tr>
+        <tr><td><strong>Interval DP</strong></td><td><code>dp[i][j]</code> over subarray <code>[i, j]</code>, split at some <code>k</code></td><td>"merge", "burst", "remove", cost depends on what's left adjacent</td><td>O(n³)</td></tr>
+        <tr><td><strong>DP on trees</strong></td><td><code>dp[node][state]</code>, combined from children in post-order</td><td>Tree input, "choose a subset of nodes with a constraint on parent/child"</td><td>O(n · states)</td></tr>
+        <tr><td><strong>Digit DP</strong></td><td><code>dp[pos][tight][...]</code> building the number digit by digit</td><td>"count numbers ≤ N with property P"</td><td>O(digits · states)</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="code-label">Bitmask DP — minimum cost to assign n tasks to n workers</p>
+<pre><code>def min_assignment(cost):                 # cost[worker][task]
+    n = len(cost)
+    FULL = (1 &lt;&lt; n) - 1
+    from functools import lru_cache
+
+    @lru_cache(None)
+    def dp(worker, mask):                 # mask = set of tasks already taken
+        if worker == n:
+            return 0
+        best = float('inf')
+        for task in range(n):
+            if not (mask &gt;&gt; task) &amp; 1:
+                best = min(best, cost[worker][task] + dp(worker + 1, mask | (1 &lt;&lt; task)))
+        return best
+
+    return dp(0, 0)</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        The state is still "the smallest thing that makes the rest of the
+        problem independent of how you got here." Bitmask = the set matters but
+        the order within it doesn't. Interval = the answer for a range is built
+        from a <em>split point</em>, and you often iterate by increasing length.
+        Tree = children are independent given the parent's choice, so combine
+        bottom-up.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Bitmask with n &gt; ~22</strong> — 2ⁿ blows up; the intended solution is something else.</li>
+        <li><strong>Interval DP iterating i and j in the wrong order</strong> — you need smaller intervals solved first (loop on length, or memoize).</li>
+        <li><strong>Tree DP with recursion depth</strong> — a 10⁵-node path graph overflows the default stack; use an explicit stack or raise the limit.</li>
+        <li><strong>Digit DP forgetting the <code>tight</code> flag</strong> — once a prefix is strictly less than N's prefix, later digits are unconstrained.</li>
+      </ul>
+    </div>
+
+    <p class="small muted">
+      <strong>Practice:</strong> Partition to K Equal Sum Subsets (LC 698),
+      Shortest Path Visiting All Nodes (LC 847), Number of Ways to Wear Different
+      Hats to Each Other (LC 1434), Burst Balloons (LC 312), Minimum Cost to
+      Merge Stones (LC 1000), House Robber III (LC 337), Numbers At Most N Given
+      Digit Set (LC 902), Count of Integers (LC 2827).
+    </p>
+    <div id="t-advanced-dp"></div>
+
+
+    <!-- ---------- Advanced graph ---------- -->
+    <h3 id="adv-graph">Advanced graph algorithms</h3>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Algorithm</th><th>Solves</th><th>Constraint</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Dijkstra</strong></td><td>Single-source shortest path</td><td>No negative edges</td><td>O(E log V) with a heap</td></tr>
+        <tr><td><strong>Bellman–Ford</strong></td><td>Single-source shortest path; detect negative cycle</td><td>Negative edges OK</td><td>O(V·E)</td></tr>
+        <tr><td><strong>Floyd–Warshall</strong></td><td>All-pairs shortest path</td><td>Small V (≤ ~500)</td><td>O(V³)</td></tr>
+        <tr><td><strong>Kruskal / Prim</strong></td><td>Minimum spanning tree</td><td>Undirected, weighted</td><td>O(E log E) / O(E log V)</td></tr>
+        <tr><td><strong>Kahn / DFS topo</strong></td><td>Topological order, cycle detection</td><td>DAG</td><td>O(V + E)</td></tr>
+        <tr><td><strong>Edmonds–Karp</strong></td><td>Max flow / min cut, bipartite matching</td><td>Capacities ≥ 0</td><td>O(V·E²)</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="code-label">Dijkstra with a binary heap</p>
+<pre><code>import heapq
+
+def dijkstra(n, adj, src):               # adj[u] = list of (v, weight)
+    dist = [float('inf')] * n
+    dist[src] = 0
+    pq = [(0, src)]
+    while pq:
+        d, u = heapq.heappop(pq)
+        if d &gt; dist[u]:                   # stale entry — skip
+            continue
+        for v, w in adj[u]:
+            if d + w &lt; dist[v]:
+                dist[v] = d + w
+                heapq.heappush(pq, (dist[v], v))
+    return dist</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Dijkstra is BFS where the queue is a priority queue — it always finalizes
+        the closest unfinalized node, which only works because no negative edge
+        can later make a "finished" node cheaper. When you see negative weights,
+        switch to Bellman–Ford (and one extra relaxation round that still
+        improves something ⇒ negative cycle). "Shortest path with at most K
+        stops" is Bellman–Ford with K iterations, not Dijkstra.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Dijkstra with negative edges</strong> — silently wrong, not an error.</li>
+        <li><strong>Not skipping stale heap entries</strong> (<code>d &gt; dist[u]</code>) — still correct but degrades toward O(E²) and can TLE.</li>
+        <li><strong>Floyd–Warshall loop order</strong> — <code>k</code> (the intermediate) must be the outermost loop.</li>
+        <li><strong>MST when you actually need shortest paths</strong> — "connect all points cheaply" is MST; "get from A to B cheaply" is not.</li>
+      </ul>
+    </div>
+
+    <p class="small muted">
+      <strong>Practice:</strong> Network Delay Time (LC 743), Cheapest Flights
+      Within K Stops (LC 787), Path with Minimum Effort (LC 1631), Swim in Rising
+      Water (LC 778), Min Cost to Connect All Points (LC 1584), Find the City
+      With the Smallest Number of Neighbors at a Threshold Distance (LC 1334),
+      Maximum Number of Non-overlapping... / bipartite-matching flavored (LC 1349).
+    </p>
+    <div id="t-advanced-graph"></div>
+  </section>
+
+
+  <!-- ============================================================
+       SYSTEM DESIGN CASE STUDIES
+       ============================================================ -->
+  <section class="topic" id="sd-cases">
+    <h2>System Design Case Studies</h2>
+    <p>
+      Short design sketches, not full write-ups —
+      <a href="hld.html">HLD</a> has the framework and the deep worked example.
+      For each: the requirements that shape it, the core architecture, and the
+      one or two decisions an interviewer will actually push on. Two are backend
+      HLD; two are frontend-architecture questions (increasingly common even for
+      backend roles at product companies).
+    </p>
+
+
+    <!-- ---------- Chess ---------- -->
+    <h3 id="chess">Chess game website (HLD)</h3>
+    <p>
+      <strong>Functional:</strong> real-time 2-player games, matchmaking by
+      rating, move validation, clocks, spectators, reconnection, game history
+      (PGN), Elo updates. <strong>Non-functional:</strong> low latency
+      (&lt;100&nbsp;ms move round-trip), fairness (server-authoritative), survive
+      a dropped connection.
+    </p>
+    <p>
+      <strong>Architecture.</strong> Clients hold a persistent
+      <strong>WebSocket</strong> to a connection gateway. A <strong>game
+      service</strong> owns live game state — one logical "game actor" per game,
+      pinned to a server by consistent hashing on <code>game_id</code>, with
+      state mirrored in <strong>Redis</strong> so another node can take over on
+      failure. Every move is <strong>validated server-side</strong> against the
+      authoritative board (never trust the client); the server broadcasts the new
+      state to both players and any spectators via pub/sub. Finished games are
+      written to <strong>Postgres</strong> (games, moves) for history and to a
+      queue that triggers async Elo recalculation. Matchmaking is a queue keyed
+      by rating bucket; if no match in N seconds, widen the bucket.
+    </p>
+    <div class="box dryrun">
+      <span class="box-title">Capacity math</span>
+      <p class="small">
+        100k concurrent games ⇒ 200k connected players. Peak ~2 messages/sec per
+        game (a move + a clock tick) ⇒ ~200k msg/s across the fleet — trivial
+        per node if you shard. Live state ≈ 2&nbsp;KB/game (board, clocks,
+        history pointer) ⇒ ~200&nbsp;MB, fits in Redis easily. The scaling
+        pressure is <em>connections</em>, not compute: ~10k WebSockets/node ⇒
+        ~20 gateway nodes.
+      </p>
+    </div>
+    <div class="box note">
+      <span class="box-title">Interviewer probes</span>
+      <ul class="small">
+        <li><strong>Clocks:</strong> server is the source of truth; send remaining-time on each move, tolerate client drift, handle "flag fall" on the server.</li>
+        <li><strong>Reconnection:</strong> game actor keeps the seat for ~30–60&nbsp;s; client resyncs full state on reconnect.</li>
+        <li><strong>Cheating / engine use:</strong> out of scope for HLD, but mention move-time analysis and post-game review as an async pipeline.</li>
+        <li><strong>Why not peer-to-peer:</strong> can't trust either client; NAT traversal; no authoritative clock.</li>
+      </ul>
+    </div>
+    <div id="t-chess-website-hld"></div>
+
+
+    <!-- ---------- Streaming ---------- -->
+    <h3 id="streaming">Live streaming — Hotstar-style (HLD)</h3>
+    <p>
+      <strong>Functional:</strong> live sports to 10M+ concurrent viewers,
+      adaptive bitrate, ~10–30&nbsp;s glass-to-glass latency, VOD replay after,
+      live concurrency counter. <strong>Non-functional:</strong> survive a
+      massive spike at toss/kickoff, degrade gracefully, keep cost sane.
+    </p>
+    <p>
+      <strong>Ingest → package.</strong> The broadcaster feed hits a
+      <strong>transcoder</strong> that produces multiple renditions
+      (240p → 1080p) chopped into <strong>2–6&nbsp;s segments</strong> plus a
+      rolling manifest (HLS/DASH). Segments land on an <strong>origin</strong>
+      store. <strong>Delivery</strong> is origin → <strong>multi-CDN</strong> →
+      edge → player. The player downloads the manifest, then segments over plain
+      HTTP, stepping bitrate up/down based on measured bandwidth and buffer
+      health. <strong>Everything rides on CDN cache-hit ratio</strong> — the
+      origin only serves cache-fill.
+    </p>
+    <div class="box dryrun">
+      <span class="box-title">Capacity math</span>
+      <p class="small">
+        10M viewers × ~5&nbsp;Mbps average rendition ⇒ <strong>~50&nbsp;Tbps</strong>
+        egress. That is categorically a CDN job; origin sees maybe
+        1 request per segment per edge PoP (say 200 PoPs × 1 segment/4&nbsp;s ⇒
+        ~50 req/s to origin). Live concurrency counter: don't count exactly —
+        sample or use probabilistic aggregation (HyperLogLog-style) and accept
+        ±1–2%.
+      </p>
+    </div>
+    <div class="box note">
+      <span class="box-title">Interviewer probes</span>
+      <ul class="small">
+        <li><strong>Spike at start:</strong> pre-scale transcoders and API tier, pre-warm CDN, use a "waiting room" / staged admission, cap starting bitrate.</li>
+        <li><strong>Latency vs scale:</strong> smaller segments = lower latency but more requests and worse cache efficiency; LL-HLS / chunked transfer for the low-latency tier.</li>
+        <li><strong>Ads:</strong> server-side ad insertion (SSAI) stitches ad segments into the same stream so ad-blockers and buffering behave.</li>
+        <li><strong>VOD:</strong> the same segments, kept; just a static manifest afterward.</li>
+      </ul>
+    </div>
+    <div id="t-live-streaming-hotstar-hld"></div>
+
+
+    <!-- ---------- Netflix FE ---------- -->
+    <h3 id="netflix-fe">Netflix frontend architecture</h3>
+    <p>
+      The interesting problem is <strong>one product across TV, web, and
+      mobile</strong>, each with different capabilities, all showing the same
+      personalized "rows of titles" home screen fast.
+    </p>
+    <ul>
+      <li>
+        <strong>Backend-for-frontend (BFF).</strong> Each client class talks to
+        its own API layer (Netflix moved from Falcor to a federated GraphQL
+        gateway) that aggregates dozens of microservices into exactly the shape
+        that client needs — so the TV app isn't over-fetching web-only fields.
+      </li>
+      <li>
+        <strong>The home page is a "list of lists."</strong> Personalized rows
+        ("Because you watched…", "Trending") are computed server-side; the client
+        renders the first screenful and <strong>lazy-loads</strong> more rows and
+        artwork as you scroll. Artwork itself is personalized and served from an
+        image CDN sized per device.
+      </li>
+      <li>
+        <strong>Resilience over correctness.</strong> If the personalization
+        service is slow, fall back to generic popular rows; render skeleton UI
+        immediately; stale-while-revalidate cached responses. A blank screen is
+        the only real failure.
+      </li>
+      <li>
+        <strong>Performance.</strong> Route-level code splitting, aggressive
+        prefetch of the likely-next navigation, preloaded video preview on
+        hover/focus, and a built-in A/B framework — practically every UI element
+        is an experiment, so the architecture assumes multiple variants at once.
+      </li>
+      <li>
+        <strong>Telemetry.</strong> Real-user monitoring (startup time, rebuffer
+        rate, errors) streams back continuously and gates rollouts.
+      </li>
+    </ul>
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Multi-platform product frontends converge on the same moves: a BFF per
+        client to control payload shape, server-driven personalized layout,
+        lazy-loading below the fold, a fallback for every remote dependency, and
+        experimentation as a first-class concern rather than a bolt-on.
+      </p>
+    </div>
+    <div id="t-netflix-frontend-architecture"></div>
+
+
+    <!-- ---------- WhatsApp Web ---------- -->
+    <h3 id="whatsapp-web">WhatsApp Web frontend design</h3>
+    <p>
+      A browser client for an <strong>end-to-end encrypted</strong> messenger
+      that historically treated the phone as the source of truth (multi-device
+      now gives the browser its own identity keys).
+    </p>
+    <ul>
+      <li>
+        <strong>Pairing.</strong> The browser generates a keypair and shows a
+        <strong>QR code</strong> encoding its public key; the phone scans it and
+        establishes an encrypted session. Keys live in <strong>IndexedDB</strong>;
+        losing them means re-pairing.
+      </li>
+      <li>
+        <strong>Transport.</strong> A single <strong>WebSocket</strong> to the
+        server carries encrypted message payloads. The server routes ciphertext
+        and never sees plaintext.
+      </li>
+      <li>
+        <strong>Local-first store.</strong> Messages, chats, contacts, and media
+        metadata are kept in <strong>IndexedDB</strong>. The UI renders entirely
+        from local state; the network only delivers <em>deltas</em>, which are
+        decrypted and merged.
+      </li>
+      <li>
+        <strong>Offline &amp; sync.</strong> A service worker + an outbound queue
+        hold messages typed while offline; on reconnect the client replays the
+        queue and pulls missed deltas.
+      </li>
+      <li>
+        <strong>Optimistic UI + status state machine.</strong> A sent message
+        renders instantly as <code>pending</code>, then transitions
+        <code>sent → delivered → read</code> as acks arrive (the check-mark
+        states).
+      </li>
+      <li>
+        <strong>Media.</strong> Thumbnails first, full media downloaded on
+        demand, decrypted to a <code>blob:</code> URL for display.
+      </li>
+    </ul>
+    <div class="box mistakes">
+      <span class="box-title">Things to get right</span>
+      <ul class="small">
+        <li><strong>Never send keys or plaintext to the server</strong> — the whole model breaks.</li>
+        <li><strong>IndexedDB is the database</strong>, not a cache — schema migrations, quota handling, and eviction all matter.</li>
+        <li><strong>Message ordering</strong> across multiple devices needs logical timestamps / per-chat sequence, not wall-clock.</li>
+        <li><strong>Large chat history</strong> — virtualize the message list, page from IndexedDB, don't hold 50k DOM nodes.</li>
+      </ul>
+    </div>
+    <div id="t-whatsapp-web-frontend"></div>
+  </section>
+
+
+  <!-- ============================================================
+       COMPUTER NETWORKS
+       ============================================================ -->
+  <section class="topic" id="networks">
+    <h2>Computer Networks Essentials</h2>
+    <p>
+      Enough to answer "what happens when you type a URL and press enter" without
+      hand-waving, and to reason about latency, retries, and why an API call is
+      slow.
+    </p>
+
+
+    <!-- ---------- DNS ---------- -->
+    <h3 id="dns">DNS</h3>
+    <p>
+      DNS resolves a name (<code>api.example.com</code>) to an IP address using a
+      <strong>hierarchy</strong>: root servers → TLD servers
+      (<code>.com</code>) → the domain's <strong>authoritative</strong> server.
+      Your machine asks a <strong>recursive resolver</strong> (your ISP's, or
+      <code>8.8.8.8</code> / <code>1.1.1.1</code>), which does the walking and
+      <strong>caches</strong> each answer for its <strong>TTL</strong>. Most
+      lookups never leave the resolver's cache.
+    </p>
+    <div class="box dryrun">
+      <span class="box-title">Cold lookup for <code>api.example.com</code></span>
+<pre><code>stub resolver (OS)  ─▶ recursive resolver:  "api.example.com A?"
+recursive ─▶ root:        "who handles .com?"      ◀─ NS for .com
+recursive ─▶ .com TLD:    "who handles example.com?" ◀─ NS for example.com
+recursive ─▶ authoritative: "api.example.com A?"   ◀─ 93.184.x.x  (TTL 300)
+recursive ─▶ stub:         93.184.x.x   (cached for 300s at every hop)</code></pre>
+    </div>
+    <p class="small">
+      Record types worth knowing: <strong>A</strong> (IPv4), <strong>AAAA</strong>
+      (IPv6), <strong>CNAME</strong> (alias to another name),
+      <strong>MX</strong> (mail), <strong>NS</strong> (delegation),
+      <strong>TXT</strong> (SPF/DKIM/verification). Transport is UDP port 53
+      (falls back to TCP for large responses / zone transfers);
+      <strong>DoH/DoT</strong> wrap it in HTTPS/TLS for privacy. Root and TLD
+      servers use <strong>anycast</strong> so "one IP" is answered by the nearest
+      of many machines.
+    </p>
+    <div class="box mistakes">
+      <span class="box-title">Common misconceptions</span>
+      <ul class="small">
+        <li><strong>"DNS returns one IP."</strong> It often returns several; the client picks one, and round-robin / GeoDNS / latency-based routing is done here.</li>
+        <li><strong>Ignoring TTL in incident response</strong> — a bad record with TTL 86400 is cached for a day.</li>
+        <li><strong>CNAME at the zone apex</strong> — not allowed by the spec; providers fake it with "ALIAS/ANAME".</li>
+      </ul>
+    </div>
+    <div id="t-dns"></div>
+
+
+    <!-- ---------- TCP/IP ---------- -->
+    <h3 id="tcpip">TCP/IP</h3>
+    <p>
+      The model has four layers: <strong>link</strong> (Ethernet/Wi-Fi),
+      <strong>internet</strong> (IP — addressing and routing, best-effort, no
+      guarantees), <strong>transport</strong> (TCP / UDP), and
+      <strong>application</strong> (HTTP, DNS, SMTP). IP gets a packet
+      <em>toward</em> a host; TCP or UDP decides what "delivery" means.
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th></th><th>TCP</th><th>UDP</th></tr></thead>
+      <tbody>
+        <tr><td>Setup</td><td>3-way handshake (SYN → SYN-ACK → ACK)</td><td>None — just send</td></tr>
+        <tr><td>Guarantees</td><td>Reliable, ordered, de-duplicated</td><td>None; packets may drop, reorder, duplicate</td></tr>
+        <tr><td>Control</td><td>Flow control (receiver window) + congestion control (slow start, AIMD)</td><td>None (app must handle)</td></tr>
+        <tr><td>Overhead</td><td>Higher (state, acks, retransmit)</td><td>Minimal</td></tr>
+        <tr><td>Use for</td><td>HTTP, DB connections, anything that must be correct</td><td>DNS, VoIP, live video, games, QUIC</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small">
+      TCP reliability = <strong>sequence numbers</strong> + <strong>cumulative
+      ACKs</strong> + <strong>retransmission on timeout / triple-duplicate
+      ACK</strong>. Congestion control keeps the network from collapsing: start
+      small, ramp exponentially (slow start), then additive-increase /
+      multiplicative-decrease on loss. Teardown is a FIN from each side.
+      <strong>Head-of-line blocking</strong> — one lost segment stalls
+      everything behind it — is why HTTP/3 runs over <strong>QUIC</strong> (on
+      UDP), which gives independent streams.
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        IP is the postal system (addressed, best-effort, might lose your
+        letter). TCP is registered mail with tracking and re-sends, at the cost
+        of a setup round-trip and bookkeeping. UDP is shouting across the room —
+        fast, and it's on you if it's not heard.
+      </p>
+    </div>
+    <div id="t-tcp-ip"></div>
+
+
+    <!-- ---------- HTTP lifecycle ---------- -->
+    <h3 id="http-life">HTTP request lifecycle</h3>
+    <p>
+      "You type <code>https://example.com</code> and press Enter":
+    </p>
+    <ol class="small">
+      <li><strong>URL parse</strong> → scheme, host, path.</li>
+      <li><strong>DNS</strong> → <code>example.com</code> to an IP (cache → resolver → hierarchy).</li>
+      <li><strong>TCP handshake</strong> to the IP on port 443 (1 RTT).</li>
+      <li><strong>TLS handshake</strong> — validate the certificate chain, agree on keys (1–2 RTT; 0–1 with TLS 1.3 resumption).</li>
+      <li><strong>HTTP request</strong> — <code>GET / HTTP/2</code> + headers (Host, cookies, Accept, User-Agent).</li>
+      <li><strong>Server</strong> — load balancer → app → maybe DB/cache → builds the response.</li>
+      <li><strong>Response</strong> — status line (<code>200</code>, <code>301</code>, <code>404</code>, <code>500</code>), headers (<code>Content-Type</code>, <code>Cache-Control</code>, <code>ETag</code>, <code>Set-Cookie</code>), body.</li>
+      <li><strong>Client</strong> — parse HTML, discover sub-resources (CSS/JS/img), repeat (mostly on the same connection), render.</li>
+    </ol>
+    <p class="small">
+      <strong>Versions:</strong> HTTP/1.1 = one request at a time per connection
+      (browsers open ~6). HTTP/2 = <strong>multiplexing</strong> many streams
+      over one TCP connection + header compression (HPACK). HTTP/3 = same, over
+      QUIC/UDP, removing TCP head-of-line blocking.
+      <strong>Caching:</strong> <code>Cache-Control: max-age</code> for freshness;
+      <code>ETag</code> + <code>If-None-Match</code> → <code>304 Not Modified</code>
+      to revalidate cheaply. <strong>CORS:</strong> a cross-origin non-simple
+      request triggers an <code>OPTIONS</code> preflight the server must approve.
+    </p>
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul class="small">
+        <li><strong>Confusing 301 and 302</strong> — 301 is permanent and cached hard; 302/307 is temporary.</li>
+        <li><strong>Thinking HTTP/2 removes head-of-line blocking</strong> — it removes it at the HTTP layer, not the TCP layer; that's HTTP/3's job.</li>
+        <li><strong>"HTTPS encrypts the URL"</strong> — path and query are encrypted; the domain (SNI) and IP are visible.</li>
+        <li><strong>Ignoring connection reuse</strong> — keep-alive / a warm pool saves the TCP+TLS round-trips on every call after the first.</li>
+      </ul>
+    </div>
+    <div id="t-http-request-lifecycle"></div>
+  </section>
+
+
+  <!-- ============================================================
+       OPERATING SYSTEMS
+       ============================================================ -->
+  <section class="topic" id="os">
+    <h2>Operating Systems Essentials</h2>
+    <p>
+      The three areas interviewers actually ask a backend engineer about:
+      concurrency units, virtual memory, and the scheduler.
+    </p>
+
+
+    <!-- ---------- Processes vs threads ---------- -->
+    <h3 id="proc-thread">Processes vs threads</h3>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th></th><th>Process</th><th>Thread</th></tr></thead>
+      <tbody>
+        <tr><td>Address space</td><td>Own, isolated (separate page tables)</td><td>Shared with other threads in the process</td></tr>
+        <tr><td>Owns</td><td>Code, heap, globals, file descriptors, PCB</td><td>Stack, registers, program counter, thread-local</td></tr>
+        <tr><td>Crash blast radius</td><td>Contained to the process</td><td>Takes down the whole process</td></tr>
+        <tr><td>Context switch</td><td>Expensive (TLB flush, page-table swap)</td><td>Cheaper (same address space)</td></tr>
+        <tr><td>Communication</td><td>IPC: pipes, sockets, shared memory, message queues</td><td>Shared memory directly — needs locks</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small">
+      Threads sharing memory is the whole point and the whole danger:
+      <strong>race conditions</strong> require <strong>mutexes / semaphores /
+      atomics</strong>, and careless locking causes <strong>deadlock</strong>
+      (circular wait — break it by always acquiring locks in a fixed order).
+      Choose <strong>multi-process</strong> for isolation and to sidestep a
+      runtime global lock (Python's GIL, historically); <strong>multi-thread</strong>
+      for shared state and cheap switching. <code>fork()</code> duplicates a
+      process (copy-on-write); a child not reaped becomes a <strong>zombie</strong>,
+      a parent that dies first leaves an <strong>orphan</strong> adopted by init.
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A process is an isolated container with its own memory; threads are
+        workers inside that share everything by default. "Shared by default" is
+        why threads are fast to coordinate and easy to corrupt.
+      </p>
+    </div>
+    <div id="t-processes-vs-threads"></div>
+
+
+    <!-- ---------- Memory ---------- -->
+    <h3 id="memory">Memory management</h3>
+    <p>
+      Each process sees a private, contiguous <strong>virtual address
+      space</strong>. The <strong>MMU</strong> translates virtual → physical
+      addresses per access using <strong>page tables</strong>, caching recent
+      translations in the <strong>TLB</strong>. Memory is handed out in
+      fixed-size <strong>pages</strong> (typically 4&nbsp;KB).
+    </p>
+    <ul class="small">
+      <li><strong>Page fault:</strong> accessing a page not currently in RAM → the OS traps, loads it from disk (or the executable, or zero-fills), updates the page table, resumes. A <em>minor</em> fault just needs a mapping; a <em>major</em> fault hits disk.</li>
+      <li><strong>Demand paging:</strong> pages are loaded only when first touched, so processes start fast and use less RAM.</li>
+      <li><strong>Replacement:</strong> when RAM is full, evict a page — approximations of <strong>LRU</strong> (the clock/second-chance algorithm) in practice.</li>
+      <li><strong>Thrashing:</strong> too many processes, not enough RAM → the system spends all its time paging. Fix by reducing multiprogramming (working-set model).</li>
+      <li><strong>Fragmentation:</strong> paging kills <em>external</em> fragmentation but causes a little <em>internal</em> (the slack in the last page).</li>
+      <li><strong>Stack vs heap:</strong> stack is per-thread, LIFO, auto-managed, small; heap is process-wide, explicitly managed (<code>malloc</code>/GC), can fragment.</li>
+    </ul>
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul class="small">
+        <li><strong>"Virtual memory = swap."</strong> Virtual memory is the address-translation abstraction; swap is just one thing it enables.</li>
+        <li><strong>Assuming malloc touches RAM</strong> — on Linux it often just extends the mapping; physical pages appear on first write (and overcommit can OOM-kill later).</li>
+        <li><strong>Ignoring the TLB</strong> — a TLB miss is a real cost; huge pages exist to reduce it.</li>
+      </ul>
+    </div>
+    <div id="t-memory-management"></div>
+
+
+    <!-- ---------- Scheduling ---------- -->
+    <h3 id="scheduling">CPU scheduling</h3>
+    <p>
+      The scheduler decides which ready thread runs next on a core. Goals trade
+      off: <strong>throughput</strong>, <strong>latency / response time</strong>,
+      <strong>fairness</strong>, and <strong>CPU utilization</strong>.
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Algorithm</th><th>Idea</th><th>Weakness</th></tr></thead>
+      <tbody>
+        <tr><td><strong>FCFS</strong></td><td>Run in arrival order</td><td>Convoy effect — one long job stalls everyone</td></tr>
+        <tr><td><strong>SJF / SRTF</strong></td><td>Shortest (remaining) job first — optimal average wait</td><td>Needs to know burst length; starves long jobs</td></tr>
+        <tr><td><strong>Round Robin</strong></td><td>Fixed time quantum, cycle through</td><td>Quantum too small → switch overhead; too big → FCFS</td></tr>
+        <tr><td><strong>Priority</strong></td><td>Highest priority first</td><td>Starvation — fix with <strong>aging</strong></td></tr>
+        <tr><td><strong>MLFQ</strong></td><td>Multiple queues; jobs that use full quanta sink, I/O-bound jobs stay high</td><td>Tuning-heavy</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small">
+      <strong>Preemptive</strong> (the OS can interrupt a running thread — needed
+      for responsiveness and to enforce fairness) vs <strong>non-preemptive</strong>
+      (thread runs until it yields/blocks). Every switch has a
+      <strong>context-switch cost</strong> (save/restore registers, possible TLB
+      and cache effects). Real systems: <strong>Linux CFS</strong> tracks each
+      task's <code>vruntime</code> (virtual runtime, weighted by nice value) in a
+      red-black tree and always runs the task with the smallest <code>vruntime</code>
+      — "fair" rather than strict priority. Metrics to define:
+      <strong>turnaround</strong> (finish − arrival), <strong>waiting</strong>
+      (turnaround − burst), <strong>response</strong> (first-run − arrival).
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        There's no universally best scheduler — batch systems optimize
+        throughput, interactive systems optimize response time. Modern
+        general-purpose schedulers (CFS) aim for <em>fairness</em>: everyone gets
+        a proportional slice, and I/O-bound tasks are implicitly favored because
+        they rarely use their whole slice.
+      </p>
+    </div>
+    <div id="t-cpu-scheduling"></div>
+  </section>
+
+
+  <!-- ============================================================
+       MOBILE (OPTIONAL)
+       ============================================================ -->
+  <section class="topic" id="mobile">
+    <h2>Optional: Mobile Development</h2>
+    <div class="box note">
+      <p class="small">
+        <strong>Lower priority.</strong> Your story is Java backend. This section
+        exists so that if a role or a project mentions mobile you can talk about
+        it sensibly and wire up a small app — not so you master it. Skip it until
+        everything else on this site is solid. Framed around a
+        <strong>FoodExpress</strong>-style delivery app.
+      </p>
+    </div>
+
+    <h3 id="rn-expo">React Native + Expo basics</h3>
+    <p>
+      <strong>React Native</strong> lets you write UI as React components that
+      render to <em>real native views</em> (not a webview) on iOS and Android
+      from one codebase. <strong>Expo</strong> is the batteries-included
+      toolchain on top: a managed build service (EAS), over-the-air JS updates,
+      and pre-packaged native modules (camera, location, notifications) so you
+      rarely touch Xcode/Gradle.
+    </p>
+    <ul class="small">
+      <li><strong>Core components:</strong> <code>View</code> (≈ div), <code>Text</code>, <code>Image</code>, <code>ScrollView</code>, <code>FlatList</code> (virtualized list — use it for the restaurant/menu lists), <code>Pressable</code>. Styling is <code>StyleSheet</code> objects with flexbox (default <code>flexDirection: 'column'</code>).</li>
+      <li><strong>Navigation:</strong> React Navigation — native stack for screen-to-screen, bottom tabs for the app shell.</li>
+      <li><strong>Platform bits:</strong> <code>SafeAreaView</code> for notches, <code>Platform.OS</code> for the few divergences.</li>
+      <li><strong>State/data:</strong> same as web React — Context or Redux Toolkit for cart state, React Query / fetch for server data.</li>
+    </ul>
+
+    <h3 id="firebase">Firebase basics</h3>
+    <p>
+      A backend-as-a-service that covers what a small app needs without you
+      running servers:
+    </p>
+    <ul class="small">
+      <li><strong>Auth</strong> — email/password, phone OTP, Google sign-in; gives you a stable <code>uid</code>.</li>
+      <li><strong>Firestore</strong> — a NoSQL document database (collections → documents → subcollections). Real-time listeners push changes to the client; <strong>security rules</strong> enforce access server-side. No joins — you <strong>denormalize</strong> and duplicate data.</li>
+      <li><strong>Cloud Storage</strong> — user-uploaded images (restaurant photos, profile pics).</li>
+      <li><strong>Cloud Functions</strong> — server-side logic on triggers (a new <code>order</code> doc → compute total, assign a driver, send a notification).</li>
+      <li><strong>FCM</strong> — push notifications.</li>
+      <li>Offline persistence is built in — the client reads/writes a local cache and syncs when online.</li>
+    </ul>
+
+    <h3 id="foodexpress">FoodExpress — app structure</h3>
+    <div class="box dryrun">
+      <span class="box-title">Screens &amp; data flow</span>
+<pre><code>Screens (native stack + bottom tabs)
+  Auth ─▶ Restaurants (FlatList + search) ─▶ Menu ─▶ Cart ─▶ Checkout
+                                                         └─▶ Order Tracking (realtime)
+  Tabs: Home · Orders (history) · Profile
+
+Firestore model
+  users/{uid}                     { name, phone, addresses[] }
+  restaurants/{rid}               { name, cuisine, rating, image }
+  restaurants/{rid}/menuItems/{id}{ name, price, veg }
+  orders/{oid}                    { uid, rid, items[], total,
+                                    status: placed|accepted|preparing|out|delivered,
+                                    driverId, createdAt }
+
+Flow
+  cart = local state (Context/Redux)
+  checkout ─▶ create orders/{oid} with status "placed"
+  Cloud Function onCreate(orders) ─▶ validate total, assign driver, FCM to user
+  Order Tracking screen ─▶ onSnapshot(orders/{oid}) ─▶ live status + driver location
+</code></pre>
+    </div>
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul class="small">
+        <li><strong>Computing the order total on the client</strong> — do it in a Cloud Function; the client can be tampered with.</li>
+        <li><strong>No Firestore security rules</strong> — the default is open; a user must only read their own orders.</li>
+        <li><strong>Using <code>ScrollView</code> for long lists</strong> — it renders everything; use <code>FlatList</code>.</li>
+        <li><strong>Over-normalizing</strong> — Firestore has no joins; store <code>restaurantName</code> on the order rather than re-fetching.</li>
+        <li><strong>Unbounded real-time listeners</strong> — detach <code>onSnapshot</code> on unmount, scope queries with <code>where</code>/<code>limit</code>.</li>
+      </ul>
+    </div>
+    <div id="t-mobile-development"></div>
+  </section>
+
+
+  <p class="backlink">
+    <a href="index.html">← Back to home &amp; dashboard</a>
+    &nbsp;·&nbsp; <a href="genai.html">← GenAI</a>
+  </p>
+
+  <footer class="foot">
+    <p>
+      Phase 5 of the <a href="roadmap.html">8-month roadmap</a>. Electives are
+      breadth insurance — do them <em>after</em> your core DSA, design, and Java
+      pages are solid. Next: Projects, then Job Search.
+    </p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("electives", [
+  /* ---------- Advanced DSA ---------- */
+  {
+    group: "Segment Trees",
+    mount: "#t-segment-trees",
+    items: [
+      "Node = aggregate over an interval; any range = O(log n) nodes",
+      "Build O(n), point update + range query O(log n)",
+      "Lazy propagation for range updates (push-down on descent)",
+      "4n sizing; correct identity (0 for sum, ±inf for min/max)",
+      "When Fenwick/BIT or prefix sums is enough instead",
+      "Solve 2+: LC 307, 327, 732, 699"
+    ]
+  },
+  {
+    group: "String Matching (KMP)",
+    mount: "#t-string-matching-kmp",
+    items: [
+      "Naive O(nm) vs KMP O(n+m)",
+      "Prefix/LPS function: longest proper prefix that is also a suffix",
+      "Build LPS in O(m); fall back to lps[k-1] on mismatch",
+      "Prefix function alone: periodicity, repeated unit, shortest palindrome",
+      "Know Rabin-Karp (rolling hash) & Z-function as alternatives",
+      "Solve 2+: LC 28, 459, 214, 1392"
+    ]
+  },
+  {
+    group: "Advanced DP",
+    mount: "#t-advanced-dp",
+    items: [
+      "Bitmask DP: dp[mask], n <= ~20, 'visit all' / assignment / TSP",
+      "Interval DP: dp[i][j] split at k; iterate by length",
+      "DP on trees: combine children in post-order",
+      "Digit DP: dp[pos][tight][...] counting numbers <= N",
+      "Solve 2+: LC 698, 847, 312, 337, 902"
+    ]
+  },
+  {
+    group: "Advanced Graph Algorithms",
+    mount: "#t-advanced-graph",
+    items: [
+      "Dijkstra O(E log V) — no negative edges; skip stale heap entries",
+      "Bellman-Ford O(VE) — negative edges & negative-cycle detection",
+      "Floyd-Warshall O(V^3) — k loop outermost",
+      "MST: Kruskal (union-find) / Prim — vs shortest path",
+      "'At most K stops' = Bellman-Ford with K rounds; intro to max-flow/min-cut",
+      "Solve 2+: LC 743, 787, 1631, 778, 1584"
+    ]
+  },
+
+  /* ---------- System Design Case Studies ---------- */
+  {
+    group: "Chess Website (HLD)",
+    mount: "#t-chess-website-hld",
+    items: [
+      "WebSocket gateway + per-game service pinned by consistent hashing",
+      "Server-authoritative board & move validation; never trust client",
+      "Redis for live state + failover; Postgres for finished games/PGN",
+      "Matchmaking queue by rating bucket, widen on timeout",
+      "Server-authoritative clocks; reconnection grace window",
+      "Capacity: connections are the bottleneck, not compute"
+    ]
+  },
+  {
+    group: "Live Streaming — Hotstar (HLD)",
+    mount: "#t-live-streaming-hotstar-hld",
+    items: [
+      "Ingest -> transcode -> 2-6s ABR segments + rolling manifest (HLS/DASH)",
+      "Origin -> multi-CDN -> edge; cache-hit ratio is everything",
+      "~50 Tbps egress at 10M viewers -> must be CDN, origin serves cache-fill",
+      "Spike handling: pre-scale, CDN pre-warm, waiting room, cap bitrate",
+      "Approximate concurrency counter (sampled / probabilistic)",
+      "Server-side ad insertion; VOD = keep the same segments"
+    ]
+  },
+  {
+    group: "Netflix Frontend Architecture",
+    mount: "#t-netflix-frontend-architecture",
+    items: [
+      "BFF per client class (federated GraphQL) to control payload shape",
+      "Home = personalized 'list of lists'; lazy-load rows & artwork on scroll",
+      "Resilience: skeleton UI, fallback rows, stale-while-revalidate",
+      "Route-level code splitting, prefetch next nav, per-device image CDN",
+      "Experimentation (A/B) as a first-class architectural concern",
+      "RUM telemetry gates rollouts"
+    ]
+  },
+  {
+    group: "WhatsApp Web Frontend",
+    mount: "#t-whatsapp-web-frontend",
+    items: [
+      "QR pairing: browser keypair, phone scans, encrypted session",
+      "Single WebSocket carries ciphertext; server never sees plaintext",
+      "IndexedDB is the datastore; render local, sync deltas",
+      "Offline queue + service worker; replay & resync on reconnect",
+      "Optimistic UI + pending->sent->delivered->read state machine",
+      "Virtualize long message lists; page from IndexedDB"
+    ]
+  },
+
+  /* ---------- Computer Networks ---------- */
+  {
+    group: "DNS",
+    mount: "#t-dns",
+    items: [
+      "Hierarchy: root -> TLD -> authoritative; recursive resolver walks it",
+      "Caching with TTL at every hop; most lookups hit cache",
+      "Record types: A, AAAA, CNAME, MX, NS, TXT",
+      "UDP/53 (TCP fallback); DoH/DoT; anycast for root/TLD",
+      "One name can return many IPs — GeoDNS / round-robin / latency routing"
+    ]
+  },
+  {
+    group: "TCP/IP",
+    mount: "#t-tcp-ip",
+    items: [
+      "Layers: link / internet (IP) / transport (TCP,UDP) / application",
+      "IP = best-effort routing, no guarantees",
+      "TCP: 3-way handshake, seq/ack + retransmit, flow & congestion control",
+      "UDP: no setup, no guarantees — DNS, media, games, QUIC",
+      "Head-of-line blocking -> HTTP/3 over QUIC"
+    ]
+  },
+  {
+    group: "HTTP Request Lifecycle",
+    mount: "#t-http-request-lifecycle",
+    items: [
+      "URL -> DNS -> TCP -> TLS -> HTTP request -> server -> response -> render",
+      "Methods, status codes (301 vs 302, 304), headers, keep-alive",
+      "HTTP/1.1 vs HTTP/2 (multiplexing, HPACK) vs HTTP/3 (QUIC)",
+      "Caching: Cache-Control max-age, ETag / If-None-Match -> 304",
+      "CORS preflight (OPTIONS); HTTPS hides path/query but not SNI/IP"
+    ]
+  },
+
+  /* ---------- Operating Systems ---------- */
+  {
+    group: "Processes vs Threads",
+    mount: "#t-processes-vs-threads",
+    items: [
+      "Process = isolated address space; thread = shared memory, own stack",
+      "Thread context switch cheaper (no page-table/TLB swap)",
+      "IPC: pipes, sockets, shared memory, message queues",
+      "Races -> mutex/semaphore/atomic; deadlock -> fixed lock order",
+      "Multi-process for isolation/GIL vs multi-thread for shared state",
+      "fork/exec, zombie vs orphan"
+    ]
+  },
+  {
+    group: "Memory Management",
+    mount: "#t-memory-management",
+    items: [
+      "Virtual address space -> physical via page tables + MMU; TLB caches it",
+      "Page fault (minor vs major); demand paging",
+      "Page replacement: LRU approximations (clock / second-chance)",
+      "Thrashing & the working-set model",
+      "Internal vs external fragmentation; stack vs heap",
+      "'Virtual memory' != swap; malloc may not touch RAM (overcommit)"
+    ]
+  },
+  {
+    group: "CPU Scheduling",
+    mount: "#t-cpu-scheduling",
+    items: [
+      "Goals trade off: throughput vs response time vs fairness",
+      "FCFS (convoy), SJF/SRTF (starvation), Round Robin (quantum), Priority (aging)",
+      "Multilevel feedback queue; preemptive vs non-preemptive",
+      "Context-switch cost; Linux CFS (vruntime in a red-black tree)",
+      "Define turnaround / waiting / response time"
+    ]
+  },
+
+  /* ---------- Mobile (optional) ---------- */
+  {
+    group: "Mobile Development (optional)",
+    mount: "#t-mobile-development",
+    items: [
+      "RN renders React components to real native views; Expo = toolchain + EAS + OTA",
+      "FlatList for long lists; React Navigation (stack + tabs); StyleSheet flexbox",
+      "Firebase: Auth, Firestore (docs, realtime, rules, denormalize), Storage, Functions, FCM",
+      "FoodExpress: cart local -> order doc; Cloud Function computes total & assigns driver",
+      "onSnapshot for live order tracking; detach listeners on unmount",
+      "Never compute totals client-side; always write Firestore security rules"
+    ]
+  }
+], { pageTitle: "Electives: Advanced DSA, System Design Cases, Networks, OS, Mobile" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("electives");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

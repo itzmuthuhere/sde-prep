@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projects — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html" class="active">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Projects — Things You Can Defend for Ten Minutes</h1>
+  <p class="lede">
+    Runs <strong>in parallel</strong> with everything else on the roadmap. Two or
+    three real, finished projects on GitHub beat fifteen half-built ones. This
+    page has fifteen briefs — for a few you write code and ship, for the rest you
+    only need to be able to <em>whiteboard the design and talk through the
+    trade-offs</em>. Every brief is Java / Spring&nbsp;Boot-first, because that's
+    your story.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>How to use this page.</strong> Read a brief, decide whether it's a
+      <strong>build</strong> or a <strong>design</strong> for you (the four
+      starred ones are the recommended builds), then work its milestone list. Each
+      brief has the same eight parts: problem statement, functional requirements,
+      an architecture sketch, tech stack, a sample REST API, a sample DB schema, a
+      build-order milestone plan, and <em>what to say about it in an
+      interview</em>. The checklist item under each project tracks its milestones.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — projects</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="box intuition">
+    <span class="box-title">Priority — build these four fully and push to GitHub</span>
+    <p class="small">
+      Three Spring&nbsp;Boot backend services plus one GenAI project. They cover
+      the interview surface that matters for you: transactional correctness,
+      messaging &amp; retries, financial ACID guarantees, and RAG.
+    </p>
+    <ol class="small">
+      <li><strong><a href="#p-order">Amazon-style order management</a></strong> — state machines, outbox, inventory correctness.</li>
+      <li><strong><a href="#p-notify">Scalable notification service</a></strong> — queues, retries with backoff, DLQ, rate limiting.</li>
+      <li><strong><a href="#p-payments">Payments quoting &amp; settlement service</a></strong> — BigDecimal money, double-entry ledger, isolation levels, idempotency.</li>
+      <li><strong><a href="#p-rag">RAG-based internal support assistant</a></strong> — ingestion, pgvector retrieval, grounding, citations, evaluation.</li>
+    </ol>
+    <p class="small">
+      The other eleven are <strong>design / write-up only</strong> — know them
+      well enough to lead a 30-minute design discussion, don't sink weeks into
+      code.
+    </p>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><strong>Build fully</strong>
+        <ol>
+          <li><a href="#p-order">Amazon-style order management ⭐</a></li>
+          <li><a href="#p-notify">Scalable notification service ⭐</a></li>
+          <li><a href="#p-payments">Payments quoting &amp; settlement ⭐</a></li>
+          <li><a href="#p-rag">RAG internal support assistant ⭐</a></li>
+        </ol>
+      </li>
+      <li><strong>Design &amp; write-up only</strong>
+        <ol>
+          <li><a href="#p-stream">Hotstar-style streaming platform</a></li>
+          <li><a href="#p-cab">Uber-style cab booking</a></li>
+          <li><a href="#p-parking">Parking lot management</a></li>
+          <li><a href="#p-social">Scalable social media backend</a></li>
+          <li><a href="#p-chat">Real-time chat UI (WebSockets)</a></li>
+          <li><a href="#p-catalog">E-commerce catalog UI</a></li>
+          <li><a href="#p-reco">Recommendation API with caching</a></li>
+          <li><a href="#p-food">Zomato/Swiggy-style food ordering</a></li>
+          <li><a href="#p-linkedin">LinkedIn-style professional network</a></li>
+          <li><a href="#p-agent">AI agent for workflow automation (HITL)</a></li>
+          <li><a href="#p-review">AI-augmented code review assistant</a></li>
+        </ol>
+      </li>
+    </ol>
+  </div>
+
+
+  <!-- ============================================================
+       1. ORDER MANAGEMENT  (BUILD)
+       ============================================================ -->
+  <section class="topic" id="p-order">
+    <h2>1. Amazon-style order management ⭐</h2>
+    <div class="box dryrun">
+      <span class="box-title">⭐ Build fully &amp; push to GitHub</span>
+      <p class="small">Your core transactional-backend story. Small enough to finish, deep enough to talk about for an hour.</p>
+    </div>
+
+    <h4>Problem statement</h4>
+    <p>
+      Manage an order's whole lifecycle — from cart checkout through payment,
+      inventory reservation, fulfilment, shipping, and returns — with correct
+      state transitions, idempotent checkout, and <strong>no overselling</strong>
+      when many customers race for the last unit.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Create an order from a cart: validate items, re-price server-side, validate the address.</li>
+      <li>Reserve inventory atomically; release it on cancel or on a payment timeout.</li>
+      <li>Authorize payment at checkout, capture on ship.</li>
+      <li>Order state machine: <code>CREATED → PAYMENT_PENDING → CONFIRMED → PACKED → SHIPPED → DELIVERED</code>, with <code>CANCELLED</code> and <code>RETURNED</code> branches.</li>
+      <li>Split shipments when items ship from different warehouses.</li>
+      <li>Idempotent checkout keyed by a client-supplied token.</li>
+      <li>Order history + tracking for the customer; admin can cancel, refund, and re-drive stuck orders.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Service view</span>
+<pre><code>client ─▶ API gateway ─▶ Order Service (Spring Boot) ──▶ Postgres (orders, items, outbox)
+                              │  reserve/release        ▲
+                              ├──────────────▶ Inventory Service ─▶ Postgres (stock, reservations)
+                              ├──────────────▶ Payment Service   ─▶ gateway adapter (auth/capture)
+                              │
+                     outbox poller ─▶ Kafka ─▶ Fulfilment consumer ─▶ advances state, writes shipments
+                                            └─▶ Notification Service (email/SMS)</code></pre>
+    </div>
+    <p class="small">
+      <strong>Outbox pattern</strong>: the order row and an <code>outbox_events</code>
+      row are written in one local transaction; a poller publishes to Kafka. This
+      removes the dual-write problem (DB commit + broker publish can't be atomic).
+    </p>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Java 21, Spring Boot 3 (Web, Validation, Data JPA), PostgreSQL, Flyway,
+      Kafka (or RabbitMQ), Redis for idempotency keys, Resilience4j, Testcontainers
+      for integration tests, Docker Compose to run the lot. OpenAPI via
+      springdoc.
+    </p>
+
+    <h4>Sample REST API</h4>
+    <p class="code-label">Create an order (idempotent)</p>
+<pre><code>POST /api/orders
+Idempotency-Key: 4b1f9c2a-...
+{
+  "cartId": "cart_88",
+  "addressId": "addr_12",
+  "paymentMethodId": "pm_9"
+}
+── 201 Created ──
+{
+  "orderId": "ord_1041",
+  "status": "PAYMENT_PENDING",
+  "currency": "INR",
+  "total": 2499.00,
+  "lines": [{ "sku": "BOOK-DDIA", "qty": 1, "price": 2499.00 }]
+}</code></pre>
+    <p class="code-label">Get an order</p>
+<pre><code>GET /api/orders/ord_1041
+── 200 OK ──
+{
+  "orderId": "ord_1041",
+  "status": "SHIPPED",
+  "placedAt": "2026-09-04T21:07:11Z",
+  "shipments": [
+    { "shipmentId": "shp_1", "warehouse": "BLR1", "carrier": "BlueDart",
+      "tracking": "BD123", "items": [{ "sku": "BOOK-DDIA", "qty": 1 }] }
+  ],
+  "payment": { "state": "CAPTURED", "amount": 2499.00 }
+}</code></pre>
+    <p class="code-label">Cancel</p>
+<pre><code>POST /api/orders/ord_1041/cancel
+{ "reason": "customer_changed_mind" }
+── 200 OK ──   { "orderId": "ord_1041", "status": "CANCELLED" }
+── 409 Conflict when already SHIPPED ──</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>orders(
+  id              bigserial primary key,
+  customer_id     bigint not null,
+  status          text not null,              -- state machine value
+  currency        char(3) not null,
+  total_amount    numeric(12,2) not null,
+  idempotency_key text unique,
+  version         int not null default 0,     -- optimistic locking
+  created_at      timestamptz not null default now()
+)
+order_items(
+  id bigserial primary key,
+  order_id bigint references orders(id),
+  sku text not null, qty int not null check (qty > 0),
+  unit_price numeric(12,2) not null
+)
+inventory(sku text primary key, on_hand int not null, reserved int not null,
+          version int not null default 0)
+inventory_reservations(
+  id bigserial primary key, order_id bigint, sku text, qty int,
+  state text not null,                        -- HELD | COMMITTED | RELEASED
+  expires_at timestamptz not null
+)
+payments(id bigserial primary key, order_id bigint, state text,
+         auth_ref text, amount numeric(12,2))
+shipments(id bigserial primary key, order_id bigint, warehouse text,
+          carrier text, tracking text, status text)
+outbox_events(id bigserial primary key, aggregate_id bigint, type text,
+              payload jsonb, published_at timestamptz)
+idempotency_keys(key text primary key, order_id bigint, created_at timestamptz)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li><code>orders</code> + <code>order_items</code> entities, POST/GET endpoints, Flyway migrations, Testcontainers Postgres test.</li>
+      <li>Idempotency-Key handling — return the same order for a repeated key.</li>
+      <li>Inventory reservation with <code>SELECT … FOR UPDATE</code> (or optimistic <code>version</code>); a scheduled job releases expired holds.</li>
+      <li>Payment Service stub with authorize/capture; wire the state machine (guard illegal transitions).</li>
+      <li>Outbox table + poller → Kafka; a Fulfilment consumer advances <code>PACKED → SHIPPED</code> and writes shipments.</li>
+      <li>Cancellation + compensation: release inventory, void the auth; block cancel after <code>SHIPPED</code>.</li>
+      <li>Reaper for <code>PAYMENT_PENDING</code> timeouts → auto-cancel + release.</li>
+      <li>OpenAPI doc, full integration test of the happy path + one race test, README with the architecture diagram.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>State machine</strong> — enumerate the states and legal transitions; illegal transitions return 409, not 500.</li>
+        <li><strong>Dual-write problem &amp; the outbox</strong> — why you can't atomically commit to Postgres and publish to Kafka, and how the outbox fixes it.</li>
+        <li><strong>Oversell prevention</strong> — pessimistic lock vs optimistic version vs reservation-with-TTL; you chose reservations so the cart hold doesn't block other buyers.</li>
+        <li><strong>Idempotent checkout</strong> — client token → unique constraint; a retried request never creates a second order.</li>
+        <li><strong>Saga / compensation</strong> — cancellation isn't a rollback, it's forward-recovery actions.</li>
+        <li><strong>At-least-once + idempotent consumers</strong> — the fulfilment consumer must tolerate duplicate events.</li>
+      </ul>
+    </div>
+    <div id="t-order-management"></div>
+  </section>
+
+
+  <!-- ============================================================
+       2. NOTIFICATION SERVICE  (BUILD)
+       ============================================================ -->
+  <section class="topic" id="p-notify">
+    <h2>2. Scalable notification service ⭐</h2>
+    <div class="box dryrun">
+      <span class="box-title">⭐ Build fully &amp; push to GitHub</span>
+      <p class="small">The cleanest way to show you understand queues, retries, and back-pressure.</p>
+    </div>
+
+    <h4>Problem statement</h4>
+    <p>
+      One internal API that any service calls to notify a user. It delivers across
+      channels (email, SMS, push, in-app) <strong>reliably</strong> — with
+      retries, rate limiting, deduplication, user preferences, and delivery
+      tracking — while shielding the caller from provider latency and outages.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Accept a request: template id + recipient + data + one or more channels.</li>
+      <li>Resolve the user's contact details, channel preferences, and quiet hours.</li>
+      <li>Render the template; enqueue one job per channel.</li>
+      <li>Deliver via provider adapters (SES / Twilio / FCM) behind a common interface, with a fake adapter for local dev.</li>
+      <li>Retry failed sends with exponential backoff + jitter; dead-letter after N attempts.</li>
+      <li>Deduplicate by idempotency key; enforce per-user and global rate limits.</li>
+      <li>Track per-channel delivery status; accept provider webhooks (delivered / bounced).</li>
+      <li>Channel fallback (push fails → email); expose an in-app notification feed.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Flow</span>
+<pre><code>caller ─▶ Notification API ─▶ Postgres (notification + per-channel deliveries)
+                │
+                └─▶ exchange ─┬─▶ email.q  ─▶ Email worker  ─▶ SES adapter ─┐
+                              ├─▶ sms.q    ─▶ SMS worker    ─▶ Twilio       │ update status
+                              └─▶ push.q   ─▶ Push worker   ─▶ FCM          │
+                                                   │ fail                  ▼
+                                          retry.q (TTL delay) ──▶ back to channel queue
+                                                   │ attempts exhausted
+                                                   ▼
+                                                 DLQ  ──▶ alert + manual redrive
+
+Redis: idempotency SETNX, token-bucket rate limits.   Provider webhook ─▶ API ─▶ status = DELIVERED/BOUNCED</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Java 21, Spring Boot 3, Spring AMQP + RabbitMQ (delayed/TTL queues give you
+      backoff for free; Kafka + a scheduler is the alternative), PostgreSQL,
+      Flyway, Redis with Bucket4j for rate limiting, Resilience4j for retry /
+      circuit-breaking, Micrometer + Prometheus for metrics, Testcontainers,
+      Docker Compose.
+    </p>
+
+    <h4>Sample REST API</h4>
+    <p class="code-label">Send a notification</p>
+<pre><code>POST /api/v1/notifications
+Idempotency-Key: order-1041-shipped
+{
+  "templateId": "ORDER_SHIPPED",
+  "userId": "u_55",
+  "channels": ["push", "email"],
+  "data": { "orderId": "ord_1041", "tracking": "BD123" }
+}
+── 202 Accepted ──
+{ "notificationId": "ntf_900", "status": "QUEUED" }</code></pre>
+    <p class="code-label">Check delivery status</p>
+<pre><code>GET /api/v1/notifications/ntf_900
+── 200 OK ──
+{
+  "notificationId": "ntf_900",
+  "deliveries": [
+    { "channel": "push",  "state": "FAILED",    "attempts": 3, "lastError": "unregistered_token" },
+    { "channel": "email", "state": "DELIVERED", "attempts": 1, "providerMsgId": "ses-abc" }
+  ]
+}</code></pre>
+    <p class="code-label">In-app feed / provider webhook</p>
+<pre><code>GET  /api/v1/users/u_55/feed?cursor=eyJ0cyI6...   ──▶ { items: [...], nextCursor }
+POST /api/v1/webhooks/email  { "providerMsgId": "ses-abc", "event": "delivered" }  ──▶ 204</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>notifications(
+  id bigserial primary key, user_id bigint, template_id text,
+  data jsonb, idempotency_key text unique, created_at timestamptz
+)
+notification_deliveries(
+  id bigserial primary key,
+  notification_id bigint references notifications(id),
+  channel text not null,                 -- EMAIL | SMS | PUSH | IN_APP
+  state text not null,                   -- QUEUED|SENDING|DELIVERED|FAILED|DEAD
+  attempts int not null default 0,
+  next_attempt_at timestamptz,
+  provider_msg_id text, last_error text
+)
+templates(id text primary key, channel text, subject text, body text)   -- body = handlebars
+user_channel_prefs(user_id bigint, channel text, enabled bool,
+                   quiet_hours_start time, quiet_hours_end time,
+                   primary key (user_id, channel))
+dead_letters(id bigserial primary key, delivery_id bigint, payload jsonb,
+             failed_at timestamptz)
+in_app_feed(id bigserial primary key, user_id bigint, notification_id bigint,
+            read_at timestamptz, created_at timestamptz)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>API + persistence + POST/GET, Flyway, Testcontainers.</li>
+      <li>Template rendering (Handlebars/Thymeleaf) + request validation.</li>
+      <li>Publish per-channel messages to RabbitMQ; a console/fake worker "delivers".</li>
+      <li>Retry with exponential backoff + jitter via TTL/delayed queues; DLQ + a redrive endpoint.</li>
+      <li>Idempotency + dedupe (Redis <code>SETNX</code>); per-user token-bucket rate limit (Bucket4j).</li>
+      <li>User preferences + quiet hours + channel fallback ordering.</li>
+      <li>Provider webhooks update delivery status; add a real SES or Twilio adapter.</li>
+      <li>In-app feed endpoint; Micrometer metrics (queue depth, delivery latency, failure rate); README + diagram.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>Why a queue</strong> — decouples the caller's latency from the provider's; absorbs spikes; lets you retry without blocking anyone.</li>
+        <li><strong>At-least-once + idempotent consumers</strong> — "exactly-once delivery" is a myth; you dedupe with an idempotency key and a time window.</li>
+        <li><strong>Backoff + jitter</strong> — why plain exponential backoff causes retry storms (thundering herd) and jitter spreads them.</li>
+        <li><strong>DLQ</strong> — poison messages must leave the main flow; you alert and redrive manually.</li>
+        <li><strong>Queue-per-channel</strong> — isolates a slow/broken provider so SMS problems don't stall email.</li>
+        <li><strong>Rate limiting</strong> — token bucket, per-user and global, to respect provider quotas and protect users from spam.</li>
+      </ul>
+    </div>
+    <div id="t-notification-service"></div>
+  </section>
+
+
+  <!-- ============================================================
+       3. PAYMENTS QUOTING & SETTLEMENT  (BUILD)
+       ============================================================ -->
+  <section class="topic" id="p-payments">
+    <h2>3. Payments quoting &amp; settlement service ⭐</h2>
+    <div class="box dryrun">
+      <span class="box-title">⭐ Build fully &amp; push to GitHub — this is your ACID showcase</span>
+      <p class="small">Pricing, tax calculation, route quoting, and money movement with real financial-correctness guarantees.</p>
+    </div>
+
+    <h4>Problem statement</h4>
+    <p>
+      Given a shipment request (origin, destination, weight, service level),
+      produce a <strong>firm, immutable price quote</strong> — base rate +
+      surcharges + tax — with an expiry. Later, convert a quote to a booking,
+      authorize payment, and on delivery <strong>settle</strong> the actual charge
+      against that quote, writing balanced double-entry ledger records so the
+      books always reconcile and no customer is ever double-charged.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li><strong>Quote</strong>: compute route distance → apply a versioned rate card → add surcharges (fuel, remote-area) → compute tax by jurisdiction → return an immutable quote with line items and <code>expiresAt</code>.</li>
+      <li><strong>Booking</strong>: convert a non-expired quote to a booking; authorize payment; idempotent.</li>
+      <li><strong>Settlement</strong>: on delivery, capture the final amount (may differ from quote within a tolerance); post an adjustment; write ledger entries.</li>
+      <li>Refunds and adjustments as forward ledger transactions, never row edits.</li>
+      <li>Double-entry ledger: every transaction's debits equal its credits.</li>
+      <li>Daily reconciliation: ledger totals vs the payment gateway; a report endpoint.</li>
+      <li>Idempotency on every state-changing call.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Two services, one ledger</span>
+<pre><code>            ┌───────────────── Quote Service (stateless) ─────────────────┐
+request ─▶  │ route/distance ─▶ rate card (v) ─▶ surcharges ─▶ tax rules(v) │ ─▶ immutable quote
+            └────────────────────────────────────────────────────────────┘
+                         │ quoteId
+                         ▼
+   ┌──────────────── Settlement Service (stateful, owns the ledger) ───────────────┐
+   │ booking: quote ─▶ payment.authorize()   (Idempotency-Key)                     │
+   │ settle:  payment.capture() ─▶ ONE serializable txn:                           │
+   │            debit  customer_ar        credit revenue                           │
+   │            debit  tax_expense/holding credit tax_payable                      │
+   │          (sum of entries in the txn == 0 — asserted)                          │
+   │ outbox ─▶ Kafka (SettlementPosted)                                            │
+   └──────────────────────────────────────────────────────────────────────────────┘
+        nightly: reconciliation job  →  ledger vs gateway  →  report</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Java 21, Spring Boot 3, Spring Data JPA, PostgreSQL, Flyway. Money as
+      <code>BigDecimal</code> in minor units (or Moneta / JSR-354) — never
+      <code>double</code>. Explicit transaction isolation
+      (<code>SERIALIZABLE</code> for ledger posts, with retry-on-conflict),
+      optimistic <code>version</code> on accounts. Resilience4j for the gateway
+      adapter, Kafka + outbox for events, Testcontainers, jqwik for
+      property-based money-math tests, Docker Compose.
+    </p>
+
+    <h4>Sample REST API</h4>
+    <p class="code-label">Get a quote</p>
+<pre><code>POST /api/v1/quotes
+{ "origin": "BLR", "destination": "DEL", "weightKg": 12.4, "serviceLevel": "EXPRESS" }
+── 201 Created ──
+{
+  "quoteId": "qt_77",
+  "currency": "INR",
+  "lineItems": [
+    { "code": "BASE_FREIGHT", "amount": 940.00 },
+    { "code": "FUEL_SURCHARGE", "amount": 141.00 },
+    { "code": "REMOTE_AREA", "amount": 0.00 }
+  ],
+  "taxAmount": 194.58,
+  "totalAmount": 1275.58,
+  "expiresAt": "2026-09-04T22:07:00Z"
+}</code></pre>
+    <p class="code-label">Book against the quote</p>
+<pre><code>POST /api/v1/bookings
+Idempotency-Key: qt_77-book
+{ "quoteId": "qt_77", "paymentMethodId": "pm_9" }
+── 201 Created ──
+{ "bookingId": "bk_31", "status": "AUTHORIZED", "authAmount": 1275.58 }
+── 409 when the quote has expired ──</code></pre>
+    <p class="code-label">Settle on delivery</p>
+<pre><code>POST /api/v1/bookings/bk_31/settle
+Idempotency-Key: bk_31-settle
+{ "finalWeightKg": 13.1 }
+── 200 OK ──
+{
+  "status": "SETTLED",
+  "capturedAmount": 1319.20,
+  "adjustment": 43.62,
+  "ledgerTxnId": "ltx_5521"
+}</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>rate_cards(id, name, version, effective_from, effective_to)
+rate_card_entries(rate_card_id, lane text, service_level text,
+                  per_kg numeric(12,4), min_charge numeric(12,2))
+tax_rules(id, jurisdiction text, category text, rate numeric(6,4),
+          rounding text, version int, effective_from date)
+
+quotes(id text primary key, request jsonb, rate_card_version int,
+       tax_rule_version int, currency char(3),
+       subtotal numeric(12,2), tax_amount numeric(12,2), total_amount numeric(12,2),
+       expires_at timestamptz, created_at timestamptz)          -- immutable
+quote_line_items(quote_id text, code text, amount numeric(12,2))
+
+bookings(id text primary key, quote_id text, status text,
+         auth_ref text, auth_amount numeric(12,2), version int)
+payments(id bigserial primary key, booking_id text, kind text,   -- AUTH|CAPTURE|REFUND
+         amount numeric(12,2), gateway_ref text, created_at timestamptz)
+
+ledger_accounts(id bigserial primary key, code text unique, type text) -- ASSET|LIABILITY|REVENUE|EXPENSE
+ledger_transactions(id bigserial primary key, ref text, created_at timestamptz)
+ledger_entries(id bigserial primary key, txn_id bigint references ledger_transactions(id),
+               account_id bigint, direction char(1),            -- 'D' | 'C'
+               amount numeric(14,2) check (amount > 0))
+--  invariant: for every txn_id, sum(D) = sum(C)
+
+reconciliation_runs(id, run_date date, ledger_total numeric(14,2),
+                    gateway_total numeric(14,2), delta numeric(14,2), status text)
+idempotency_keys(key text primary key, response jsonb, created_at timestamptz)
+outbox_events(id bigserial primary key, type text, payload jsonb, published_at timestamptz)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Decide the money type; build the pricing engine (rate-card lookup, distance stub, surcharges) as a pure, unit-tested module.</li>
+      <li>Tax module: rule table by jurisdiction + per-rule rounding; unit-tested against known cases.</li>
+      <li>Quote persistence with expiry; line items immutable once written.</li>
+      <li>Booking = quote → payment.authorize() via a fake adapter; idempotency keys store-and-replay the response.</li>
+      <li>Double-entry ledger: accounts + balanced entries inside one <code>SERIALIZABLE</code> transaction; a test asserts <code>sum(D) = sum(C)</code> per txn.</li>
+      <li>Settlement: capture, handle final ≠ quoted within tolerance, post the adjustment entry.</li>
+      <li>Refund / void flows as forward transactions; outbox events.</li>
+      <li>Nightly reconciliation job (ledger vs gateway) + report endpoint; property-based tests on rounding &amp; associativity; README with an "ACID guarantees" section.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>Never <code>float</code>/<code>double</code> for money</strong> — <code>BigDecimal</code> or integer minor units; state your rounding mode and where you round.</li>
+        <li><strong>Double-entry ledger</strong> — every transaction balances; you never <code>UPDATE</code> a balance, you append entries and derive the balance. Corrections are new transactions.</li>
+        <li><strong>Isolation levels</strong> — a read-modify-write on an account balance under <code>READ COMMITTED</code> is a lost-update bug; you use <code>SELECT … FOR UPDATE</code> or <code>SERIALIZABLE</code> + retry. Reference the traced race on the <a href="hld.html">HLD page</a>.</li>
+        <li><strong>Idempotency keys</strong> — store the first response and replay it; a retried <code>settle</code> never double-captures.</li>
+        <li><strong>Quote immutability + versioning</strong> — the rate card and tax rules are versioned; a quote records which versions priced it, so it's reproducible and auditable.</li>
+        <li><strong>Auth vs capture</strong>, tolerance on the final amount, and <strong>reconciliation</strong> as the safety net that catches anything the code missed.</li>
+      </ul>
+    </div>
+    <div id="t-payments-service"></div>
+  </section>
+
+
+  <!-- ============================================================
+       4. RAG SUPPORT ASSISTANT  (BUILD - GenAI)
+       ============================================================ -->
+  <section class="topic" id="p-rag">
+    <h2>4. RAG-based internal support assistant ⭐</h2>
+    <div class="box dryrun">
+      <span class="box-title">⭐ Build fully &amp; push to GitHub — your GenAI project</span>
+      <p class="small">Spring Boot + Spring AI + pgvector. Pairs directly with the <a href="genai.html">GenAI page</a>.</p>
+    </div>
+
+    <h4>Problem statement</h4>
+    <p>
+      An assistant that answers support questions <strong>from the company's own
+      documents</strong> (wiki, runbooks, policies, resolved tickets) with
+      citations — instead of hallucinating. It must say "I don't know" when the
+      retrieved context is weak, and you must be able to <strong>measure</strong>
+      how good it is.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Ingest documents from sources (Markdown, PDF, Confluence export); chunk, embed, store in a vector store.</li>
+      <li>On a question: retrieve top-k relevant chunks (vector similarity, optionally + keyword), assemble a grounded prompt, call the LLM, return an answer <strong>with source citations</strong>.</li>
+      <li>Conversation memory for follow-ups.</li>
+      <li>Confidence gate: if the best retrieval score is below a threshold, return "I don't know / ask this team" instead of guessing.</li>
+      <li>Thumbs up/down feedback; admin re-index; basic PII / prompt-injection filtering.</li>
+      <li>Per-source access control (a user only retrieves from spaces they can see).</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Ingest path and query path</span>
+<pre><code>INGEST:  loaders (md/pdf/html) ─▶ token-aware chunker (size + overlap)
+         ─▶ embedding model (API) ─▶ Postgres + pgvector (document_chunks.embedding)
+
+QUERY:   question ─▶ embed ─▶ pgvector top-k (cosine)  ─┐
+                     └─▶ (optional) BM25 keyword search ─┴─▶ merge + re-rank
+         ─▶ prompt = system + retrieved chunks + history + question
+         ─▶ LLM (Claude via Spring AI) ─▶ answer + citations
+         ─▶ grounding gate: max_score &lt; τ  ⇒  "I don't know"
+         ─▶ log(question, chunk_ids, scores, tokens, cost)
+
+Redis: chat session memory + embedding cache.</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Java 21, Spring Boot 3, <strong>Spring AI</strong> (chat + embedding
+      clients), PostgreSQL + <strong>pgvector</strong> (HNSW index), Flyway, Redis,
+      Testcontainers, Docker Compose. LLM: Claude (Anthropic API). Optional
+      Elasticsearch/Postgres full-text for the keyword half of hybrid search.
+      Small labelled Q&amp;A set for evaluation.
+    </p>
+
+    <h4>Sample REST API</h4>
+    <p class="code-label">Trigger ingestion (async)</p>
+<pre><code>POST /api/v1/ingest
+{ "source": "confluence", "spaceKey": "OPS" }
+── 202 Accepted ──   { "jobId": "job_12", "status": "RUNNING" }</code></pre>
+    <p class="code-label">Ask</p>
+<pre><code>POST /api/v1/chat
+{ "conversationId": "c_5", "message": "How do I rotate the payments DB credentials?" }
+── 200 OK ──
+{
+  "conversationId": "c_5",
+  "answer": "Rotate via Vault: run `vault write ...`, then trigger a rolling restart ...",
+  "citations": [
+    { "docId": "d_88", "title": "Payments DB Runbook", "url": "https://wiki/…",
+      "snippet": "To rotate credentials, …", "score": 0.83 }
+  ],
+  "confidence": "HIGH"
+}</code></pre>
+    <p class="code-label">Feedback</p>
+<pre><code>POST /api/v1/chat/msg_301/feedback   { "rating": "up" }   ──▶ 202</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>documents(id bigserial primary key, source text, external_id text,
+          title text, url text, acl text, updated_at timestamptz)
+document_chunks(
+  id bigserial primary key,
+  document_id bigint references documents(id),
+  chunk_index int,
+  content text,
+  token_count int,
+  embedding vector(1536)                    -- pgvector; HNSW index
+)
+-- CREATE INDEX ON document_chunks USING hnsw (embedding vector_cosine_ops);
+
+ingestion_jobs(id bigserial primary key, source text, status text,
+               docs_processed int, started_at timestamptz, finished_at timestamptz)
+conversations(id text primary key, user_id bigint, created_at timestamptz)
+messages(id text primary key, conversation_id text, role text,   -- user|assistant
+         content text, created_at timestamptz)
+retrieval_logs(id bigserial primary key, message_id text, question text,
+               retrieved_chunk_ids bigint[], scores numeric[],
+               prompt_tokens int, completion_tokens int, cost_usd numeric(8,4))
+feedback(id bigserial primary key, message_id text, rating text, note text)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Schema + <code>CREATE EXTENSION vector</code> + Flyway; document / chunk entities.</li>
+      <li>Ingestion: Markdown + PDF loader → token-aware chunker (with overlap) → embed → store; job status endpoint.</li>
+      <li>Retriever: top-k cosine query; tune k and chunk size; write <code>retrieval_logs</code>.</li>
+      <li>Chat endpoint: prompt template (system + context + question), Spring AI call to Claude, parse out citations.</li>
+      <li>Grounding gate: if <code>max_score &lt; τ</code> → "I don't know"; enforce that every claim maps to a citation.</li>
+      <li>Conversation memory (last N turns, older turns summarized) in Redis; follow-up questions resolve pronouns from history.</li>
+      <li>Add keyword search + merge (hybrid); optional re-rank. Evaluate on the labelled set: retrieval precision@k, answer relevance, citation precision.</li>
+      <li>Feedback loop + admin re-index + PII / prompt-injection filter; metrics (retrieval latency, tokens &amp; cost per query); README with the diagram and your eval numbers.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>Full RAG architecture</strong> — ingest (load → chunk → embed → index) and query (embed → retrieve → assemble → generate) as two separate pipelines.</li>
+        <li><strong>Chunking trade-offs</strong> — small chunks = precise but lose context; large = context-rich but dilute the embedding; overlap preserves boundaries. You tuned this against recall.</li>
+        <li><strong>Hybrid retrieval</strong> — vector catches paraphrase, keyword catches exact terms (error codes, config keys); merge both.</li>
+        <li><strong>pgvector + HNSW</strong> — approximate nearest neighbour; why you didn't need a dedicated vector DB at this scale.</li>
+        <li><strong>Grounding &amp; anti-hallucination</strong> — the confidence gate and mandatory citations; "I don't know" is a feature.</li>
+        <li><strong>Evaluation</strong> — you measured retrieval precision and answer relevance on a labelled set, not "it looked good in a demo".</li>
+        <li><strong>Cost / latency</strong> — cache embeddings, cap context size, use a cheaper model for routing/summarizing memory.</li>
+      </ul>
+    </div>
+    <div id="t-rag-assistant"></div>
+  </section>
+
+
+  <!-- ============================================================
+       5. STREAMING PLATFORM  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-stream">
+    <h2>5. Hotstar-style streaming platform</h2>
+    <p class="muted small"><strong>Design &amp; write-up only.</strong> See the fuller worked HLD on the <a href="electives.html">Electives</a> page.</p>
+
+    <h4>Problem statement</h4>
+    <p>
+      Deliver live and on-demand video to millions of concurrent viewers with
+      adaptive quality, low rebuffering, and tolerance for enormous spikes (a
+      cricket match final).
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Upload / ingest VOD; ingest a live RTMP/SRT feed.</li>
+      <li>Transcode to an adaptive-bitrate ladder; segment into HLS/DASH chunks + a rolling manifest.</li>
+      <li>Serve segments via CDN; the client player picks bitrate by measured bandwidth.</li>
+      <li>Catalog browse / search, watchlist, resume playback (per-user position).</li>
+      <li>Auth + entitlement (subscription tier, geo-restrictions).</li>
+      <li>Live concurrency count; optional server-side ad insertion.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Control plane (you) vs data plane (CDN)</span>
+<pre><code>upload ─▶ ingest ─▶ S3 (mezzanine) ─▶ transcode workers (FFmpeg) ─▶ renditions + HLS segments ─▶ S3
+live RTMP ─▶ ingest ─▶ segmenter ─▶ low-latency HLS ─▶ S3/origin
+
+player ─▶ Playback API (Spring Boot): entitlement + geo check ─▶ signed manifest URL
+player ─▶ CDN edge ─▶ (miss) origin ─▶ S3        [99%+ served from edge]
+player ─▶ Progress API ─▶ Redis (resume position)  ─▶ periodic flush to Postgres
+events ─▶ Kafka ─▶ view-count aggregator, analytics</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Spring Boot for control-plane services (catalog, entitlement, playback,
+      progress, user). FFmpeg-based transcode workers. S3 for storage, CloudFront/
+      Akamai for delivery, Kafka for events, PostgreSQL for catalog/users, Redis
+      for sessions + resume positions + live counters, Elasticsearch for search.
+      Client: a player on <code>hls.js</code> / native HLS.
+    </p>
+
+    <h4>Sample REST API</h4>
+<pre><code>POST /api/v1/videos            { "title": "...", "durationSec": 5400 }
+  ──▶ 201 { "videoId": "v_9", "uploadUrl": "https://s3/put/..." }
+
+GET  /api/v1/videos/v_9/playback
+  ──▶ 200 { "manifestUrl": "https://cdn/.../master.m3u8?token=…",
+            "drm": { "type": "widevine", "licenseUrl": "..." } }
+  ──▶ 403 { "error": "not_available_in_region" }
+
+PUT  /api/v1/users/me/progress   { "videoId": "v_9", "positionSec": 812 }  ──▶ 204</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>videos(id, title, description, duration_sec, type, status, published_at)
+video_renditions(video_id, height, bitrate_kbps, codec, playlist_key)   -- S3 keys
+users(id, email, country)
+subscriptions(user_id, tier, status, renews_at)
+watch_progress(user_id, video_id, position_sec, updated_at)             -- hot copy in Redis
+catalog_collections(id, title, kind)   collection_items(collection_id, video_id, rank)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Catalog service + Postgres + browse/search endpoints.</li>
+      <li>Upload → S3 + metadata row.</li>
+      <li>Transcode worker: FFmpeg → renditions + HLS segments back to S3.</li>
+      <li>Playback endpoint returns a signed CDN manifest URL after entitlement + geo checks.</li>
+      <li>Client player + resume-position service (Redis, flush to Postgres).</li>
+      <li>Live path: RTMP ingest → segmenter → low-latency HLS.</li>
+      <li>View-count aggregator + Kafka analytics stream.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>Control plane vs data plane</strong> — you build the control plane in Spring Boot; the bytes are served by CDN + object storage. This is the key framing.</li>
+        <li><strong>CDN offload math</strong> — ~50&nbsp;Tbps egress at 10M viewers means the origin can only ever serve cache-fill; cache-hit ratio is the metric.</li>
+        <li><strong>ABR</strong> — why segments + a manifest, and how the client adapts.</li>
+        <li><strong>Spike handling</strong> — pre-scale, CDN pre-warm, waiting room, cap the max bitrate under load.</li>
+        <li><strong>Concurrency counting</strong> — an exact count is impractical; you sample / use a probabilistic counter.</li>
+      </ul>
+    </div>
+    <div id="t-streaming"></div>
+  </section>
+
+
+  <!-- ============================================================
+       6. CAB BOOKING  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-cab">
+    <h2>6. Uber-style cab booking</h2>
+    <p class="muted small"><strong>Design &amp; write-up only.</strong></p>
+
+    <h4>Problem statement</h4>
+    <p>
+      Match riders to nearby available drivers in real time, track the trip, and
+      price the fare — while absorbing a firehose of driver location updates.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Ingest frequent driver location pings.</li>
+      <li>Rider requests a ride (pickup, drop) → find the nearest suitable available driver.</li>
+      <li>Driver accepts / rejects with a timeout; fall through to the next driver.</li>
+      <li>Live trip tracking for the rider; trip lifecycle state machine.</li>
+      <li>Fare = base + distance + time + surge multiplier by zone demand.</li>
+      <li>Ratings both ways; payment on trip end.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Write-heavy location vs read-heavy match</span>
+<pre><code>driver app ──(ping every 4s)──▶ Location Service ─▶ Redis GEO  (driver_id ⇒ lat/lng)
+                                        └─▶ Kafka ─▶ Cassandra (location history)
+
+rider app ─▶ Trip Service ─▶ Matching Service ─▶ GEORADIUS(pickup, 3km, available)
+                                              ─▶ offer to driver #1 (10s TTL) ─▶ ... #2
+            Trip Service ─▶ Postgres (trips, trip_events)
+            Pricing Service ─▶ surge = f(open requests / available drivers per zone)
+both apps  ◀── WebSocket gateway (STOMP) ── live driver position + status</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Spring Boot services; Redis (GEO commands) as the live driver index;
+      PostgreSQL for trips / users / payments; Kafka as the event backbone;
+      WebSocket (STOMP) gateway; Cassandra for high-volume location history.
+    </p>
+
+    <h4>Sample REST / WebSocket API</h4>
+<pre><code>POST /api/rides
+{ "pickup": { "lat": 12.97, "lng": 77.59 }, "drop": { "lat": 12.93, "lng": 77.62 } }
+  ──▶ 201 { "rideId": "r_7", "status": "SEARCHING", "fareEstimate": 218.00 }
+
+POST /api/drivers/me/location   { "lat": 12.971, "lng": 77.594, "heading": 90 }  ──▶ 202
+
+POST /api/rides/r_7/accept       (driver)
+  ──▶ 200 { "status": "DRIVER_ASSIGNED", "rider": { "name": "A", "phone": "…" } }</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>users(id, name, phone, rating_avg)
+drivers(id, user_id, status, vehicle_id, current_zone)      -- status: OFFLINE|AVAILABLE|ON_TRIP
+vehicles(id, plate, type, seats)
+rides(id, rider_id, driver_id, status, pickup_point geography, drop_point geography,
+      fare_amount numeric(10,2), surge_multiplier numeric(4,2),
+      requested_at, started_at, ended_at)
+ride_events(ride_id, type, payload jsonb, at)               -- append-only lifecycle log
+payments(id, ride_id, amount, method, status)
+ratings(ride_id, by_user_id, score, comment)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Trip CRUD + state machine (<code>SEARCHING → DRIVER_ASSIGNED → ARRIVED → IN_TRIP → COMPLETED / CANCELLED</code>).</li>
+      <li>Driver location endpoint → Redis GEO.</li>
+      <li>Nearest-driver query (<code>GEORADIUS</code> / <code>GEOSEARCH</code>).</li>
+      <li>Matching loop: offer → accept/decline with TTL → next candidate.</li>
+      <li>Pricing service + surge multiplier from per-zone demand.</li>
+      <li>WebSocket live tracking.</li>
+      <li>Trip completion → fare finalisation → payment; location history to Cassandra.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>Geospatial indexing</strong> — geohash / quadtree / S2 / Redis GEO; how "nearest" queries actually work.</li>
+        <li><strong>Write-heavy vs read-heavy</strong> — the location firehose is a different workload from matching; a dedicated Location Service lets you scale and store them separately.</li>
+        <li><strong>Matching</strong> — it's an assignment problem; greedy nearest is fine to start, batch matching optimises globally.</li>
+        <li><strong>Surge pricing</strong> — a supply/demand ratio per zone, updated on a short interval.</li>
+        <li><strong>Consistency of "is this driver free"</strong> — a driver can be offered two rides; the accept must be a compare-and-set.</li>
+      </ul>
+    </div>
+    <div id="t-cab-booking"></div>
+  </section>
+
+
+  <!-- ============================================================
+       7. PARKING LOT  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-parking">
+    <h2>7. Parking lot management</h2>
+    <p class="muted small"><strong>Design &amp; write-up only</strong> — and it's mostly an LLD. See the OO walkthrough on the <a href="lld.html">LLD</a> page; here it's framed as a small service.</p>
+
+    <h4>Problem statement</h4>
+    <p>
+      Model a multi-floor parking lot: issue a ticket on entry and assign the
+      nearest free compatible spot, compute the fee on exit by duration, and show
+      real-time availability per floor — correct even when several gates admit
+      cars at once.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Vehicle types (bike / car / truck) map to compatible spot types.</li>
+      <li>On entry: allocate the nearest free compatible spot, issue a ticket.</li>
+      <li>On exit: fee = f(duration, rate card), with defined rounding; lost-ticket flat fee.</li>
+      <li>Multiple entry / exit gates operating concurrently.</li>
+      <li>Real-time free-count per floor per spot type.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">One small service</span>
+<pre><code>gate controllers ─▶ Parking Service (Spring Boot) ─▶ Postgres (spots, tickets, rate cards)
+                                                  └─▶ Redis counters (free per floor/type)
+                    allocation: SELECT ... FOR UPDATE SKIP LOCKED  the nearest free spot
+                    pricing:    Strategy per rate card (flat / hourly / day-cap)</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Spring Boot, Spring Data JPA, PostgreSQL, Redis for the availability
+      counters. Deliberately simple — a single service.
+    </p>
+
+    <h4>Sample REST API</h4>
+<pre><code>POST /api/tickets   { "gateId": "G1", "vehicleType": "CAR", "plate": "KA01AB1234" }
+  ──▶ 201 { "ticketId": "t_55", "spotId": "F2-C-018", "floor": 2, "issuedAt": "…" }
+  ──▶ 409 { "error": "lot_full_for_type" }
+
+POST /api/tickets/t_55/exit   { "gateId": "G3" }
+  ──▶ 200 { "fee": 80.00, "currency": "INR", "durationMin": 95 }
+
+GET  /api/floors/availability
+  ──▶ 200 [ { "floor": 1, "free": { "CAR": 3, "BIKE": 20, "TRUCK": 0 } }, … ]</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>parking_floors(id, level int, label text)
+parking_spots(id text primary key, floor_id int, type text,
+              status text, distance_rank int)          -- FREE | OCCUPIED
+tickets(id text primary key, spot_id text, plate text, vehicle_type text,
+        issued_at timestamptz, exited_at timestamptz, fee numeric(10,2))
+rate_cards(id, vehicle_type text, strategy text, params jsonb)
+payments(ticket_id text, amount numeric(10,2), method text, paid_at timestamptz)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Floor + spot model, seeded; <code>distance_rank</code> per spot.</li>
+      <li>Allocation query: nearest free compatible spot with <code>FOR UPDATE SKIP LOCKED</code>.</li>
+      <li>Ticketing (issue / exit).</li>
+      <li>Pricing engine: rate-card strategies, rounding rules, day cap.</li>
+      <li>Availability counters: atomic decrement/increment in Redis + a reconcile job vs the DB.</li>
+      <li>Concurrency test: N gates admitting simultaneously, assert no double-allocation.</li>
+      <li>Admin availability + occupancy report endpoint.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li>It's a <strong>classic LLD</strong> — lead with the OO model (<code>Spot</code>, <code>Level</code>, <code>Ticket</code>, <code>RateStrategy</code>, <code>AllocationStrategy</code>) and the <strong>Strategy pattern</strong> for pricing and allocation.</li>
+        <li><strong>Concurrency on the last spot</strong> — <code>FOR UPDATE SKIP LOCKED</code> or an atomic conditional update; this is the interesting part.</li>
+        <li><strong>Counter accuracy</strong> — cached free-counts drift; you reconcile against the source of truth.</li>
+        <li>Keep it crisp — this is a warm-up question, not a 45-minute system design.</li>
+      </ul>
+    </div>
+    <div id="t-parking-lot"></div>
+  </section>
+
+
+  <!-- ============================================================
+       8. SOCIAL MEDIA BACKEND  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-social">
+    <h2>8. Scalable social media backend</h2>
+    <p class="muted small"><strong>Design &amp; write-up only.</strong></p>
+
+    <h4>Problem statement</h4>
+    <p>
+      Posts, a follow graph, and a home timeline that stays fast when follower
+      counts are wildly skewed — the celebrity-with-50-million-followers problem.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Create a post (text + media).</li>
+      <li>Follow / unfollow.</li>
+      <li>Home timeline: posts from people you follow, reverse-chronological, paginated.</li>
+      <li>Profile timeline: a single user's posts.</li>
+      <li>Like / comment counts.</li>
+      <li>Notifications on follow / like.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Hybrid fan-out</span>
+<pre><code>POST /posts ─▶ Post Service ─▶ Postgres (source of truth) ─▶ Kafka(post.created)
+                                                              │
+                              Fan-out consumer ──────────────┘
+   normal author  ─▶ push post id into each follower's Redis timeline list  (fan-out on write)
+   celebrity author ─▶ skip; readers merge celebrity posts at read time     (fan-out on read)
+
+GET /timeline/home ─▶ read your Redis list  ⊍  pull recent posts from followed celebrities  ─▶ merge, sort</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Spring Boot, PostgreSQL (posts, follow graph), Redis (per-user timeline
+      lists + counters), Kafka (decouple write from fan-out), S3 + CDN for media.
+      Cassandra is the option if Redis timelines outgrow memory.
+    </p>
+
+    <h4>Sample REST API</h4>
+<pre><code>POST /api/posts        { "text": "hello", "mediaIds": ["m_1"] }
+  ──▶ 201 { "postId": "p_1", "createdAt": "…" }
+
+GET  /api/timeline/home?cursor=eyJ0cyI6MTY…
+  ──▶ 200 { "items": [ { "postId": "p_9", "author": "u_3", "text": "…" } ],
+            "nextCursor": "eyJ0cyI6MTY…" }
+
+POST /api/users/u_42/follow    ──▶ 204</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>users(id, handle, display_name, is_high_fanout bool)
+follows(follower_id, followee_id, created_at, primary key (follower_id, followee_id))
+posts(id, author_id, text, created_at)
+post_media(post_id, media_key, kind)
+likes(post_id, user_id, created_at, primary key (post_id, user_id))
+comments(id, post_id, user_id, text, created_at)
+post_counts(post_id primary key, likes int, comments int)   -- Redis hot copy, periodic flush
+notifications(id, user_id, type, actor_id, entity_id, created_at, read_at)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Posts + profile timeline (simple indexed query).</li>
+      <li>Follow graph.</li>
+      <li>Naive home timeline (join followed users' posts, order by time) — measure it.</li>
+      <li>Fan-out-on-write via a Kafka consumer → Redis lists.</li>
+      <li>Hybrid path for <code>is_high_fanout</code> accounts.</li>
+      <li>Counters in Redis with periodic flush to Postgres.</li>
+      <li>Cursor pagination.</li>
+      <li>Notification stream.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>Fan-out on write vs read, and the hybrid</strong> — precompute timelines for the many, merge at read time for the few huge accounts.</li>
+        <li><strong>Hot-key / celebrity problem</strong> — one write shouldn't trigger 50M list appends.</li>
+        <li><strong>Timeline as a materialized cache</strong> — the source of truth is Postgres; the Redis list is derived and rebuildable.</li>
+        <li><strong>Cursor vs offset pagination</strong> — offset breaks as new posts arrive; a timestamp/id cursor is stable.</li>
+        <li><strong>Eventually consistent counts</strong> — like counts don't need to be exact to the millisecond.</li>
+      </ul>
+    </div>
+    <div id="t-social-backend"></div>
+  </section>
+
+
+  <!-- ============================================================
+       9. CHAT UI  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-chat">
+    <h2>9. Real-time chat UI (WebSockets)</h2>
+    <p class="muted small"><strong>Design &amp; write-up only</strong> — front-end-leaning.</p>
+
+    <h4>Problem statement</h4>
+    <p>
+      A responsive chat client — conversation list, message thread, typing
+      indicators, delivery / read receipts, and offline resilience — over a single
+      WebSocket connection.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Conversation list with unread badges; open a thread and lazy-load history.</li>
+      <li>Send a message with an optimistic local echo.</li>
+      <li>Message states: <code>pending → sent → delivered → read</code>.</li>
+      <li>Typing indicator; presence (online / last seen).</li>
+      <li>Reconnect with backoff and backfill messages missed while disconnected.</li>
+      <li>Notify when the tab is hidden.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Local-first client</span>
+<pre><code>React UI ──▶ WS module (one connection, heartbeat, exp-backoff reconnect)
+   │            │  outbound queue (survives offline)
+   ▼            ▼
+IndexedDB (Dexie) = source of truth for what's rendered
+   ▲
+   └── on reconnect: send lastSeenCursor ─▶ server streams the delta ─▶ merge
+
+send flow:  UI adds {tempId} to store (pending) ─▶ WS send ─▶ server {ack tempId → msgId} ─▶ reconcile
+backend sketch:  Spring Boot STOMP gateway  +  Redis pub/sub (cross-node)  +  Postgres/Cassandra store</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      React + TypeScript, Redux Toolkit or Zustand, native <code>WebSocket</code>
+      or STOMP.js, IndexedDB via Dexie, a service worker for hidden-tab
+      notifications. Backend sketch: Spring Boot WebSocket, Redis, Postgres.
+    </p>
+
+    <h4>Sample API (WebSocket frames + REST)</h4>
+<pre><code>WS → { "type": "send", "tempId": "t-8", "convId": "c_2", "body": "hi" }
+WS ← { "type": "ack",  "tempId": "t-8", "msgId": "m_91", "ts": 1725… }
+WS ← { "type": "message", "convId": "c_2", "msgId": "m_92",
+       "senderId": "u_5", "body": "hey", "ts": 1725… }
+WS ← { "type": "receipt", "msgId": "m_91", "state": "read", "by": "u_5" }
+
+GET /api/conversations/c_2/messages?before=m_80&limit=30   ──▶ history page</code></pre>
+
+    <h4>Sample database schema (backend sketch)</h4>
+<pre><code>conversations(id, kind, created_at)                          -- DIRECT | GROUP
+conversation_members(conv_id, user_id, joined_at, last_read_msg_id)
+messages(id, conv_id, sender_id, body, created_at)           -- id is time-ordered (ULID)
+message_receipts(msg_id, user_id, state, at)                 -- DELIVERED | READ
+devices(user_id, device_id, push_token, last_seen_cursor)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Static UI (conversation list + thread) with mock data.</li>
+      <li>WS module: connect, heartbeat, reconnect with exponential backoff.</li>
+      <li>Send + optimistic render + ack reconciliation by <code>tempId</code>.</li>
+      <li>History pagination (REST) and merge into the store.</li>
+      <li>IndexedDB persistence; render entirely from the local store.</li>
+      <li>Receipts, typing, presence.</li>
+      <li>Offline outbound queue + replay on reconnect (idempotent send).</li>
+      <li>Hidden-tab notifications + unread-count reconciliation.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>Optimistic UI + reconciliation</strong> — render immediately with a <code>tempId</code>, swap in the server id on ack.</li>
+        <li><strong>Message state machine</strong> — the four states and what transitions each.</li>
+        <li><strong>Local-first</strong> — IndexedDB is the render source; the network delivers deltas keyed by a cursor.</li>
+        <li><strong>Reconnect correctness</strong> — <code>lastSeenCursor</code> so you backfill exactly the gap, no dupes, no holes.</li>
+        <li><strong>Idempotent send</strong> — a replayed queued message must not double-post.</li>
+        <li><strong>One multiplexed connection</strong> + virtualized long lists for performance.</li>
+      </ul>
+    </div>
+    <div id="t-chat-ui"></div>
+  </section>
+
+
+  <!-- ============================================================
+       10. E-COMMERCE CATALOG UI  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-catalog">
+    <h2>10. E-commerce catalog UI</h2>
+    <p class="muted small"><strong>Design &amp; write-up only</strong> — front-end.</p>
+
+    <h4>Problem statement</h4>
+    <p>
+      A fast, filterable product-listing and product-detail experience — search,
+      faceted filters, sort, pagination, cart — that stays snappy on a large
+      catalog and on mobile.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Search box with debounced suggestions.</li>
+      <li>Faceted filters (category, price range, brand, rating, in-stock) reflected in the URL — shareable, back-button correct.</li>
+      <li>Sort; infinite scroll or pagination.</li>
+      <li>Product cards (image, price, rating); PDP with gallery, variant selection, add-to-cart.</li>
+      <li>Cart drawer with optimistic updates; recently-viewed.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">URL as state</span>
+<pre><code>React + React Query ──▶ GET /catalog/search?<the URL query string verbatim>
+   filters live in the URL  ⇒  refetch on change, shareable, browser nav works
+   React Query cache = stale-while-revalidate
+   image CDN with responsive srcset + lazy load; skeleton placeholders
+   PDP route is code-split
+backend sketch:  Catalog API (Spring Boot) ─▶ Elasticsearch (search + facet counts)
+                                            ─▶ Postgres (source of truth)  ─▶ Redis (hot products)</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      React + TypeScript, React Query, React Router, Tailwind or CSS modules.
+      Backend sketch: Spring Boot, Elasticsearch, PostgreSQL, Redis.
+    </p>
+
+    <h4>Sample REST API</h4>
+<pre><code>GET /api/catalog/search?q=shoe&category=footwear&price=1000-3000&brand=nike&sort=price_asc&page=1
+  ──▶ 200 {
+    "items": [ { "slug": "air-x", "title": "Air X", "price": 2499, "rating": 4.3, "image": "…" } ],
+    "facets": { "brand": [ { "value": "nike", "count": 12 }, { "value": "puma", "count": 7 } ],
+                "priceBuckets": [ { "range": "1000-2000", "count": 5 } ] },
+    "total": 41, "page": 1, "pageSize": 24
+  }
+
+GET /api/products/air-x
+  ──▶ 200 { "id": "p_1", "title": "Air X", "images": [...],
+            "variants": [ { "id": "v_1", "size": "9", "stock": 4, "price": 2499 } ], "rating": 4.3 }
+
+POST /api/cart/items   { "variantId": "v_1", "qty": 1 }   ──▶ 200 { "cart": { … } }</code></pre>
+
+    <h4>Sample database schema (backend sketch)</h4>
+<pre><code>products(id, slug, title, description, brand, category_id, base_price, rating_avg)
+product_variants(id, product_id, sku, attributes jsonb, price)
+categories(id, parent_id, name, path)
+product_images(product_id, url, position)
+inventory(variant_id primary key, on_hand int)
+carts(id, user_id, updated_at)   cart_items(cart_id, variant_id, qty)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Product grid from the API + a card component.</li>
+      <li>Filter UI → URL params → refetch.</li>
+      <li>Facet counts + active-filter chips.</li>
+      <li>Sort + pagination / infinite scroll.</li>
+      <li>PDP with variant selection + image gallery.</li>
+      <li>Cart drawer with optimistic add/remove + a persisted cart.</li>
+      <li>Debounced search suggestions.</li>
+      <li>Performance pass — image <code>srcset</code>, code-split PDP, skeletons, Lighthouse.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>URL as the single source of truth</strong> for filter state — everything else derives from it.</li>
+        <li><strong>Faceted search</strong> — why this is an Elasticsearch aggregation, not a set of SQL <code>COUNT</code>s.</li>
+        <li><strong>React Query caching</strong> — stale-while-revalidate, request dedupe, background refetch.</li>
+        <li><strong>Optimistic cart</strong> + server reconciliation on failure.</li>
+        <li><strong>Image performance</strong> — responsive <code>srcset</code>, lazy loading, a CDN with on-the-fly resizing.</li>
+        <li><strong>Pagination trade-offs</strong> — infinite scroll vs pages for SEO and "back to results".</li>
+      </ul>
+    </div>
+    <div id="t-catalog-ui"></div>
+  </section>
+
+
+  <!-- ============================================================
+       11. RECOMMENDATION API  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-reco">
+    <h2>11. Recommendation API with caching</h2>
+    <p class="muted small"><strong>Design &amp; write-up only.</strong></p>
+
+    <h4>Problem statement</h4>
+    <p>
+      Serve "recommended for you" and "similar items" with low latency by
+      precomputing candidates offline and caching aggressively online, with a
+      graceful fallback for users you know nothing about.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Recommendations for a user (home) and for an item (PDP "similar").</li>
+      <li>Blend strategies: collaborative filtering, content-based, popularity.</li>
+      <li>Exclude already-seen / already-purchased items.</li>
+      <li>Cold start → trending / popular.</li>
+      <li>A/B-testable slots.</li>
+      <li>Cache with TTL + invalidation on major catalog changes.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Offline compute, online lookup</span>
+<pre><code>OFFLINE (batch, Spark/Python — described, not built):
+   interactions ─▶ CF + content models ─▶ user→items,  item→items  ─▶ KV store (Redis/Dynamo)
+
+ONLINE (Spring Boot):
+   GET /recommendations?userId ─▶ read candidate list from KV
+     ─▶ filter (seen, out-of-stock)  ─▶ rank (weighted score)  ─▶ cache final list (Redis, short TTL)
+     ─▶ return                        ▲
+   cold user / cache miss ────────────┘ fallback: trending list
+   stale-while-revalidate: serve stale, refresh async</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Spring Boot; Redis in two layers (precomputed candidate store + short-TTL
+      response cache); PostgreSQL for seen/purchased history + catalog; Kafka for
+      interaction events feeding the batch job. The offline job (Spark / Python)
+      is described in the write-up, not implemented.
+    </p>
+
+    <h4>Sample REST API</h4>
+<pre><code>GET /api/v1/recommendations?userId=u_5&slot=home&limit=20
+  ──▶ 200 {
+    "items": [ { "id": "p_9", "score": 0.91, "reason": "people like you bought this" } ],
+    "strategy": "cf_v3", "cached": true
+  }
+
+GET /api/v1/items/p_9/similar?limit=10
+  ──▶ 200 { "items": [ { "id": "p_31", "score": 0.78 } ] }
+
+POST /api/v1/feedback   { "userId": "u_5", "itemId": "p_9", "action": "dismiss" }   ──▶ 202</code></pre>
+
+    <h4>Sample data stores</h4>
+<pre><code>Redis  rec:user:{id}    ⇒  [ item_id: score, … ]     (precomputed, refreshed by batch)
+Redis  rec:item:{id}    ⇒  [ item_id: score, … ]
+Redis  rec:resp:{userId}:{slot}  ⇒  final ranked list   TTL 300s
+Postgres  user_interactions(user_id, item_id, action, at)     -- also streamed to Kafka
+Postgres  catalog_cache(item_id, in_stock bool, price, category)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>API skeleton returning a static popularity list.</li>
+      <li>Read the candidate store (seed it with hand-computed data).</li>
+      <li>Filtering (seen / out-of-stock) + a ranking function.</li>
+      <li>Response cache in Redis with a deliberate cache-key design + TTL.</li>
+      <li>Cold-start fallback + per-slot config.</li>
+      <li>Stale-while-revalidate with async refresh.</li>
+      <li>Feedback events → Kafka.</li>
+      <li>Cache-invalidation hooks + hit-ratio / p99 metrics + a load test.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>Offline / online split</strong> — heavy model compute runs as a batch; the request path only does fast lookups + light ranking.</li>
+        <li><strong>Multi-layer caching</strong> and cache-key design (user + slot + model version).</li>
+        <li><strong>Cache-aside vs stale-while-revalidate</strong> — recommendations tolerate staleness, so serve stale and refresh behind the request.</li>
+        <li><strong>Cold start</strong> — the popularity fallback, and how a new user graduates to personalized.</li>
+        <li><strong>Hit ratio</strong> is the core metric; the p99 latency budget drives the caching aggressiveness.</li>
+        <li><strong>A/B hooks</strong> — slot config selects a strategy; you log which one served each response.</li>
+      </ul>
+    </div>
+    <div id="t-recommendation-api"></div>
+  </section>
+
+
+  <!-- ============================================================
+       12. FOOD ORDERING  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-food">
+    <h2>12. Zomato/Swiggy-style food ordering</h2>
+    <p class="muted small"><strong>Design &amp; write-up only</strong> — this one is a <em>composition</em> of earlier briefs.</p>
+
+    <h4>Problem statement</h4>
+    <p>
+      Discover restaurants near you, browse menus, place and pay for an order, and
+      track it from kitchen to doorstep — coordinating three parties: customer,
+      restaurant, and delivery partner.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Location-based restaurant search with filters (cuisine, veg, rating, ETA).</li>
+      <li>Menu with per-item availability; single-restaurant cart.</li>
+      <li>Checkout + payment + promo codes.</li>
+      <li>Order routed to the restaurant (accept / reject).</li>
+      <li>Auto-assign a delivery partner; live tracking.</li>
+      <li>Delivery fee by distance + demand; ratings.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Reuses cab-matching, notifications, order state machine</span>
+<pre><code>Catalog/Search Service ─▶ Elasticsearch + Redis GEO   (restaurants near lat/lng)
+Order Service ─▶ Postgres  (state machine: PENDING_RESTAURANT → ACCEPTED → PREPARING
+                            → READY → PICKED_UP → DELIVERED, + REJECTED/CANCELLED)
+Payment Service ─▶ gateway ; promo engine
+Dispatch Service ─▶ nearest free partner (same matching as project 6)
+Notification Service (project 2) ─▶ push at each transition
+WebSocket gateway ─▶ live partner location + ETA
+Kafka ─▶ event backbone between all of them</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Spring Boot services, PostgreSQL, Redis GEO, Elasticsearch, Kafka,
+      WebSocket, S3/CDN for images.
+    </p>
+
+    <h4>Sample REST API</h4>
+<pre><code>GET  /api/restaurants?lat=12.97&lng=77.59&cuisine=south-indian&sort=eta
+  ──▶ 200 { "restaurants": [ { "id": "r_3", "name": "MTR", "etaMin": 32,
+            "deliveryFee": 29, "rating": 4.5 } ] }
+
+POST /api/orders
+{ "restaurantId": "r_3", "items": [ { "itemId": "i_9", "qty": 2 } ],
+  "addressId": "a_1", "promoCode": "FIRST50" }
+  ──▶ 201 { "orderId": "o_7", "total": 218.00, "status": "PENDING_RESTAURANT" }
+
+GET  /api/orders/o_7/track
+  ──▶ 200 { "status": "PICKED_UP", "partner": { "lat": 12.95, "lng": 77.60 }, "etaMin": 12 }</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>restaurants(id, name, cuisine text[], location geography, rating_avg, is_open)
+menu_items(id, restaurant_id, name, price, is_veg)
+menu_item_availability(item_id primary key, available bool)
+orders(id, customer_id, restaurant_id, status, subtotal, discount, delivery_fee,
+       total, placed_at)
+order_items(order_id, item_id, qty, unit_price)
+delivery_partners(id, status, location geography)          -- AVAILABLE | ON_DELIVERY
+deliveries(id, order_id, partner_id, assigned_at, picked_up_at, delivered_at)
+payments(order_id, amount, status)   promos(code, kind, value, min_order, expires_at)
+ratings(order_id, food_score, delivery_score, comment)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Restaurant + menu model + geo search.</li>
+      <li>Cart + order placement + the order state machine.</li>
+      <li>Payment + promo application.</li>
+      <li>Restaurant accept / reject console.</li>
+      <li>Dispatch: assign the nearest free partner with retry.</li>
+      <li>WebSocket live tracking.</li>
+      <li>Delivery-fee / surge engine.</li>
+      <li>Ratings + wire in the notification service.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>It's a composition</strong> — geo search (project 6), a fan-out dispatch/matching (project 6), a notification service (project 2), an order state machine (project 1). Say that explicitly; it shows you see the building blocks.</li>
+        <li><strong>Three-sided coordination</strong> — the state machine spans customer, restaurant, and partner; each transition is an event.</li>
+        <li><strong>Partial failure</strong> — payment succeeds but the restaurant rejects → automatic refund + notify; design the compensation.</li>
+        <li><strong>ETA</strong> — prep time + travel time; both are estimates you refine as the order progresses.</li>
+      </ul>
+    </div>
+    <div id="t-food-ordering"></div>
+  </section>
+
+
+  <!-- ============================================================
+       13. LINKEDIN-STYLE NETWORK  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-linkedin">
+    <h2>13. LinkedIn-style professional network</h2>
+    <p class="muted small"><strong>Design &amp; write-up only.</strong></p>
+
+    <h4>Problem statement</h4>
+    <p>
+      Profiles, a <strong>symmetric</strong> connection graph, a feed, and the
+      degree-of-connection and "People You May Know" features that define a
+      professional network.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Rich profile (experience, skills, education).</li>
+      <li>Connection request → accept → a symmetric edge.</li>
+      <li>1st / 2nd / 3rd-degree computation + mutual-connection count.</li>
+      <li>Feed of posts from connections.</li>
+      <li>"People You May Know" from mutual connections + shared company/school.</li>
+      <li>People search with filters; notifications.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Dedicated graph service</span>
+<pre><code>Profile Service ─▶ Postgres (profiles, positions, skills)
+Graph Service   ─▶ adjacency in Redis sets  (conn:{userId} ⇒ {friend ids})   or Neo4j
+                   degree query = depth-limited BFS (stop at 3), cap fan-out per hop
+Feed Service    ─▶ hybrid fan-out (project 8)
+Search          ─▶ Elasticsearch (people, jobs)
+PYMK batch job  ─▶ count mutual connections + shared attributes ─▶ Redis  pymk:{userId}
+Kafka           ─▶ connection.accepted, profile.updated events</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Spring Boot, PostgreSQL, Redis sets (or Neo4j) for the graph, Elasticsearch
+      for search, Kafka, a nightly PYMK batch job.
+    </p>
+
+    <h4>Sample REST API</h4>
+<pre><code>POST /api/connections/requests        { "toUserId": "u_9" }
+  ──▶ 201 { "requestId": "rq_2", "status": "PENDING" }
+
+POST /api/connections/requests/rq_2/accept
+  ──▶ 200 { "status": "CONNECTED", "since": "2026-09-04" }
+
+GET  /api/users/u_1/network?degree=2&limit=50
+  ──▶ 200 { "users": [ { "id": "u_44", "mutualCount": 12 } ] }
+
+GET  /api/pymk?limit=20
+  ──▶ 200 { "suggestions": [ { "userId": "u_71", "reason": "12 mutual connections" } ] }</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>users(id, headline, location, current_company_id, school_id)
+profiles(user_id primary key, summary, updated_at)
+positions(id, user_id, company_id, title, start_date, end_date)
+skills(user_id, skill, endorsements)
+connections(user_a bigint, user_b bigint, status text, connected_at,
+            primary key (user_a, user_b))         -- store canonical pair a<b
+connection_requests(id, from_user, to_user, status, created_at)
+pymk_suggestions(user_id, candidate_id, score, reason, generated_at)   -- Redis hot copy</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Profile CRUD with sections.</li>
+      <li>Connection request / accept → symmetric edge (write both directions or a canonical pair).</li>
+      <li>Degree query: depth-limited BFS + mutual count; cap the fan-out.</li>
+      <li>Feed from connections (reuse the hybrid fan-out).</li>
+      <li>PYMK batch: mutual-connection count + shared attributes → cache.</li>
+      <li>People search with facets.</li>
+      <li>Notifications.</li>
+      <li>Privacy rules — what's visible at each degree.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>Symmetric graph modeling</strong> — store both directions or a canonical ordered pair; the trade-off is write amplification vs query simplicity.</li>
+        <li><strong>Storage choice</strong> — Redis sets / adjacency lists vs a graph DB; a graph DB earns its keep only when you do deep traversals a lot.</li>
+        <li><strong>Depth-limited BFS</strong> for degrees, and <em>why you must cap it</em> — 3rd-degree fan-out is millions of nodes.</li>
+        <li><strong>PYMK as an offline batch</strong> — essentially triangle counting; far too expensive per request.</li>
+        <li><strong>Privacy-by-degree</strong> — a cross-cutting rule that touches every read.</li>
+      </ul>
+    </div>
+    <div id="t-linkedin-network"></div>
+  </section>
+
+
+  <!-- ============================================================
+       14. AI AGENT (HITL)  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-agent">
+    <h2>14. AI agent for workflow automation (human-in-the-loop)</h2>
+    <p class="muted small"><strong>Design &amp; write-up only</strong> — though the milestone plan is buildable if you want a second GenAI project. See the <a href="genai.html">GenAI page</a> on agents.</p>
+
+    <h4>Problem statement</h4>
+    <p>
+      An agent that executes multi-step internal workflows ("onboard this vendor":
+      create records, request approvals, send emails, schedule tasks) by planning
+      and calling tools — <strong>pausing for a human</strong> on risky or
+      irreversible steps.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Accept a goal in natural language + context.</li>
+      <li>The agent plans and executes via a registered, typed tool set (<code>createTicket</code>, <code>sendEmail</code>, <code>updateCRM</code>, <code>scheduleMeeting</code>).</li>
+      <li>Classify each step by risk; pause and request approval for high-risk / irreversible ones.</li>
+      <li>Resume on approve / reject, feeding the human's note back into context.</li>
+      <li>Full audit trail of every thought, tool call, and result.</li>
+      <li>Per-tool timeout + retry; a tool allow-list and spend caps as guardrails.</li>
+      <li>Inspect / replay a run.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">A durable workflow engine with an LLM planner</span>
+<pre><code>Orchestrator (Spring Boot) run loop:
+  state = { goal, history[], pendingApproval? }   ── persisted every step in Postgres
+  iterate:
+    LLM(history, toolSchemas) ─▶ one of:
+        • tool call      ─▶ risk check ─▶ if low: execute adapter, append result
+                                        ─▶ if high: persist "AWAIT_APPROVAL", notify, STOP
+        • final answer   ─▶ mark DONE
+  resume(approvalId, decision) ─▶ rehydrate state ─▶ continue loop
+
+tools = Spring beans + JSON-schema descriptors    Redis lock: one active step per run
+Kafka: run events     idempotency: each tool call keyed so resume never re-fires a side effect</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Java 21, Spring Boot 3, <strong>Spring AI</strong> function/tool calling with
+      Claude, PostgreSQL (durable, resumable run + step state), Redis, Kafka,
+      Testcontainers. Tools are Spring beans exposing a JSON-schema descriptor.
+    </p>
+
+    <h4>Sample REST API</h4>
+<pre><code>POST /api/v1/runs
+{ "goal": "Onboard vendor Acme Corp", "context": { "vendorEmail": "ops@acme.com" },
+  "toolAllowList": ["createTicket", "sendEmail", "updateCRM"] }
+  ──▶ 201 { "runId": "run_5", "status": "PLANNING" }
+
+GET  /api/v1/runs/run_5
+  ──▶ 200 {
+    "status": "AWAIT_APPROVAL",
+    "steps": [
+      { "n": 1, "kind": "tool", "toolName": "createTicket", "state": "DONE" },
+      { "n": 2, "kind": "tool", "toolName": "sendEmail", "risk": "HIGH", "state": "PENDING_APPROVAL",
+        "input": { "to": "ops@acme.com", "subject": "Welcome" } }
+    ]
+  }
+
+POST /api/v1/runs/run_5/approvals/2   { "decision": "approve", "note": "looks good" }
+  ──▶ 200 { "status": "RUNNING" }</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>agent_runs(id text primary key, goal text, status text, state_json jsonb,
+           created_at, updated_at)
+agent_steps(run_id text, idx int, kind text, tool_name text,
+            input_json jsonb, output_json jsonb, risk text, approval_state text,
+            primary key (run_id, idx))
+tool_registry(name text primary key, schema_json jsonb, risk_default text, enabled bool)
+approvals(id bigserial primary key, run_id text, step_idx int, decision text,
+          note text, decided_by bigint, decided_at timestamptz)
+run_events(id bigserial primary key, run_id text, type text, payload jsonb, at)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Tool interface + 2–3 fake tools + their JSON-schema descriptors.</li>
+      <li>Agent loop (LLM ↔ tool calls) end-to-end for a low-risk goal.</li>
+      <li>Durable run / step state in Postgres — kill the process mid-run and resume.</li>
+      <li>Risk classification + the "AWAIT_APPROVAL" pause (persist &amp; stop).</li>
+      <li>Approval endpoint + resume, injecting the human's note into context.</li>
+      <li>Per-tool retry / timeout + tool allow-list + a spend-cap guardrail.</li>
+      <li>Full audit trail + a run-inspector endpoint.</li>
+      <li>Idempotent tool execution — a resume must never re-send an email — + an eval over sample workflows.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>The agent loop</strong> — ReAct-style: observe → think → act → repeat, with tool schemas given to the model.</li>
+        <li><strong>Durable, resumable state is the hard part</strong> — this is really a workflow engine; the LLM is just the planner. State lives in Postgres, not in memory.</li>
+        <li><strong>Human-in-the-loop as a first-class state</strong>, not a callback — the run genuinely stops and is rehydrated later.</li>
+        <li><strong>Idempotency on resume</strong> — the single most important correctness property; every side-effecting tool call is keyed so it never double-fires.</li>
+        <li><strong>Guardrails</strong> — allow-list, spend caps, risk gates; you never let the model free-run irreversible actions.</li>
+        <li><strong>Auditability</strong> — every thought and tool result is logged for replay and debugging.</li>
+      </ul>
+    </div>
+    <div id="t-ai-agent"></div>
+  </section>
+
+
+  <!-- ============================================================
+       15. CODE REVIEW ASSISTANT  (DESIGN)
+       ============================================================ -->
+  <section class="topic" id="p-review">
+    <h2>15. AI-augmented code review assistant</h2>
+    <p class="muted small"><strong>Design &amp; write-up only.</strong></p>
+
+    <h4>Problem statement</h4>
+    <p>
+      A bot that comments on pull requests — flagging likely bugs, security
+      issues, convention violations, and missing tests — as a useful
+      <strong>first-pass</strong> reviewer that saves humans time
+      <strong>without being noisy</strong>.
+    </p>
+
+    <h4>Functional requirements</h4>
+    <ul class="small">
+      <li>Receive a PR webhook (GitHub / GitLab); fetch the diff + changed files + surrounding context.</li>
+      <li>Run deterministic checks (linters, static analysis, coverage delta) <em>and</em> LLM checks (per-hunk bug/risk reasoning).</li>
+      <li>Dedupe and rank findings by severity × confidence; drop anything below a threshold.</li>
+      <li>Post inline comments + one summary comment.</li>
+      <li>Respect a repo config (<code>.reviewbot.yml</code> — rules, ignored paths, threshold).</li>
+      <li>Don't re-comment on unchanged code across force-pushes.</li>
+      <li>Token / cost budget per PR; learn from resolved vs dismissed comments.</li>
+    </ul>
+
+    <h4>Architecture</h4>
+    <div class="box dryrun">
+      <span class="box-title">Deterministic tools + LLM judgment</span>
+<pre><code>GitHub ──webhook──▶ Webhook Service (verify signature) ─▶ enqueue review job (Kafka)
+                                                              │
+  Review Worker:  fetch diff ─▶ parse hunks
+     ├─ deterministic: checkstyle / spotbugs / semgrep  (shelled out in a sandbox) ─▶ findings
+     └─ LLM: per hunk + file context ─▶ Claude ─▶ structured findings (JSON schema)
+  Aggregator: dedupe by (file,line,rule) ─▶ rank severity×confidence ─▶ apply repo threshold
+  VCS adapter: post inline comments + summary
+  Redis: per-PR dedupe hashes (skip lines already commented on an earlier push)
+  Postgres: review_runs, findings, feedback</code></pre>
+    </div>
+
+    <h4>Tech stack</h4>
+    <p class="small">
+      Java 21, Spring Boot 3, Spring AI + Claude, PostgreSQL, Kafka, Redis, Docker
+      (a sandbox to run the linters), GitHub / GitLab REST adapters. The LLM is
+      prompted per hunk and must return findings matching a strict JSON schema.
+    </p>
+
+    <h4>Sample REST / webhook API</h4>
+<pre><code>POST /api/v1/webhooks/github        (PR opened / synchronize)
+  ──▶ 202 { "reviewRunId": "rr_9" }
+
+GET  /api/v1/reviews/rr_9
+  ──▶ 200 {
+    "status": "COMPLETED",
+    "findings": [
+      { "file": "OrderService.java", "line": 88, "severity": "HIGH", "category": "bug",
+        "message": "Possible NPE: `payment` may be null when status == FAILED",
+        "confidence": 0.72, "source": "llm" },
+      { "file": "OrderService.java", "line": 12, "severity": "LOW", "category": "style",
+        "message": "Unused import", "confidence": 1.0, "source": "checkstyle" }
+    ]
+  }
+
+POST /api/v1/findings/f_3/feedback   { "resolution": "dismissed", "reason": "false positive" }  ──▶ 202</code></pre>
+
+    <h4>Sample database schema</h4>
+<pre><code>review_runs(id text primary key, repo text, pr_number int, head_sha text,
+            status text, prompt_tokens int, cost_usd numeric(8,4), created_at)
+findings(id text primary key, run_id text, file text, line int,
+         severity text, category text, message text, confidence numeric(4,2),
+         source text, dedupe_key text, posted bool)
+repo_configs(repo text primary key, yaml jsonb, updated_at)
+feedback_events(id bigserial primary key, finding_id text, resolution text,
+                reason text, at timestamptz)</code></pre>
+
+    <h4>Build-order milestones</h4>
+    <ol class="small">
+      <li>Webhook intake — verify the signature, enqueue a job.</li>
+      <li>Diff fetch + hunk parsing.</li>
+      <li>Deterministic analyzers (checkstyle / spotbugs / semgrep) → findings.</li>
+      <li>LLM analyzer per hunk with file context → schema-validated findings.</li>
+      <li>Aggregator: dedupe by <code>dedupe_key</code>, rank by severity × confidence, apply the repo threshold.</li>
+      <li>VCS adapter: post inline + summary comments.</li>
+      <li>Cross-push dedupe (skip unchanged lines) + a per-PR cost cap.</li>
+      <li>Feedback capture + a precision metric (accepted / total) to tune the prompt and threshold.</li>
+    </ol>
+
+    <div class="box intuition">
+      <span class="box-title">What to say about this in an interview</span>
+      <ul class="small">
+        <li><strong>Hybrid by design</strong> — rules where rules are exact (unused import), the LLM only for judgment calls (this null path looks reachable).</li>
+        <li><strong>The noise problem</strong> — precision over recall; a noisy bot gets muted. Confidence thresholds and severity gating exist for this.</li>
+        <li><strong>Dedupe across force-pushes</strong> — comment once; track a <code>dedupe_key</code> so a rebase doesn't repeat 30 comments.</li>
+        <li><strong>Per-hunk context windows</strong> — you feed the hunk + surrounding lines + the file's imports, not the whole repo.</li>
+        <li><strong>Structured LLM output</strong> — a strict JSON schema with retry-on-invalid, so the aggregator can trust the shape.</li>
+        <li><strong>Cost control</strong> — a token budget per PR; skip generated files and vendored code.</li>
+        <li><strong>Feedback loop</strong> — dismissed/accepted rates are how you <em>measure</em> the bot, and they feed prompt + threshold tuning.</li>
+      </ul>
+    </div>
+    <div id="t-code-review-assistant"></div>
+  </section>
+
+
+  <p class="backlink">
+    <a href="index.html">← Back to home &amp; dashboard</a>
+    &nbsp;·&nbsp; <a href="electives.html">← Electives</a>
+  </p>
+
+  <footer class="foot">
+    <p>
+      Runs in parallel with the <a href="roadmap.html">8-month roadmap</a>. Build
+      the four starred projects, push them to GitHub with a real README + the
+      architecture diagram, and be able to whiteboard the other eleven. Next:
+      Job Search.
+    </p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("projects", [
+  /* ---------- Build fully ---------- */
+  {
+    group: "Order Management ⭐ (build)",
+    mount: "#t-order-management",
+    items: [
+      "Orders + items + REST + Flyway + Testcontainers",
+      "Idempotency-Key: repeated request returns the same order",
+      "Inventory reservation (FOR UPDATE / version) + expiry release job",
+      "Payment auth/capture stub + guarded state machine",
+      "Outbox -> Kafka -> fulfilment consumer advances state",
+      "Cancellation + compensation; PAYMENT_PENDING reaper",
+      "OpenAPI + happy-path & race integration tests + README diagram"
+    ]
+  },
+  {
+    group: "Notification Service ⭐ (build)",
+    mount: "#t-notification-service",
+    items: [
+      "API + persistence + POST/GET + Flyway + Testcontainers",
+      "Template rendering + request validation",
+      "Per-channel RabbitMQ queues + fake provider worker",
+      "Exponential backoff + jitter via TTL queues; DLQ + redrive",
+      "Idempotency/dedupe (Redis SETNX) + token-bucket rate limit",
+      "User prefs + quiet hours + channel fallback",
+      "Provider webhooks update status; real SES/Twilio adapter",
+      "In-app feed + Micrometer metrics + README diagram"
+    ]
+  },
+  {
+    group: "Payments Quoting & Settlement ⭐ (build)",
+    mount: "#t-payments-service",
+    items: [
+      "Money type decided; pricing engine as a pure unit-tested module",
+      "Tax module: jurisdiction rules + per-rule rounding, unit-tested",
+      "Quote persistence + expiry; immutable line items",
+      "Booking = quote -> payment.authorize(); idempotency store-and-replay",
+      "Double-entry ledger in one SERIALIZABLE txn; sum(D)=sum(C) test",
+      "Settlement: capture + tolerance + adjustment entry",
+      "Refund/void as forward txns + outbox events",
+      "Nightly reconciliation + report; property-based money tests; README"
+    ]
+  },
+  {
+    group: "RAG Support Assistant ⭐ (build, GenAI)",
+    mount: "#t-rag-assistant",
+    items: [
+      "Schema + pgvector extension + Flyway; document/chunk entities",
+      "Ingestion: md/pdf loader -> token-aware chunker -> embed -> store",
+      "Retriever: top-k cosine; tune k + chunk size; retrieval_logs",
+      "Chat endpoint: grounded prompt -> Spring AI/Claude -> parse citations",
+      "Grounding gate (max_score < tau -> 'I don't know') + citation enforcement",
+      "Conversation memory (last N turns, summarized) in Redis",
+      "Hybrid search + eval: retrieval precision@k, answer relevance",
+      "Feedback loop + re-index + PII/injection filter + cost metrics + README"
+    ]
+  },
+
+  /* ---------- Design & write-up only ---------- */
+  {
+    group: "Streaming Platform (design)",
+    mount: "#t-streaming",
+    items: [
+      "Control plane (Spring Boot) vs data plane (CDN + S3) framing",
+      "ABR ladder + HLS/DASH segments + rolling manifest",
+      "Playback API: entitlement + geo -> signed CDN manifest URL",
+      "Resume position: Redis hot, flush to Postgres",
+      "CDN offload math + cache-hit ratio as the metric",
+      "Spike handling: pre-scale, pre-warm, waiting room, bitrate cap"
+    ]
+  },
+  {
+    group: "Cab Booking (design)",
+    mount: "#t-cab-booking",
+    items: [
+      "Trip state machine + ride_events append-only log",
+      "Driver location -> Redis GEO; history -> Cassandra via Kafka",
+      "Nearest-driver GEORADIUS + offer/accept with TTL",
+      "Geospatial indexing: geohash / quadtree / S2",
+      "Surge = demand/supply per zone",
+      "Accept must be compare-and-set (driver offered twice)"
+    ]
+  },
+  {
+    group: "Parking Lot (design/LLD)",
+    mount: "#t-parking-lot",
+    items: [
+      "OO model: Spot/Level/Ticket/RateStrategy/AllocationStrategy",
+      "Nearest free compatible spot via FOR UPDATE SKIP LOCKED",
+      "Pricing: Strategy pattern, rounding + day cap",
+      "Availability counters in Redis + reconcile job",
+      "Concurrency test: N gates, no double-allocation",
+      "Keep it crisp - it's a warm-up question"
+    ]
+  },
+  {
+    group: "Social Media Backend (design)",
+    mount: "#t-social-backend",
+    items: [
+      "Fan-out on write vs read + the hybrid for celebrities",
+      "Timeline = materialized Redis cache, rebuildable from Postgres",
+      "Kafka decouples the write from fan-out",
+      "Counters in Redis, periodic flush; eventually consistent",
+      "Cursor (not offset) pagination",
+      "Hot-key / celebrity problem stated explicitly"
+    ]
+  },
+  {
+    group: "Chat UI - WebSockets (design)",
+    mount: "#t-chat-ui",
+    items: [
+      "Optimistic echo + reconcile by tempId on ack",
+      "Message state machine: pending/sent/delivered/read",
+      "Local-first: IndexedDB is the render source, server sends deltas",
+      "Reconnect with lastSeenCursor -> exact backfill, no dupes/holes",
+      "Single multiplexed WS + heartbeat + exp-backoff reconnect",
+      "Offline outbound queue + idempotent replay"
+    ]
+  },
+  {
+    group: "E-commerce Catalog UI (design)",
+    mount: "#t-catalog-ui",
+    items: [
+      "URL query string is the single source of truth for filters",
+      "Faceted search = Elasticsearch aggregations",
+      "React Query: stale-while-revalidate, dedupe, background refetch",
+      "Optimistic cart + server reconciliation",
+      "Image perf: responsive srcset, lazy load, resizing CDN",
+      "Pagination vs infinite scroll trade-offs"
+    ]
+  },
+  {
+    group: "Recommendation API (design)",
+    mount: "#t-recommendation-api",
+    items: [
+      "Offline batch computes candidates; online path only looks up + ranks",
+      "Two Redis layers: candidate store + short-TTL response cache",
+      "Cache-key design: user + slot + model version",
+      "Stale-while-revalidate (recs tolerate staleness)",
+      "Cold start -> popularity fallback",
+      "Hit ratio + p99 are the metrics; A/B via slot config"
+    ]
+  },
+  {
+    group: "Food Ordering (design)",
+    mount: "#t-food-ordering",
+    items: [
+      "Composition: geo search + dispatch (proj 6) + notifications (proj 2) + order SM (proj 1)",
+      "3-sided state machine: customer / restaurant / partner",
+      "Geo restaurant search (Elasticsearch + Redis GEO)",
+      "Dispatch: nearest free partner with retry",
+      "Partial failure: paid but rejected -> auto refund + notify",
+      "ETA = prep time + travel time, refined as it progresses"
+    ]
+  },
+  {
+    group: "LinkedIn-style Network (design)",
+    mount: "#t-linkedin-network",
+    items: [
+      "Symmetric edge: canonical pair vs both directions trade-off",
+      "Graph storage: Redis sets/adjacency vs Neo4j - when a graph DB pays off",
+      "Depth-limited BFS for degrees + why you must cap fan-out",
+      "PYMK as an offline batch (triangle counting)",
+      "Feed reuses hybrid fan-out",
+      "Privacy-by-degree as a cross-cutting read rule"
+    ]
+  },
+  {
+    group: "AI Agent - HITL (design)",
+    mount: "#t-ai-agent",
+    items: [
+      "ReAct loop: observe/think/act with tool schemas",
+      "Durable resumable state in Postgres = it's a workflow engine",
+      "Human-in-the-loop is a first-class state, not a callback",
+      "Idempotency on resume: side-effecting tool calls never double-fire",
+      "Guardrails: tool allow-list, spend caps, risk gates",
+      "Full audit trail of thoughts + tool results for replay"
+    ]
+  },
+  {
+    group: "Code Review Assistant (design)",
+    mount: "#t-code-review-assistant",
+    items: [
+      "Hybrid: deterministic tools for exact rules, LLM only for judgment",
+      "Precision over recall - a noisy bot gets muted",
+      "Dedupe by (file,line,rule) across force-pushes",
+      "Per-hunk context window, not the whole repo",
+      "Strict JSON-schema LLM output with retry-on-invalid",
+      "Per-PR token budget; feedback (accepted/dismissed) tunes it"
+    ]
+  }
+], { pageTitle: "Projects: portfolio builds + design write-ups" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("projects");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

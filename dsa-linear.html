@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSA · Linear — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html" class="active">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>DSA — Linear Structures &amp; Core Patterns</h1>
+  <p class="lede">
+    Phase 1, first half. This page is organised <strong>by pattern</strong>, not by
+    data structure — because in an interview you are handed a problem, not a label.
+    The skill that gets rewarded is looking at an unfamiliar prompt and recognising
+    "this is a sliding window" or "this is really a binary search on the answer"
+    within the first two minutes. Every section below ends with a
+    <em>how to recognise it</em> checklist built for exactly that.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>How to use this page.</strong> For each pattern: read the explanation,
+      re-type the worked example yourself and run it, trace the dry run on paper
+      once, then read the recognition section twice — that is the part that
+      transfers. Finally solve the practice problems (all are on LeetCode; the
+      number in brackets is the problem ID). Tick each one off as you get it
+      accepted — the bars feed the <a href="index.html">home dashboard</a>. Aim for
+      one pattern every 2–3 study nights, ~5 problems each on the weekend.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — all practice problems</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#arrays">1D &amp; 2D Arrays</a></li>
+      <li><a href="#two-pointers">Two Pointers</a></li>
+      <li><a href="#sliding-window">Sliding Window</a></li>
+      <li><a href="#binary-search">Binary Search &amp; Search-Space</a></li>
+      <li><a href="#strings">Strings</a></li>
+      <li><a href="#bit-manipulation">Bit Manipulation</a></li>
+      <li><a href="#number-systems-maths">Number Systems &amp; Maths</a></li>
+      <li><a href="#recursion">Recursion</a></li>
+      <li><a href="#hashing">Hashing</a></li>
+      <li><a href="#sorting">Sorting</a></li>
+      <li><a href="#linked-lists">Linked Lists</a></li>
+      <li><a href="#stacks-queues">Stacks &amp; Queues</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ================= 1. 1D & 2D ARRAYS ================= -->
+  <section class="topic" id="arrays">
+    <h2>1 · 1D &amp; 2D Arrays</h2>
+
+    <p>
+      An array is a fixed block of contiguous memory, so <code>a[i]</code> is
+      <code>O(1)</code>: the JVM computes <code>base + i · elementSize</code>
+      directly. A 2D array in Java is really an <em>array of arrays</em> —
+      <code>int[][] g = new int[rows][cols]</code> allocates one outer array of
+      references, each pointing at its own row. That means rows can have different
+      lengths (a <em>jagged</em> array), <code>g.length</code> is the row count and
+      <code>g[i].length</code> is that row's column count. Logically, though, you
+      address a grid as <code>g[row][col]</code> and iterate rows in the outer
+      loop, columns in the inner.
+    </p>
+    <p>
+      The dominant <em>pattern</em> for arrays is the <strong>prefix sum</strong>:
+      precompute <code>pre[i+1] = pre[i] + a[i]</code> once, and then the sum of any
+      range <code>a[l..r]</code> is <code>pre[r+1] - pre[l]</code> in
+      <code>O(1)</code>. This turns "answer Q range-sum queries" from
+      <code>O(Q·n)</code> into <code>O(n + Q)</code>, and it composes: paired with a
+      hash map it answers "how many subarrays sum to <code>k</code>"; extended to
+      two dimensions it answers "sum of any sub-rectangle". Its cousin, the
+      <strong>difference array</strong>, does the reverse — <code>O(1)</code> range
+      updates, one final pass to materialise the result.
+    </p>
+    <p>
+      The other array staples are <strong>in-place</strong> techniques (reversing,
+      rotating, partitioning without an auxiliary array — <code>O(1)</code> extra
+      space), and structured 2D traversals (row-major, column-major, diagonal,
+      spiral, boundary). Almost every "matrix" interview problem is a disciplined
+      double loop where the trick is expressing the second index as a function of
+      the first.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        If a brute force re-scans a stretch of the array for every query or every
+        starting index, ask: "can I precompute a table so each answer is a subtraction?"
+        For grids: fix which index the outer loop owns, then write every other index
+        as an expression in it — don't try to picture the whole traversal at once.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — prefix sums for range-sum queries</p>
+<pre><code>public class PrefixSum {
+    public static void main(String[] args) {
+        int[] a = {3, 1, 4, 1, 5, 9, 2, 6};
+        int n = a.length;
+
+        long[] pre = new long[n + 1];            // pre[0] = 0; long guards overflow
+        for (int i = 0; i &lt; n; i++)
+            pre[i + 1] = pre[i] + a[i];
+
+        // sum of a[l..r] inclusive = pre[r + 1] - pre[l]
+        System.out.println(rangeSum(pre, 2, 5)); // 4 + 1 + 5 + 9 = 19
+        System.out.println(rangeSum(pre, 0, 7)); // whole array   = 31
+    }
+
+    static long rangeSum(long[] pre, int l, int r) {
+        return pre[r + 1] - pre[l];
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — building <code>pre</code>, then two queries</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>i</th><th>a[i]</th><th>pre[i+1] = pre[i] + a[i]</th></tr></thead>
+        <tbody>
+          <tr><td>—</td><td>—</td><td>pre[0] = 0</td></tr>
+          <tr><td>0</td><td>3</td><td>pre[1] = 3</td></tr>
+          <tr><td>1</td><td>1</td><td>pre[2] = 4</td></tr>
+          <tr><td>2</td><td>4</td><td>pre[3] = 8</td></tr>
+          <tr><td>3</td><td>1</td><td>pre[4] = 9</td></tr>
+          <tr><td>4</td><td>5</td><td>pre[5] = 14</td></tr>
+          <tr><td>5</td><td>9</td><td>pre[6] = 23</td></tr>
+          <tr><td>6</td><td>2</td><td>pre[7] = 25</td></tr>
+          <tr><td>7</td><td>6</td><td>pre[8] = 31</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <code>rangeSum(2, 5) = pre[6] - pre[2] = 23 - 4 = 19</code> — matches
+        <code>4 + 1 + 5 + 9</code>. <code>rangeSum(0, 7) = pre[8] - pre[0] = 31</code>.
+        Each query is one subtraction regardless of range width.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <p>
+      Arrays are the default container, so the useful signal is not "is there an
+      array" but "which array <em>pattern</em> is hiding here."
+    </p>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"Sum / average / count over a range" — especially <em>many</em> ranges, or the same array queried repeatedly → <strong>prefix sum</strong>.</li>
+        <li>"Number of subarrays with sum equal to <code>k</code>", "subarray sums divisible by <code>k</code>" → prefix sum + hash map.</li>
+        <li>"Apply <code>+v</code> to every index in <code>[l, r]</code>, many times, then report the array" → <strong>difference array</strong>.</li>
+        <li>"Rotate / reverse / partition <em>in place</em>", "<code>O(1)</code> extra space" → in-place two-pointer or cyclic-replacement.</li>
+        <li>Words like <em>grid, matrix, board, island, region, spiral, diagonal</em> → structured 2D traversal; sum-of-sub-rectangle → 2D prefix sum.</li>
+        <li>"Next / previous element with property X" → this is usually a monotonic-stack problem (§12), not a nested loop.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>pre</code> sized <code>n</code> instead of <code>n + 1</code>, then fighting off-by-one on <code>pre[r + 1]</code>.</li>
+        <li>Prefix sums overflowing <code>int</code> on a long array of large values — use <code>long</code>.</li>
+        <li><code>g[0].length</code> on an empty or jagged 2D array → <code>ArrayIndexOutOfBounds</code> / wrong column count.</li>
+        <li>Swapping rows and columns: <code>g.length</code> is rows, <code>g[i].length</code> is columns.</li>
+        <li>Modifying the array while iterating and letting indices shift under you.</li>
+        <li>Assuming <code>new int[r][c]</code> is one contiguous block — it is <code>r</code> separate row arrays.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-arrays"></div>
+  </section>
+
+
+  <!-- ================= 2. TWO POINTERS ================= -->
+  <section class="topic" id="two-pointers">
+    <h2>2 · Two Pointers</h2>
+
+    <p>
+      Two pointers replaces a nested "for every pair" loop with two indices whose
+      movement is <strong>monotonic</strong> — each pointer only ever moves in one
+      direction, so the total work is <code>O(n)</code> instead of
+      <code>O(n²)</code>, with <code>O(1)</code> extra space. There are two distinct
+      shapes.
+    </p>
+    <p>
+      <strong>Converging pointers</strong> start at opposite ends and move inward.
+      This is the shape for a sorted array ("find a pair summing to
+      <code>target</code>": if the current sum is too small move the left pointer
+      right, if too big move the right pointer left), for palindromes ("compare
+      <code>s[i]</code> and <code>s[j]</code>, step both inward"), and for
+      "container with most water" style area problems.
+    </p>
+    <p>
+      <strong>Same-direction pointers</strong> (often called <em>slow</em> and
+      <em>fast</em>, or <em>read</em> and <em>write</em>) both move left-to-right at
+      different rates or under different conditions. <code>slow</code> marks where
+      the next kept element should go; <code>fast</code> scans ahead. This is how
+      you remove duplicates from a sorted array, move all zeros to the end, or
+      compact a list in place — all in one pass without an auxiliary array.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        You are collapsing a 2D search (all pairs <code>i &lt; j</code>) into a 1D
+        walk. That only works when moving a pointer <em>provably</em> rules out a
+        whole set of possibilities — e.g. in a sorted array, if
+        <code>a[i] + a[j]</code> is already too big, every pair using
+        <code>a[j]</code> with a larger left element is also too big, so
+        <code>j--</code> loses nothing.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — pair with a given sum in a sorted array</p>
+<pre><code>public class TwoSumSorted {
+    static int[] twoSum(int[] a, int target) {
+        int i = 0, j = a.length - 1;
+        while (i &lt; j) {
+            int sum = a[i] + a[j];
+            if (sum == target) return new int[]{i, j};
+            if (sum &lt; target) i++;      // need a bigger sum: raise the low end
+            else                j--;    // need a smaller sum: lower the high end
+        }
+        return new int[]{-1, -1};
+    }
+
+    public static void main(String[] args) {
+        int[] a = {1, 3, 4, 5, 7, 11};
+        int[] r = twoSum(a, 9);
+        System.out.println(r[0] + " " + r[1]);   // 2 3   (a[2]=4, a[3]=5)
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — a = {1, 3, 4, 5, 7, 11}, target = 9</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>i</th><th>j</th><th>a[i] + a[j]</th><th>vs target</th><th>move</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>5</td><td>1 + 11 = 12</td><td>&gt; 9</td><td>j = 4</td></tr>
+          <tr><td>0</td><td>4</td><td>1 + 7 = 8</td><td>&lt; 9</td><td>i = 1</td></tr>
+          <tr><td>1</td><td>4</td><td>3 + 7 = 10</td><td>&gt; 9</td><td>j = 3</td></tr>
+          <tr><td>1</td><td>3</td><td>3 + 5 = 8</td><td>&lt; 9</td><td>i = 2</td></tr>
+          <tr><td>2</td><td>3</td><td>4 + 5 = 9</td><td>= 9</td><td>return {2, 3}</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Five steps for six elements. A brute force would have checked up to
+        <code>15</code> pairs.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <p>
+      The tell is a brute force of the form "for each <code>i</code>, for each
+      <code>j &gt; i</code> …" combined with either a sorted input or a structure
+      that lets you decide <em>which</em> end to move.
+    </p>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>Input is <strong>sorted</strong> (or you are allowed to sort it) and you need a pair / triplet with a sum, difference, or product property.</li>
+        <li>"Compare from both ends" — palindrome, reverse in place, is-subsequence, valid mountain array.</li>
+        <li>"Two lines / bars / walls" and an area or distance between them — move the pointer at the limiting side.</li>
+        <li>"Remove / move / dedup elements <strong>in place</strong>, keep relative order" → slow write-pointer, fast read-pointer.</li>
+        <li>"Merge two sorted arrays / lists" → one pointer per input.</li>
+        <li>Partitioning into two or three groups by a predicate (Dutch national flag).</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Applying sorted-array logic to unsorted data — the "move the smaller side" argument no longer holds.</li>
+        <li>Sorting when the problem needs original indices, then returning the sorted positions.</li>
+        <li><code>i &lt;= j</code> instead of <code>i &lt; j</code>, double-counting the middle element.</li>
+        <li>Moving neither pointer on some branch → infinite loop.</li>
+        <li>3Sum / 4Sum: not skipping over duplicate values, producing duplicate tuples.</li>
+        <li>Slow/fast compaction: forgetting to only advance <code>slow</code> when you actually keep an element.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-two-pointers"></div>
+  </section>
+
+
+  <!-- ================= 3. SLIDING WINDOW ================= -->
+  <section class="topic" id="sliding-window">
+    <h2>3 · Sliding Window</h2>
+
+    <p>
+      A sliding window is a contiguous range <code>[left, right]</code> over an
+      array or string that you grow and shrink instead of recomputing. The
+      <code>right</code> pointer marches forward one step at a time, adding each new
+      element to a running summary (a sum, a count, a character-frequency map, a
+      distinct-element count). Whenever the window breaks its constraint, you
+      advance <code>left</code>, removing elements from the summary, until the
+      window is valid again. Because every index is added once and removed once,
+      the whole scan is <code>O(n)</code> even though it "feels" nested.
+    </p>
+    <p>
+      <strong>Fixed-size</strong> windows (exactly <code>k</code> elements) are the
+      simplest: add the incoming element, remove the one that fell off the back,
+      read the answer. <strong>Variable-size</strong> windows come in two flavours —
+      "longest window that stays valid" (grow greedily, shrink only when invalid,
+      record the max length) and "shortest window that becomes valid" (grow until
+      valid, then shrink as far as you can while staying valid, record the min).
+    </p>
+    <p>
+      The technique depends on the constraint being <em>monotonic</em> with respect
+      to window size: adding elements can only push the window further from valid
+      (or further into valid), never flip it back and forth unpredictably. "At most
+      <code>k</code> distinct characters", "sum ≥ target with non-negative numbers",
+      and "no repeated character" all have this property. "Sum ≥ target <em>with
+      negative numbers</em>" does not — that one needs a prefix sum plus a deque.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Never look inside the window. Keep an <code>O(1)</code>-updatable summary of
+        it, and let the two edges do all the work: <code>right</code> always moves
+        forward; <code>left</code> only moves forward, and only when forced. If you
+        catch yourself writing a loop that re-scans <code>left..right</code>, the
+        pattern has slipped.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — longest substring with no repeating character</p>
+<pre><code>import java.util.Arrays;
+
+public class LongestUnique {
+    static int lengthOfLongest(String s) {
+        int[] lastSeen = new int[128];
+        Arrays.fill(lastSeen, -1);
+
+        int left = 0, best = 0;
+        for (int right = 0; right &lt; s.length(); right++) {
+            char c = s.charAt(right);
+            if (lastSeen[c] &gt;= left)        // a copy of c is inside the window
+                left = lastSeen[c] + 1;     // jump left just past that copy
+            lastSeen[c] = right;
+            best = Math.max(best, right - left + 1);
+        }
+        return best;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(lengthOfLongest("abcabcbb"));  // 3  -> "abc"
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — s = "abcabcbb"</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>right</th><th>c</th><th>lastSeen[c] ≥ left?</th><th>left</th><th>window</th><th>len</th><th>best</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>a</td><td>-1 ≥ 0 → no</td><td>0</td><td>"a"</td><td>1</td><td>1</td></tr>
+          <tr><td>1</td><td>b</td><td>-1 ≥ 0 → no</td><td>0</td><td>"ab"</td><td>2</td><td>2</td></tr>
+          <tr><td>2</td><td>c</td><td>-1 ≥ 0 → no</td><td>0</td><td>"abc"</td><td>3</td><td>3</td></tr>
+          <tr><td>3</td><td>a</td><td>0 ≥ 0 → yes</td><td>1</td><td>"bca"</td><td>3</td><td>3</td></tr>
+          <tr><td>4</td><td>b</td><td>1 ≥ 1 → yes</td><td>2</td><td>"cab"</td><td>3</td><td>3</td></tr>
+          <tr><td>5</td><td>c</td><td>2 ≥ 2 → yes</td><td>3</td><td>"abc"</td><td>3</td><td>3</td></tr>
+          <tr><td>6</td><td>b</td><td>4 ≥ 3 → yes</td><td>5</td><td>"cb"</td><td>2</td><td>3</td></tr>
+          <tr><td>7</td><td>b</td><td>6 ≥ 5 → yes</td><td>7</td><td>"b"</td><td>1</td><td>3</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <code>left</code> only ever increases; <code>right</code> visits each index
+        once → <code>O(n)</code>. Answer: <samp>3</samp>.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <p>
+      Two conditions together: the thing you are optimising is a
+      <strong>contiguous</strong> run, and the validity of a run changes
+      monotonically as it grows.
+    </p>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"<strong>Subarray</strong> / <strong>substring</strong>" (contiguous!) plus "longest", "shortest", "maximum sum of", "count of", or "does one exist".</li>
+        <li>A size is fixed: "window of size <code>k</code>", "every <code>k</code> consecutive", "<code>k</code>-length" → fixed window.</li>
+        <li>A budget you can spend and reclaim: "at most <code>k</code> distinct", "at most <code>k</code> replacements / flips / removals", "at most <code>k</code> zeros".</li>
+        <li>"Smallest window containing all of <code>T</code>", "permutation / anagram of <code>T</code> as a substring".</li>
+        <li>Brute force is "try every start and extend" and the input is not tiny.</li>
+        <li><strong>Not</strong> sliding window: subsequence (non-contiguous), or a sum constraint with negative numbers.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Shrinking with <code>if</code> when the invariant needs a <code>while</code> (or vice versa).</li>
+        <li>Recomputing the window's sum / counts from scratch each step — silently back to <code>O(n²)</code>.</li>
+        <li>Off-by-one in window length: it is <code>right - left + 1</code>.</li>
+        <li>Forgetting to undo the outgoing element's contribution when <code>left</code> advances.</li>
+        <li>Using it on a problem with negative numbers where "growing grows the sum" is false.</li>
+        <li>Recording the answer at the wrong moment (before shrinking for a "shortest", after shrinking for a "longest").</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-sliding-window"></div>
+  </section>
+
+
+  <!-- ================= 4. BINARY SEARCH ================= -->
+  <section class="topic" id="binary-search">
+    <h2>4 · Binary Search &amp; the "Search Space" Reframing</h2>
+
+    <p>
+      Textbook binary search: on a sorted array, look at the middle element,
+      compare with the target, and throw away the half that cannot contain it —
+      <code>O(log n)</code>. Compute the midpoint as
+      <code>lo + (hi - lo) / 2</code> to avoid <code>int</code> overflow. Keep two
+      templates straight: the <em>exact-match</em> template
+      (<code>while (lo &lt;= hi)</code>, return on hit, else <code>lo = mid + 1</code>
+      or <code>hi = mid - 1</code>), and the <em>boundary</em> template
+      (<code>while (lo &lt; hi)</code>, <code>hi = mid</code> or
+      <code>lo = mid + 1</code>, the answer is <code>lo</code>) for "first index
+      that satisfies P" / lower-bound style questions.
+    </p>
+    <p>
+      The bigger idea — the one that separates people who "know binary search" from
+      people who <em>see</em> it — is that binary search works on any
+      <strong>monotonic predicate over an ordered space</strong>. If there is some
+      value axis where a yes/no test flips exactly once, from
+      <code>false…false true…true</code>, you can binary-search for the flip point
+      even when no sorted array is anywhere in sight. The array is replaced by the
+      <em>range of possible answers</em>, and the comparison is replaced by a
+      <em>feasibility check</em>.
+    </p>
+    <p>
+      This is often called "binary search on the answer". Typical forms: "minimum
+      capacity so all packages ship within <code>D</code> days", "minimum eating
+      speed to finish in <code>H</code> hours", "largest minimum distance between
+      <code>k</code> placed items", "smallest divisor so the sum of ceilings ≤
+      threshold". In each, you cannot compute the answer directly, but given a
+      <em>candidate</em> answer you can check "is this enough?" in <code>O(n)</code>,
+      and that check is monotonic in the candidate. Binary-search the candidate:
+      <code>O(n log(range))</code>.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Ask: "can I phrase this as <em>find the smallest (or largest) <code>x</code>
+        for which <code>feasible(x)</code> is true</em>, where <code>feasible</code>
+        never goes true → false as <code>x</code> grows?" If yes, you don't need the
+        data sorted — you need the <strong>answer</strong> to live on an ordered
+        line, and you need a cheap feasibility test.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — minimum eating speed (search on the answer)</p>
+<pre><code>public class MinEatingSpeed {
+    static int minSpeed(int[] piles, int h) {
+        int lo = 1, hi = 0;
+        for (int p : piles) hi = Math.max(hi, p);   // fastest useful speed
+
+        while (lo &lt; hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (hoursNeeded(piles, mid) &lt;= h) hi = mid;   // feasible: try slower
+            else                              lo = mid + 1; // too slow: speed up
+        }
+        return lo;                                   // smallest feasible speed
+    }
+
+    static long hoursNeeded(int[] piles, int speed) {
+        long hours = 0;
+        for (int p : piles) hours += (p + speed - 1) / speed;   // ceil(p / speed)
+        return hours;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(minSpeed(new int[]{3, 6, 7, 11}, 8));  // 4
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — piles = {3, 6, 7, 11}, h = 8</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>lo</th><th>hi</th><th>mid</th><th>hoursNeeded(mid)</th><th>≤ 8?</th><th>update</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>11</td><td>6</td><td>1+1+2+2 = 6</td><td>yes</td><td>hi = 6</td></tr>
+          <tr><td>1</td><td>6</td><td>3</td><td>1+2+3+4 = 10</td><td>no</td><td>lo = 4</td></tr>
+          <tr><td>4</td><td>6</td><td>5</td><td>1+2+2+3 = 8</td><td>yes</td><td>hi = 5</td></tr>
+          <tr><td>4</td><td>5</td><td>4</td><td>1+2+2+3 = 8</td><td>yes</td><td>hi = 4</td></tr>
+          <tr><td colspan="6">lo == hi == 4 → return <samp>4</samp>. Speed 3 needs 10 h (too slow); speed 4 is the first that fits.</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        The "array" here is the imaginary list of speeds <code>1, 2, …, 11</code>,
+        and <code>feasible(speed) = hoursNeeded ≤ 8</code> is
+        <code>F F F T T T T T T T T</code> — one clean flip at 4.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>Sorted or <strong>rotated-sorted</strong> array + "find / count / insertion position / first or last occurrence".</li>
+        <li>"<strong>Minimize the maximum</strong>" or "<strong>maximize the minimum</strong>" of something.</li>
+        <li>"Smallest / largest <code>x</code> such that &lt;condition&gt;", where the condition clearly gets easier (or harder) as <code>x</code> grows.</li>
+        <li>The answer is an integer in a known range <code>[lo, hi]</code>, you can't compute it directly, but checking a guess is a simple <code>O(n)</code> pass.</li>
+        <li>Tuning a resource: days, speed, capacity, length, budget, divisor — "within / at most / at least".</li>
+        <li>Required complexity is <code>O(log n)</code> or <code>O(n log n)</code> and a linear scan is too slow.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>(lo + hi) / 2</code> overflowing — use <code>lo + (hi - lo) / 2</code>.</li>
+        <li><code>lo = mid</code> without <code>+ 1</code> in a <code>lo &lt; hi</code> loop → infinite loop.</li>
+        <li>Mixing the two templates and losing track of the invariant (is the answer <code>lo</code>, <code>hi</code>, or <code>lo - 1</code>?).</li>
+        <li>Binary-searching a predicate that isn't actually monotonic.</li>
+        <li>Feasibility check overflowing — accumulate hours / counts in a <code>long</code>.</li>
+        <li>Rotated array: comparing <code>a[mid]</code> against the wrong endpoint to decide which half is sorted.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-binary-search"></div>
+  </section>
+
+
+  <!-- ================= 5. STRINGS ================= -->
+  <section class="topic" id="strings">
+    <h2>5 · Strings</h2>
+
+    <p>
+      A Java <code>String</code> is an immutable <code>char</code> sequence — every
+      "modifying" call returns a new object. Building a result character by
+      character with <code>+=</code> in a loop is therefore <code>O(n²)</code>; use
+      a <code>StringBuilder</code> and one final <code>toString()</code>. Compare
+      contents with <code>.equals()</code>, never <code>==</code>. Because
+      <code>char</code> is an integer type, <code>c - 'a'</code> maps
+      <code>'a'..'z'</code> onto <code>0..25</code>, which is the whole basis of the
+      frequency-array trick.
+    </p>
+    <p>
+      Most string problems reduce to one of four techniques: <strong>frequency
+      counting</strong> with an <code>int[26]</code> (or <code>int[128]</code>, or a
+      <code>HashMap</code> for Unicode) — anagrams, permutations, first-unique,
+      "can we form"; <strong>two pointers</strong> — palindrome checks, reversal,
+      comparing from both ends; <strong>sliding window</strong> — longest / shortest
+      substring with a property (§3); and <strong>building</strong> with a
+      <code>StringBuilder</code> — compression, encoding, run-length, reversing
+      words.
+    </p>
+    <p>
+      A few problems need more: "longest palindromic substring" is cleanest with
+      <em>expand around centre</em> (try each of the <code>2n - 1</code> centres,
+      grow outward while the two sides match — <code>O(n²)</code>), and substring
+      search at scale uses <em>KMP</em> or a <em>rolling hash</em> (Rabin–Karp) to
+      hit <code>O(n + m)</code>. Know those two by name and when they apply, even if
+      you re-derive the details.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Before coding, classify: am I <em>counting characters</em>, <em>walking
+        from both ends</em>, <em>sliding a window</em>, or <em>building an
+        output</em>? A phrase like "lowercase English letters" is a near-certain
+        signal to reach for <code>int[26]</code>.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — are two strings anagrams (single frequency array)</p>
+<pre><code>public class Anagram {
+    static boolean isAnagram(String s, String t) {
+        if (s.length() != t.length()) return false;
+
+        int[] count = new int[26];
+        for (int i = 0; i &lt; s.length(); i++) {
+            count[s.charAt(i) - 'a']++;    // +1 for a char in s
+            count[t.charAt(i) - 'a']--;    // -1 for a char in t
+        }
+        for (int c : count) if (c != 0) return false;   // any imbalance -&gt; not anagram
+        return true;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(isAnagram("anagram", "nagaram"));  // true
+        System.out.println(isAnagram("rat", "car"));          // false
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — s = "rat", t = "car"</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>i</th><th>s[i] → index (+1)</th><th>t[i] → index (−1)</th><th>non-zero entries of <code>count</code></th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>'r' → 17 : +1</td><td>'c' → 2 : −1</td><td>[2] = −1, [17] = 1</td></tr>
+          <tr><td>1</td><td>'a' → 0 : +1</td><td>'a' → 0 : −1</td><td>[2] = −1, [17] = 1</td></tr>
+          <tr><td>2</td><td>'t' → 19 : +1</td><td>'r' → 17 : −1</td><td>[2] = −1, [17] = 0, [19] = 1</td></tr>
+          <tr><td colspan="3">final scan hits <code>count[2] = −1 ≠ 0</code> → return <samp>false</samp></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        For <code>"anagram"</code> vs <code>"nagaram"</code> every increment is
+        matched by a decrement, so <code>count</code> ends all zeros → <samp>true</samp>.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"Anagram", "permutation", "rearrange", "same characters" → frequency array / map.</li>
+        <li>"First non-repeating", "character that appears once", "most frequent character" → frequency then scan.</li>
+        <li>"Palindrome", "reverse", "is it symmetric" → two pointers; "longest palindromic substring / count palindromes" → expand around centre.</li>
+        <li>"Find pattern <code>P</code> in text <code>T</code>", "does <code>T</code> contain a rotation of <code>P</code>" → KMP / rolling hash.</li>
+        <li>"Compress", "encode / decode", "run length", "reverse the words" → build with <code>StringBuilder</code>.</li>
+        <li>"Isomorphic", "word pattern", "group anagrams" → map each char / word to a canonical key.</li>
+        <li>Small fixed alphabet stated explicitly → <code>int[26]</code>.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>s1 == s2</code> for content comparison — use <code>.equals()</code>.</li>
+        <li><code>result += c</code> in a loop — quietly <code>O(n²)</code>; use <code>StringBuilder</code>.</li>
+        <li><code>int[26]</code> when the input can contain uppercase, digits, spaces, or Unicode.</li>
+        <li>Forgetting immutability: <code>s.trim();</code> on its own line does nothing.</li>
+        <li><code>substring(i, j)</code> treating <code>j</code> as inclusive — it is exclusive.</li>
+        <li>Expand-around-centre: handling only odd-length centres and missing even-length palindromes.</li>
+        <li>Using <code>s.length</code> (arrays) instead of <code>s.length()</code> (strings).</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-strings"></div>
+  </section>
+
+
+  <!-- ================= 6. BIT MANIPULATION ================= -->
+  <section class="topic" id="bit-manipulation">
+    <h2>6 · Bit Manipulation</h2>
+
+    <p>
+      Integers are stored in binary, with negatives in <strong>two's
+      complement</strong> (<code>-n == ~n + 1</code>). The operators are
+      <code>&amp;</code> (AND), <code>|</code> (OR), <code>^</code> (XOR),
+      <code>~</code> (NOT), <code>&lt;&lt;</code> (left shift),
+      <code>&gt;&gt;</code> (arithmetic / sign-preserving right shift), and
+      <code>&gt;&gt;&gt;</code> (logical / zero-fill right shift). A Java
+      <code>int</code> is 32-bit signed; shifting by a count ≥ 32 wraps the count
+      modulo 32.
+    </p>
+    <p>
+      A handful of identities do almost all the work.
+      <code>n &amp; 1</code> is 1 exactly when <code>n</code> is odd.
+      <code>n &amp; (n - 1)</code> clears the lowest set bit — loop it to count set
+      bits (Brian Kernighan), and <code>(n &amp; (n - 1)) == 0</code> tests
+      power-of-two. <code>n &amp; -n</code> isolates the lowest set bit.
+      <code>1 &lt;&lt; k</code> is a mask for bit <code>k</code>: set with
+      <code>x | (1 &lt;&lt; k)</code>, clear with <code>x &amp; ~(1 &lt;&lt; k)</code>,
+      toggle with <code>x ^ (1 &lt;&lt; k)</code>, test with
+      <code>(x &gt;&gt; k) &amp; 1</code>.
+    </p>
+    <p>
+      <strong>XOR</strong> deserves its own line: <code>x ^ x == 0</code> and
+      <code>x ^ 0 == x</code>, and XOR is commutative and associative. So XOR-ing a
+      whole array cancels every value that appears an even number of times, leaving
+      the one odd-count value — the "single number" trick, and the basis of
+      swap-without-a-temp. For subset enumeration over ≤ ~20 items, a
+      <strong>bitmask</strong> <code>0 .. (1 &lt;&lt; n) - 1</code> represents every
+      subset, one bit per element.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        XOR means "parity / difference — pairs disappear". AND with a mask means
+        "keep only these bits". <code>n &amp; (n - 1)</code> means "peel off one set
+        bit". Ninety percent of a bit problem is recognising which of those three it
+        wants.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — the one number that isn't duplicated</p>
+<pre><code>public class SingleNumber {
+    static int singleNumber(int[] nums) {
+        int acc = 0;
+        for (int x : nums) acc ^= x;   // every pair cancels to 0
+        return acc;                    // the lone survivor
+    }
+
+    public static void main(String[] args) {
+        System.out.println(singleNumber(new int[]{4, 1, 2, 1, 2}));  // 4
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — nums = {4, 1, 2, 1, 2}</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>x</th><th>acc (before)</th><th>binary XOR</th><th>acc (after)</th></tr></thead>
+        <tbody>
+          <tr><td>4</td><td>0</td><td>000 ^ 100</td><td>4 (100)</td></tr>
+          <tr><td>1</td><td>4</td><td>100 ^ 001</td><td>5 (101)</td></tr>
+          <tr><td>2</td><td>5</td><td>101 ^ 010</td><td>7 (111)</td></tr>
+          <tr><td>1</td><td>7</td><td>111 ^ 001</td><td>6 (110)</td></tr>
+          <tr><td>2</td><td>6</td><td>110 ^ 010</td><td>4 (100)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Order doesn't matter: <code>4 ^ 1 ^ 2 ^ 1 ^ 2 = 4 ^ (1 ^ 1) ^ (2 ^ 2) = 4 ^ 0 ^ 0 = 4</code>.
+        <code>O(n)</code> time, <code>O(1)</code> space.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"Every element appears twice (or three times) except one" → XOR fold (or bit-count mod 3).</li>
+        <li>"Without extra memory" / "<code>O(1)</code> space" on a problem that otherwise wants a set or counter.</li>
+        <li>"Swap two numbers without a temporary variable."</li>
+        <li>"Count bits", "is it a power of two / four", "reverse the bits", "Hamming distance".</li>
+        <li>"Generate all subsets", "iterate over every combination", with <code>n</code> small (≤ ~20) → bitmask.</li>
+        <li>Constraints mention "32-bit signed integer" or the answer must fit specific bit widths.</li>
+        <li>"Add / multiply without using <code>+</code> / <code>*</code>."</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Precedence: <code>n &amp; 1 == 0</code> parses as <code>n &amp; (1 == 0)</code> — always parenthesise: <code>(n &amp; 1) == 0</code>.</li>
+        <li><code>&gt;&gt;</code> vs <code>&gt;&gt;&gt;</code> on negative numbers (sign-fill vs zero-fill).</li>
+        <li><code>1 &lt;&lt; 32</code> is <code>1</code>, not <code>0</code> — the shift count wraps mod 32. Use <code>1L &lt;&lt; k</code> for wide masks.</li>
+        <li>Sign extension when reading bits of a negative <code>int</code>.</li>
+        <li>Using <code>Math.pow(2, k)</code> instead of <code>1 &lt;&lt; k</code> (double, imprecise, slow).</li>
+        <li>Assuming <code>n &amp; -n</code> behaves for <code>Integer.MIN_VALUE</code>.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-bit-manipulation"></div>
+  </section>
+
+
+  <!-- ================= 7. NUMBER SYSTEMS & MATHS ================= -->
+  <section class="topic" id="number-systems-maths">
+    <h2>7 · Number Systems &amp; Maths</h2>
+
+    <p>
+      Positional notation: in base <code>b</code>, the digit at position
+      <code>k</code> from the right is worth <code>digit · b<sup>k</sup></code>.
+      <strong>Decimal → base b</strong>: repeatedly take <code>n % b</code> (next
+      lowest digit) and <code>n /= b</code>; digits come out lowest-first, so
+      reverse. <strong>Base b → decimal</strong>: <code>result = result * b + digit</code>,
+      scanning left to right.
+    </p>
+    <p>
+      The recurring number-theory tools: <strong>modular arithmetic</strong> —
+      <code>(a + b) % m</code>, <code>(a * b) % m</code>, take the mod early and
+      often, cast to <code>long</code> <em>before</em> multiplying, and use
+      <code>((a % m) + m) % m</code> for a non-negative result (Java's <code>%</code>
+      keeps the sign of the dividend, so <code>-7 % 3 == -1</code>).
+      <strong>GCD</strong> by Euclid: <code>gcd(a, b) = gcd(b, a % b)</code>,
+      stopping at <code>b == 0</code>; <code>lcm(a, b) = a / gcd * b</code> (divide
+      first to avoid overflow). <strong>Primes</strong>: trial-divide up to
+      <code>√n</code> for one number; Sieve of Eratosthenes in
+      <code>O(n log log n)</code> to list all primes up to <code>N</code>.
+    </p>
+    <p>
+      <strong>Fast exponentiation</strong> computes <code>a<sup>b</sup></code> in
+      <code>O(log b)</code> by squaring the base and halving the exponent —
+      essential once <code>b</code> is large or a modulus is involved, and more
+      accurate than <code>Math.pow</code> for integers. In practice, the "maths"
+      label on an interview problem usually means one of: watch for overflow, or
+      find the <code>O(√n)</code> / <code>O(log n)</code> instead of the obvious
+      <code>O(n)</code>.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Cast to <code>long</code> before you multiply. And whenever a loop runs
+        <code>for i in 1..n</code> over a number's <em>value</em>, ask whether
+        <code>√n</code> or <code>log n</code> is enough — factorisation, primality,
+        and exponentiation all have sub-linear forms.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — fast modular exponentiation</p>
+<pre><code>public class FastPow {
+    static long power(long base, long exp, long mod) {
+        long result = 1 % mod;
+        base %= mod;
+        while (exp &gt; 0) {
+            if ((exp &amp; 1) == 1) result = (result * base) % mod;  // odd bit: fold in
+            base = (base * base) % mod;                          // square the base
+            exp &gt;&gt;= 1;                                           // drop the low bit
+        }
+        return result;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(power(2, 10, 1_000_000_007));  // 1024
+        System.out.println(power(5, 3, 13));              // 125 % 13 = 8
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — power(2, 10, 1_000_000_007)</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>exp (binary)</th><th>low bit</th><th>result</th><th>base (after squaring)</th></tr></thead>
+        <tbody>
+          <tr><td>10 (1010)</td><td>0</td><td>1</td><td>4</td></tr>
+          <tr><td>5 (101)</td><td>1</td><td>1 · 4 = 4</td><td>16</td></tr>
+          <tr><td>2 (10)</td><td>0</td><td>4</td><td>256</td></tr>
+          <tr><td>1 (1)</td><td>1</td><td>4 · 256 = 1024</td><td>65536</td></tr>
+          <tr><td>0</td><td>—</td><td colspan="2">exp == 0 → return <samp>1024</samp></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Four iterations for exponent 10, i.e. <code>⌊log₂ 10⌋ + 1</code>. The bits
+        of <code>exp</code> that are 1 (positions 1 and 3) contribute
+        <code>2² · 2⁸ = 2¹⁰</code>.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"Return the answer <strong>modulo 10<sup>9</sup> + 7</strong>" → modular arithmetic, often fast power / modular inverse / combinatorics.</li>
+        <li>"Is it prime", "count primes up to <code>N</code>", "prime factorisation" → trial division to <code>√n</code> or a sieve.</li>
+        <li>"GCD", "LCM", "reduce the fraction", "co-prime".</li>
+        <li>"Digits of a number", "sum / reverse / rotate digits", "convert between bases".</li>
+        <li>"<code>a<sup>b</sup></code>" with big <code>b</code>, "<code>x</code> raised to <code>n</code>", "number of ways mod m".</li>
+        <li>"Trailing zeros of <code>n!</code>", "how many multiples", "n-th ugly / happy number".</li>
+        <li>Inputs up to 10<sup>9</sup>–10<sup>18</sup> → you need <code>O(√n)</code> / <code>O(log n)</code> and <code>long</code> care.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>a * b</code> overflowing <code>int</code> <em>before</em> the <code>% m</code> — multiply as <code>long</code>.</li>
+        <li>Expecting <code>-7 % 3 == 2</code>; in Java it is <code>-1</code>. Normalise with <code>((a % m) + m) % m</code>.</li>
+        <li><code>Math.pow</code> for integer powers → <code>124.99999</code>.</li>
+        <li>Sieve inner loop not starting at <code>i * i</code> or not stepping by <code>i</code>.</li>
+        <li>Trial-dividing up to <code>n</code> instead of <code>√n</code>.</li>
+        <li><code>lcm = a * b / gcd</code> overflowing — do <code>a / gcd * b</code>.</li>
+        <li>Integer division truncating when you needed a ceiling: use <code>(a + b - 1) / b</code>.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-number-systems-maths"></div>
+  </section>
+
+
+  <!-- ================= 8. RECURSION ================= -->
+  <section class="topic" id="recursion">
+    <h2>8 · Recursion</h2>
+
+    <p>
+      A recursive method solves a problem by calling itself on a smaller input. It
+      needs a <strong>base case</strong> that returns without recursing, and a
+      <strong>recursive case</strong> that makes measurable progress toward the base
+      case and combines the sub-result. The mental model is "trust the recursion":
+      assume the recursive call already returns the correct answer for the smaller
+      input, and figure out only how to build the current answer from it — then
+      handle the smallest case explicitly.
+    </p>
+    <p>
+      Draw the <strong>recursion tree</strong>: each node is a call, labelled with
+      its arguments; a node's children are the calls it makes. The
+      <em>number of nodes</em> is the time complexity; the <em>longest root-to-leaf
+      path</em> is the stack-space complexity. Two shapes recur. <strong>Reduce</strong>:
+      one recursive call per node (factorial, sum of a list, binary search) — a
+      linear chain, <code>O(n)</code> nodes, <code>O(n)</code> depth.
+      <strong>Branch</strong>: several recursive calls per node (Fibonacci, subsets,
+      permutations, tree traversal) — an exponential or factorial tree. If the same
+      argument tuple appears at many nodes, you have <em>overlapping
+      subproblems</em> and should memoise (that is the bridge to dynamic
+      programming, covered on the non-linear page).
+    </p>
+    <p>
+      <strong>Backtracking</strong> is branch recursion where each node makes a
+      <em>choice</em>, recurses, and then <em>undoes</em> the choice before trying
+      the next one — so the shared state (a list, a board, a visited set) is exactly
+      restored on the way back up. "Make a move, recurse, unmake the move" is the
+      whole skeleton.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        For a tiny input, sketch the call tree on paper. Nodes = work done; height =
+        stack used; repeated nodes = memoise. If you can state "answer(n) in terms
+        of answer(smaller)", or you must <em>enumerate</em> a combinatorial space,
+        it is recursion — and if it enumerates, it is probably backtracking.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — all subsets by include / exclude (backtracking)</p>
+<pre><code>import java.util.*;
+
+public class Subsets {
+    static List&lt;List&lt;Integer&gt;&gt; subsets(int[] nums) {
+        List&lt;List&lt;Integer&gt;&gt; out = new ArrayList&lt;&gt;();
+        backtrack(nums, 0, new ArrayList&lt;&gt;(), out);
+        return out;
+    }
+
+    static void backtrack(int[] nums, int i, List&lt;Integer&gt; cur, List&lt;List&lt;Integer&gt;&gt; out) {
+        if (i == nums.length) {              // base case: every element decided
+            out.add(new ArrayList&lt;&gt;(cur));   // copy! cur keeps mutating
+            return;
+        }
+        cur.add(nums[i]);                    // choice 1: include nums[i]
+        backtrack(nums, i + 1, cur, out);
+        cur.remove(cur.size() - 1);          // undo the choice
+        backtrack(nums, i + 1, cur, out);    // choice 2: exclude nums[i]
+    }
+
+    public static void main(String[] args) {
+        System.out.println(subsets(new int[]{1, 2, 3}));
+        // [[1, 2, 3], [1, 2], [1, 3], [1], [2, 3], [2], [3], []]
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Recursion tree — nums = {1, 2, 3}</span>
+      <p class="small">
+        Root is <code>backtrack(i = 0, cur = [])</code>. Every node branches twice:
+        left = "include <code>nums[i]</code>", right = "exclude". Depth is 3 (one
+        level per element), so there are <code>2³ = 8</code> leaves, each a finished
+        subset. A left-to-right DFS visits them in this order:
+      </p>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>step</th><th>call</th><th>i</th><th>cur on entry</th><th>what happens</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>backtrack</td><td>0</td><td>[]</td><td>add 1 → recurse</td></tr>
+          <tr><td>2</td><td>backtrack</td><td>1</td><td>[1]</td><td>add 2 → recurse</td></tr>
+          <tr><td>3</td><td>backtrack</td><td>2</td><td>[1, 2]</td><td>add 3 → recurse</td></tr>
+          <tr><td>4</td><td>backtrack</td><td>3</td><td>[1, 2, 3]</td><td>base → emit <code>[1, 2, 3]</code></td></tr>
+          <tr><td>5</td><td>(back at step 3)</td><td>2</td><td>[1, 2]</td><td>remove 3 → recurse (exclude)</td></tr>
+          <tr><td>6</td><td>backtrack</td><td>3</td><td>[1, 2]</td><td>base → emit <code>[1, 2]</code></td></tr>
+          <tr><td>7</td><td>(back at step 2)</td><td>1</td><td>[1]</td><td>remove 2 → recurse (exclude)</td></tr>
+          <tr><td>8</td><td>backtrack</td><td>2</td><td>[1]</td><td>add 3 → … emit <code>[1, 3]</code>, then <code>[1]</code></td></tr>
+          <tr><td>…</td><td colspan="4">unwind to <code>i = 0</code>, remove 1, recurse the exclude branch → <code>[2, 3], [2], [3], []</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"All / every / generate": subsets, permutations, combinations, partitions, valid arrangements, paths.</li>
+        <li>The answer for <code>n</code> is naturally defined from the answer for <code>n − 1</code> or halves of <code>n</code>.</li>
+        <li>Self-similar / nested structure: nested parentheses, folder trees, expression parsing, matryoshka-style inputs.</li>
+        <li>"Can the input be split / segmented so that …" (word break, palindrome partitioning).</li>
+        <li>Explore-all-options with a constraint that prunes branches (N-Queens, Sudoku, maze).</li>
+        <li>A tree or graph is the input and you need to visit every node.</li>
+        <li>If identical sub-calls repeat → add memoisation (→ DP).</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Missing or unreachable base case, or a recursive case that doesn't shrink the input → <code>StackOverflowError</code>.</li>
+        <li>Backtracking without the <em>undo</em> step — state leaks between branches.</li>
+        <li>Storing <code>cur</code> by reference at a leaf instead of a copy — every result ends up equal (or empty).</li>
+        <li>Exponential recomputation when subproblems overlap — memoise.</li>
+        <li>Deep recursion (<code>n ≈ 10⁵</code>) overflowing the call stack — convert to an explicit stack / iteration.</li>
+        <li>Returning the recursive result on only one branch and forgetting the other.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-recursion"></div>
+  </section>
+
+
+  <!-- ================= 9. HASHING ================= -->
+  <section class="topic" id="hashing">
+    <h2>9 · Hashing</h2>
+
+    <p>
+      A hash map or set maps a key to a bucket via the key's <code>hashCode()</code>,
+      giving <strong>average <code>O(1)</code></strong> insert, lookup, and delete.
+      Collisions are resolved by chaining, so the worst case is <code>O(n)</code>,
+      but with reasonable keys that essentially never happens. The everyday uses:
+      membership ("have I seen <code>x</code>?"), counting (a frequency map),
+      grouping (key → list of members), complement lookup ("is
+      <code>target − x</code> present?"), memoisation, and remembering the last
+      index at which something occurred.
+    </p>
+    <p>
+      Choose the right structure. <code>HashMap</code> / <code>HashSet</code> when
+      keys are arbitrary and you only need presence or a value. A plain
+      <code>int[]</code> or <code>boolean[]</code> when keys are a small dense
+      integer range (letters, digits, small bounded values) — it is a faster,
+      allocation-free hash map. <code>TreeMap</code> / <code>TreeSet</code>
+      (<code>O(log n)</code>) when you also need order — floor, ceiling, range.
+      <code>LinkedHashMap</code> when insertion order matters (and it is the natural
+      backbone of an LRU cache).
+    </p>
+    <p>
+      Hashing is the single most common way to turn an <code>O(n²)</code> brute
+      force into <code>O(n)</code>: any time the inner loop is "scan the rest to
+      find or count something", a hash structure usually removes it, at the cost of
+      <code>O(n)</code> extra space. It also composes with prefix sums ("subarrays
+      summing to <code>k</code>": store how many times each prefix sum has occurred).
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        When you're about to write "for each element, look through the others",
+        stop and ask what you're looking <em>for</em> — a value, a count, a
+        previous index — and put that in a map keyed for <code>O(1)</code> retrieval
+        as you go. One pass, build-as-you-check.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — Two Sum with a complement map</p>
+<pre><code>import java.util.*;
+
+public class TwoSum {
+    static int[] twoSum(int[] nums, int target) {
+        Map&lt;Integer, Integer&gt; seen = new HashMap&lt;&gt;();   // value -&gt; its index
+        for (int i = 0; i &lt; nums.length; i++) {
+            int need = target - nums[i];
+            if (seen.containsKey(need))
+                return new int[]{seen.get(need), i};
+            seen.put(nums[i], i);                        // record after checking
+        }
+        return new int[]{-1, -1};
+    }
+
+    public static void main(String[] args) {
+        int[] r = twoSum(new int[]{2, 7, 11, 15}, 9);
+        System.out.println(r[0] + " " + r[1]);   // 0 1
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — nums = {2, 7, 11, 15}, target = 9</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>i</th><th>nums[i]</th><th>need = 9 − nums[i]</th><th>need in map?</th><th>action</th><th>map after</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>2</td><td>7</td><td>no</td><td>put 2 → 0</td><td>{2: 0}</td></tr>
+          <tr><td>1</td><td>7</td><td>2</td><td>yes → 0</td><td>return {0, 1}</td><td>—</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Checking <em>before</em> inserting <code>nums[i]</code> stops an element
+        from pairing with itself. One pass, <code>O(n)</code> time, <code>O(n)</code>
+        space.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"Has this appeared before", "contains duplicate", "find the repeated / missing element".</li>
+        <li>"Count occurrences", "frequency", "most / least common", "first unique".</li>
+        <li>"Two (or three) values with a sum / difference / product" — and the array is <em>not</em> sorted (if it is, consider two pointers).</li>
+        <li>"Group / bucket by some computed key" (anagrams, by remainder, by shape).</li>
+        <li>"Subarray / substring with sum (or count) equal to <code>k</code>" → prefix value → count map.</li>
+        <li>"Longest consecutive run of integers" (unordered) — a set gives <code>O(n)</code>.</li>
+        <li>You need memoisation for a recursive solution.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>map.get(k) + 1</code> when <code>k</code> is absent → <code>NullPointerException</code> on unboxing. Use <code>getOrDefault</code> or <code>merge</code>.</li>
+        <li>Comparing boxed <code>Integer</code> keys with <code>==</code> in your own code.</li>
+        <li>Relying on <code>HashMap</code> iteration order.</li>
+        <li>Mutating an object after using it as a key.</li>
+        <li>Using a <code>Set</code> when you needed counts (it collapses duplicates).</li>
+        <li><code>containsKey</code> then <code>get</code> — two lookups where one (<code>get</code> + null check) suffices.</li>
+        <li>A custom key class without overriding both <code>equals</code> and <code>hashCode</code>.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-hashing"></div>
+  </section>
+
+
+  <!-- ================= 10. SORTING ================= -->
+  <section class="topic" id="sorting">
+    <h2>10 · Sorting</h2>
+
+    <p>
+      Comparison sorts cannot beat <code>Θ(n log n)</code>. Java's
+      <code>Arrays.sort</code> uses a dual-pivot quicksort for primitives
+      (<code>O(n log n)</code> average, <strong>not stable</strong>,
+      <code>O(n²)</code> adversarial worst case) and Timsort for object arrays and
+      <code>Collections.sort</code> (stable, <code>O(n log n)</code> worst,
+      exploits existing runs). Know the mechanics of the two classics:
+      <strong>merge sort</strong> (split in half, sort each, merge — stable,
+      <code>O(n)</code> extra) and <strong>quicksort</strong> (partition around a
+      pivot, recurse on each side — in place, worst case on already-sorted input
+      with a bad pivot).
+    </p>
+    <p>
+      When the values are small integers, you can skip comparisons entirely:
+      <strong>counting sort</strong> is <code>O(n + k)</code>, and radix / bucket
+      sort extend the idea. And <strong>quickselect</strong> — quicksort's
+      partition step, recursing into only one side — finds the k-th smallest in
+      <code>O(n)</code> average without fully sorting.
+    </p>
+    <p>
+      But the reason sorting is a <em>pattern</em> and not just a library call is
+      that it is the <strong>setup move</strong>. A huge class of problems becomes
+      trivial "if only the input were sorted": pair/triple finding (→ two pointers),
+      interval merging and scheduling (→ linear sweep), greedy choices (take the
+      smallest / largest next), deduplication, and "closest values" (adjacent after
+      sorting). The recipe is: sort in <code>O(n log n)</code>, then one linear
+      pass.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        If the problem gets obviously easier when you assume the data is ordered —
+        and the order of the input doesn't otherwise matter — sort first, then look
+        for the linear-time idea that the sorted order unlocks. Sorting is almost
+        never the last step.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — merge overlapping intervals (sort, then sweep)</p>
+<pre><code>import java.util.*;
+
+public class MergeIntervals {
+    static int[][] merge(int[][] intervals) {
+        Arrays.sort(intervals, (x, y) -&gt; Integer.compare(x[0], y[0]));  // by start
+
+        List&lt;int[]&gt; out = new ArrayList&lt;&gt;();
+        int[] cur = intervals[0];
+        for (int i = 1; i &lt; intervals.length; i++) {
+            if (intervals[i][0] &lt;= cur[1]) {                  // overlaps current
+                cur[1] = Math.max(cur[1], intervals[i][1]);   // extend the end
+            } else {
+                out.add(cur);                                 // gap: close current
+                cur = intervals[i];
+            }
+        }
+        out.add(cur);
+        return out.toArray(new int[0][]);
+    }
+
+    public static void main(String[] args) {
+        int[][] r = merge(new int[][]{{1, 3}, {2, 6}, {8, 10}, {15, 18}});
+        System.out.println(Arrays.deepToString(r));   // [[1, 6], [8, 10], [15, 18]]
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — after sorting by start: {1,3}, {2,6}, {8,10}, {15,18}</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>i</th><th>intervals[i]</th><th>start ≤ cur end?</th><th>cur</th><th>out</th></tr></thead>
+        <tbody>
+          <tr><td>—</td><td>—</td><td>—</td><td>{1, 3}</td><td>[]</td></tr>
+          <tr><td>1</td><td>{2, 6}</td><td>2 ≤ 3 → merge</td><td>{1, 6}</td><td>[]</td></tr>
+          <tr><td>2</td><td>{8, 10}</td><td>8 ≤ 6 → no</td><td>{8, 10}</td><td>[{1, 6}]</td></tr>
+          <tr><td>3</td><td>{15, 18}</td><td>15 ≤ 10 → no</td><td>{15, 18}</td><td>[{1, 6}, {8, 10}]</td></tr>
+          <tr><td colspan="5">append <code>cur</code> → <samp>[[1, 6], [8, 10], [15, 18]]</samp></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Sorting by start guarantees that once you pass an interval's end, nothing
+        later can reach back to it — so a single sweep is enough.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>"Intervals", "meetings", "ranges" + "merge", "overlap", "minimum rooms", "can attend all".</li>
+        <li>"k-th largest / smallest", "top k", "median" → sort, or heap / quickselect for better than <code>O(n log n)</code>.</li>
+        <li>"Find pairs / triplets with property X" → sort, then two pointers.</li>
+        <li>"Minimum number of X to cover / remove / connect Y" → greedy after sorting by the right key.</li>
+        <li>"Arrange numbers to form the largest / smallest value" → sort with a custom comparator.</li>
+        <li>"Closest pair", "smallest absolute difference", "can we form an arithmetic sequence".</li>
+        <li>Order of the input is irrelevant and a sorted view makes the invariant obvious.</li>
+        <li><strong>Not</strong> sorting: when the required complexity is below <code>O(n log n)</code>.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Assuming <code>Arrays.sort(int[])</code> is stable — it isn't; box to <code>Integer[]</code> if stability matters.</li>
+        <li>Comparator written as <code>a[0] - b[0]</code> overflowing for large / negative values — use <code>Integer.compare</code>.</li>
+        <li>A comparator that isn't transitive / consistent → <code>IllegalArgumentException: Comparison method violates its general contract</code>.</li>
+        <li>Sorting when the caller still needs the original order (sort a copy, or sort indices).</li>
+        <li>Forgetting to sort before the two-pointer or greedy step that depends on it.</li>
+        <li>Using a full sort where counting sort / a heap would be asymptotically better.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-sorting"></div>
+  </section>
+
+
+  <!-- ================= 11. LINKED LISTS ================= -->
+  <section class="topic" id="linked-lists">
+    <h2>11 · Linked Lists</h2>
+
+    <p>
+      A singly linked list is a chain of nodes, each holding a value and a
+      <code>next</code> reference. There is no indexing — reaching the k-th node is
+      <code>O(k)</code> — but splicing a node in or out at a <em>known</em> position
+      is <code>O(1)</code>. Two habits remove most of the pain: use a
+      <strong>dummy (sentinel) head</strong> node so inserting or deleting at the
+      front is not a special case, and never overwrite <code>cur.next</code> before
+      saving it, or you lose the rest of the list.
+    </p>
+    <p>
+      <strong>In-place reversal</strong> walks three pointers —
+      <code>prev</code>, <code>cur</code>, <code>next</code>: save
+      <code>next = cur.next</code>, flip <code>cur.next = prev</code>, then advance
+      both <code>prev</code> and <code>cur</code>. <code>O(n)</code> time,
+      <code>O(1)</code> space, and <code>prev</code> is the new head. This
+      generalises to "reverse the first k", "reverse in groups of k", and "reverse
+      between positions m and n".
+    </p>
+    <p>
+      <strong>Fast &amp; slow pointers</strong> (Floyd's tortoise and hare):
+      <code>slow</code> steps once per iteration, <code>fast</code> twice. If they
+      ever meet, the list has a <em>cycle</em>; restarting one pointer at the head
+      and stepping both one-at-a-time then finds the cycle's entry node. The same
+      two-speed walk finds the <em>middle</em> (when <code>fast</code> reaches the
+      end, <code>slow</code> is at the midpoint) and the <em>n-th node from the
+      end</em> in a single pass (start <code>fast</code> n steps ahead, move both
+      until <code>fast</code> falls off).
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        You can only hold a few references, so <em>name them for their jobs</em> —
+        <code>dummy</code>, <code>prev</code>, <code>cur</code>, <code>next</code>,
+        <code>slow</code>, <code>fast</code> — and change exactly one link per step.
+        Whenever you're about to reassign a <code>next</code> field, first ask "have
+        I saved what it currently points to?"
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — reverse a singly linked list in place</p>
+<pre><code>public class ReverseList {
+    static class ListNode {
+        int val;
+        ListNode next;
+        ListNode(int v) { val = v; }
+    }
+
+    static ListNode reverse(ListNode head) {
+        ListNode prev = null, cur = head;
+        while (cur != null) {
+            ListNode next = cur.next;   // 1. save the rest of the list
+            cur.next = prev;            // 2. flip this link backwards
+            prev = cur;                 // 3. prev catches up
+            cur  = next;                // 4. cur moves on
+        }
+        return prev;                    // prev is the new head
+    }
+
+    public static void main(String[] args) {
+        ListNode a = new ListNode(1);
+        a.next = new ListNode(2);
+        a.next.next = new ListNode(3);
+
+        for (ListNode p = reverse(a); p != null; p = p.next)
+            System.out.print(p.val + " ");   // 3 2 1
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — list 1 → 2 → 3</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>iteration</th><th>cur (before)</th><th>next = cur.next</th><th>after cur.next = prev</th><th>prev</th><th>cur</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>1</td><td>2</td><td>1 → null</td><td>1</td><td>2</td></tr>
+          <tr><td>2</td><td>2</td><td>3</td><td>2 → 1</td><td>2</td><td>3</td></tr>
+          <tr><td>3</td><td>3</td><td>null</td><td>3 → 2</td><td>3</td><td>null</td></tr>
+          <tr><td>—</td><td colspan="5"><code>cur == null</code> → stop, return <code>prev = 3</code>. List is now 3 → 2 → 1 → null.</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li>The input <em>is</em> a linked list (obvious) — but the sub-pattern is the real question.</li>
+        <li>"Detect a cycle", "does it loop", "find where the loop starts" → fast &amp; slow.</li>
+        <li>"Middle of the list", "n-th node from the end", in <strong>one pass</strong> → fast &amp; slow / gap of n.</li>
+        <li>"Reverse", "reverse in groups of k", "swap nodes in pairs", "rotate", "reorder" → in-place pointer surgery, usually with a dummy head.</li>
+        <li>"Merge two sorted lists", "add two numbers as lists", "remove duplicates from a sorted list".</li>
+        <li>"Is the list a palindrome" → fast/slow to the middle, reverse the second half, compare.</li>
+        <li>Cycle-detection <em>reasoning</em> applies beyond lists: "Happy Number", "Find the Duplicate Number" (values as next-pointers).</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Reassigning <code>cur.next</code> before saving it — the tail of the list is gone.</li>
+        <li>Not using a dummy head and then mishandling operations on the first node.</li>
+        <li>Loop guard order: <code>fast != null &amp;&amp; fast.next != null</code> — reverse it and you get an NPE.</li>
+        <li>Off-by-one in fast/slow: starting <code>fast</code> at <code>head</code> vs <code>head.next</code> changes which middle you land on for even length.</li>
+        <li>Forgetting to null-terminate the new tail after a reversal / split → an accidental cycle.</li>
+        <li>Returning <code>head</code> instead of <code>prev</code> / <code>dummy.next</code>.</li>
+        <li>Not handling an empty list or a single node.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-linked-lists"></div>
+  </section>
+
+
+  <!-- ================= 12. STACKS & QUEUES ================= -->
+  <section class="topic" id="stacks-queues">
+    <h2>12 · Stacks &amp; Queues</h2>
+
+    <p>
+      A <strong>stack</strong> is LIFO (push / pop / peek, all <code>O(1)</code>); a
+      <strong>queue</strong> is FIFO (offer / poll / peek, all <code>O(1)</code>). In
+      Java, back both with <code>ArrayDeque</code> — not the legacy synchronised
+      <code>Stack</code> class, not <code>LinkedList</code>. Stacks model
+      bracket matching, expression evaluation (infix → postfix, reverse Polish
+      notation), undo, and iterative DFS. Queues model breadth-first search,
+      level-order traversal, and anything processed in arrival order.
+    </p>
+    <p>
+      The pattern worth drilling is the <strong>monotonic stack</strong>: keep the
+      stack's contents sorted (strictly increasing or strictly decreasing from
+      bottom to top). When the incoming element would break that order, pop
+      elements until it fits — and <em>each element you pop has just found its
+      answer</em>. Because every element is pushed once and popped once, the whole
+      scan is <code>O(n)</code> even though it replaces a nested loop. The classic
+      use is "for each element, find the nearest greater (or smaller) element to the
+      left / right".
+    </p>
+    <p>
+      The same idea with a <strong>monotonic deque</strong> (pop from both ends)
+      solves sliding-window maximum / minimum in <code>O(n)</code>: the front of the
+      deque always holds the current window's extreme, stale indices are dropped
+      from the front, and dominated indices are dropped from the back.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Monotonic stack = "for each element, look back to the most recent
+        <em>unresolved</em> one." The stack holds exactly the elements still waiting
+        for their next-greater / next-smaller neighbour. The moment the current
+        element resolves one, pop it and record the answer.
+      </p>
+    </div>
+
+    <p class="code-label">Worked example — next greater element (monotonic stack, right to left)</p>
+<pre><code>import java.util.*;
+
+public class NextGreater {
+    static int[] nextGreater(int[] a) {
+        int n = a.length;
+        int[] ans = new int[n];
+        Deque&lt;Integer&gt; stack = new ArrayDeque&lt;&gt;();   // values, decreasing bottom→top
+
+        for (int i = n - 1; i &gt;= 0; i--) {
+            while (!stack.isEmpty() &amp;&amp; stack.peek() &lt;= a[i])
+                stack.pop();                          // too small to ever be "next greater"
+            ans[i] = stack.isEmpty() ? -1 : stack.peek();
+            stack.push(a[i]);
+        }
+        return ans;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(Arrays.toString(nextGreater(new int[]{2, 1, 2, 4, 3})));
+        // [4, 2, 4, -1, -1]
+    }
+}</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Dry run — a = {2, 1, 2, 4, 3}, scanning right → left</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>i</th><th>a[i]</th><th>pop while top ≤ a[i]</th><th>stack after pops (top→bottom)</th><th>ans[i]</th><th>push a[i] → stack</th></tr></thead>
+        <tbody>
+          <tr><td>4</td><td>3</td><td>— (empty)</td><td>[ ]</td><td>-1</td><td>[3]</td></tr>
+          <tr><td>3</td><td>4</td><td>pop 3</td><td>[ ]</td><td>-1</td><td>[4]</td></tr>
+          <tr><td>2</td><td>2</td><td>none (4 &gt; 2)</td><td>[4]</td><td>4</td><td>[2, 4]</td></tr>
+          <tr><td>1</td><td>1</td><td>none (2 &gt; 1)</td><td>[2, 4]</td><td>2</td><td>[1, 2, 4]</td></tr>
+          <tr><td>0</td><td>2</td><td>pop 1, pop 2</td><td>[4]</td><td>4</td><td>[2, 4]</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Result <samp>[4, 2, 4, -1, -1]</samp>. Every value is pushed once and
+        popped at most once → <code>O(n)</code> total, not <code>O(n²)</code>.
+      </p>
+    </div>
+
+    <h3>How to recognise it in an unseen problem</h3>
+    <div class="box note">
+      <span class="box-title">Trigger signals</span>
+      <ul>
+        <li><strong>Stack:</strong> "valid / balanced / matching" brackets or tags; "evaluate this expression"; "simplify the path".</li>
+        <li><strong>Monotonic stack:</strong> "next / previous greater / smaller / warmer", "stock span", "how many days until", "largest rectangle in histogram", "trapping rain water", "remove k digits for the smallest number", "asteroid collision".</li>
+        <li>Any "for each element, scan left/right until a bigger/smaller one" brute force on a non-tiny array.</li>
+        <li><strong>Queue:</strong> "level order", "shortest path in an unweighted grid / graph", "rotting oranges", "process in order of arrival".</li>
+        <li><strong>Monotonic deque:</strong> "maximum / minimum of every window of size k".</li>
+        <li>"Implement a queue using stacks" (or vice versa), "design a data structure with O(1) …".</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>pop()</code> / <code>peek()</code> without an <code>isEmpty()</code> check first.</li>
+        <li>Using <code>java.util.Stack</code> or <code>LinkedList</code> instead of <code>ArrayDeque</code>; also, <code>ArrayDeque</code> rejects <code>null</code>.</li>
+        <li>Wrong monotonic direction (increasing vs decreasing) for the question asked.</li>
+        <li>Storing values when you need <em>indices</em> (indices let you compute distances / widths) — or vice versa.</li>
+        <li>Forgetting that elements left on the stack at the end have no next-greater (answer <code>-1</code>).</li>
+        <li>Sliding-window max with a plain queue → <code>O(nk)</code>; use a monotonic deque for <code>O(n)</code>.</li>
+        <li>Mixing up which end <code>push</code> / <code>pop</code> / <code>offer</code> / <code>poll</code> act on for a <code>Deque</code>.</li>
+      </ul>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-stacks-queues"></div>
+  </section>
+
+
+  <div class="box note">
+    <span class="box-title">Where this leads next</span>
+    <p class="small">
+      These twelve patterns cover the <em>linear</em> half of Phase 1 — the
+      structures you traverse front-to-back and the techniques that ride on them.
+      The non-linear half (Trees, BSTs, Tries, Heaps / Priority Queues, Graphs —
+      BFS/DFS/topological sort/union-find, and Dynamic Programming) builds directly
+      on Recursion, Hashing, and Sorting from this page. Get these to the point
+      where you name the pattern before you finish reading the prompt, then move on.
+    </p>
+  </div>
+
+  <p class="backlink"><a href="index.html">← Back to home &amp; dashboard</a> &nbsp;·&nbsp; <a href="roadmap.html">See where this fits in the roadmap →</a></p>
+
+  <footer class="foot">
+    <p>Phase 1 (first half) of the <a href="roadmap.html">8-month roadmap</a>. Next: DSA — non-linear structures.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("dsa-linear", [
+  {
+    group: "1D & 2D Arrays",
+    mount: "#t-arrays",
+    items: [
+      "Running Sum of 1d Array (1480)",
+      "Range Sum Query - Immutable (303)",
+      "Subarray Sum Equals K (560)",
+      "Maximum Subarray - Kadane (53)",
+      "Product of Array Except Self (238)",
+      "Spiral Matrix (54)",
+      "Rotate Image - 90 degrees in place (48)",
+      "Set Matrix Zeroes (73)"
+    ]
+  },
+  {
+    group: "Two Pointers",
+    mount: "#t-two-pointers",
+    items: [
+      "Valid Palindrome (125)",
+      "Two Sum II - Input Array Is Sorted (167)",
+      "3Sum (15)",
+      "Container With Most Water (11)",
+      "Remove Duplicates from Sorted Array (26)",
+      "Move Zeroes (283)",
+      "Sort Colors - Dutch national flag (75)",
+      "Merge Sorted Array (88)"
+    ]
+  },
+  {
+    group: "Sliding Window",
+    mount: "#t-sliding-window",
+    items: [
+      "Maximum Average Subarray I (643)",
+      "Longest Substring Without Repeating Characters (3)",
+      "Minimum Size Subarray Sum (209)",
+      "Longest Repeating Character Replacement (424)",
+      "Permutation in String (567)",
+      "Find All Anagrams in a String (438)",
+      "Fruit Into Baskets (904)",
+      "Minimum Window Substring (76)"
+    ]
+  },
+  {
+    group: "Binary Search & Search-Space",
+    mount: "#t-binary-search",
+    items: [
+      "Binary Search (704)",
+      "Search Insert Position (35)",
+      "First Bad Version (278)",
+      "Find First and Last Position in Sorted Array (34)",
+      "Search in Rotated Sorted Array (33)",
+      "Find Minimum in Rotated Sorted Array (153)",
+      "Koko Eating Bananas (875)",
+      "Capacity To Ship Packages Within D Days (1011)"
+    ]
+  },
+  {
+    group: "Strings",
+    mount: "#t-strings",
+    items: [
+      "Valid Anagram (242)",
+      "Group Anagrams (49)",
+      "Longest Palindromic Substring (5)",
+      "Longest Common Prefix (14)",
+      "String to Integer - atoi (8)",
+      "Find the Index of the First Occurrence in a String (28)",
+      "Reverse Words in a String (151)"
+    ]
+  },
+  {
+    group: "Bit Manipulation",
+    mount: "#t-bit-manipulation",
+    items: [
+      "Number of 1 Bits (191)",
+      "Counting Bits (338)",
+      "Single Number (136)",
+      "Single Number II (137)",
+      "Missing Number (268)",
+      "Reverse Bits (190)",
+      "Sum of Two Integers - no + or - (371)",
+      "Subsets via bitmask (78)"
+    ]
+  },
+  {
+    group: "Number Systems & Maths",
+    mount: "#t-number-systems-maths",
+    items: [
+      "Palindrome Number (9)",
+      "Count Primes (204)",
+      "Pow(x, n) (50)",
+      "Factorial Trailing Zeroes (172)",
+      "Excel Sheet Column Number (171)",
+      "Add Digits - digital root (258)",
+      "Happy Number (202)",
+      "Greatest Common Divisor of Strings (1071)"
+    ]
+  },
+  {
+    group: "Recursion",
+    mount: "#t-recursion",
+    items: [
+      "Fibonacci Number, then memoize (509)",
+      "Subsets (78)",
+      "Permutations (46)",
+      "Combination Sum (39)",
+      "Generate Parentheses (22)",
+      "Letter Combinations of a Phone Number (17)",
+      "Palindrome Partitioning (131)"
+    ]
+  },
+  {
+    group: "Hashing",
+    mount: "#t-hashing",
+    items: [
+      "Two Sum (1)",
+      "Contains Duplicate (217)",
+      "Group Anagrams (49)",
+      "Top K Frequent Elements (347)",
+      "Longest Consecutive Sequence (128)",
+      "Subarray Sum Equals K (560)",
+      "First Unique Character in a String (387)",
+      "LRU Cache (146)"
+    ]
+  },
+  {
+    group: "Sorting",
+    mount: "#t-sorting",
+    items: [
+      "Merge Intervals (56)",
+      "Insert Interval (57)",
+      "Non-overlapping Intervals (435)",
+      "Sort Colors (75)",
+      "Kth Largest Element in an Array (215)",
+      "Largest Number (179)",
+      "Meeting Rooms II (253)",
+      "H-Index (274)"
+    ]
+  },
+  {
+    group: "Linked Lists",
+    mount: "#t-linked-lists",
+    items: [
+      "Reverse Linked List (206)",
+      "Middle of the Linked List (876)",
+      "Linked List Cycle (141)",
+      "Linked List Cycle II - find the start (142)",
+      "Remove Nth Node From End of List (19)",
+      "Merge Two Sorted Lists (21)",
+      "Reorder List (143)",
+      "Palindrome Linked List (234)"
+    ]
+  },
+  {
+    group: "Stacks & Queues",
+    mount: "#t-stacks-queues",
+    items: [
+      "Valid Parentheses (20)",
+      "Min Stack (155)",
+      "Evaluate Reverse Polish Notation (150)",
+      "Daily Temperatures (739)",
+      "Next Greater Element II (503)",
+      "Largest Rectangle in Histogram (84)",
+      "Trapping Rain Water (42)",
+      "Sliding Window Maximum (239)"
+    ]
+  }
+], { pageTitle: "DSA: Linear Structures & Patterns" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("dsa-linear");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

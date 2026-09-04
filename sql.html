@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html" class="active">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>SQL — Querying, Joins &amp; Window Functions</h1>
+  <p class="lede">
+    Phase 2. Interviewers reward one specific skill: reading a business question
+    ("top 3 products per region by revenue", "customers who haven't ordered in 90
+    days", "week-over-week growth") and turning it into <em>one</em> correct query
+    without a scratchpad. Every section below is a query pattern, run against the
+    <strong>same small dataset</strong> so you can check every result by hand, plus
+    a blunt note on when the technique is expected and when reaching for it is
+    over-engineering.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>How to use this page.</strong> Read the sample schema once and keep it
+      open in another tab. For each topic: run the query in your head against the
+      rows, then read the output and reconcile any difference — that reconciliation
+      is the learning. Dialect is <strong>PostgreSQL</strong>; MySQL differences are
+      called out inline. Practice problems are LeetCode's SQL set (the number in
+      brackets is the problem ID); tick them off to feed the
+      <a href="index.html">home dashboard</a>. Aim for one topic every 2 study
+      nights, 4–6 problems each on the weekend.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — all practice problems</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#schema">The sample schema</a></li>
+      <li><a href="#advanced-select">Advanced SELECT</a></li>
+      <li><a href="#joins">Joins — every type</a></li>
+      <li><a href="#sorting-grouping">Sorting &amp; Grouping</a></li>
+      <li><a href="#aggregation">Aggregation</a></li>
+      <li><a href="#ctes">CTEs</a></li>
+      <li><a href="#subqueries">Subqueries</a></li>
+      <li><a href="#window-functions">Window Functions (deep)</a></li>
+      <li><a href="#recursive-ctes">Recursive CTEs</a></li>
+      <li><a href="#string-functions">Advanced String Functions</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ================= SCHEMA ================= -->
+  <section class="topic" id="schema">
+    <h2>The sample schema</h2>
+
+    <p>
+      A tiny e-commerce model: <code>customers</code> place <code>orders</code>,
+      each order has one or more <code>order_items</code> pointing at
+      <code>products</code>. A separate <code>employees</code> table (self-referencing
+      via <code>manager_id</code>) exists only for the recursive-CTE section. The
+      data is deliberately small — 6 customers, 10 orders, 14 line items — so every
+      query result on this page can be verified by counting rows yourself.
+    </p>
+    <p>
+      Two rows are placed on purpose: customer <strong>Frank Li</strong> has
+      <em>no</em> orders (so <code>LEFT JOIN</code> and "never ordered" queries have
+      something to find), and product <strong>Legacy Adapter</strong> has
+      <em>no</em> sales (so anti-joins have something to find). Order
+      <strong>1004</strong> is <code>cancelled</code> and <strong>1006</strong> is
+      only <code>shipped</code>, so "delivered revenue" differs from "gross revenue".
+    </p>
+
+    <p class="code-label">Schema + data (run this first)</p>
+<pre><code>CREATE TABLE customers (
+    customer_id  INT PRIMARY KEY,
+    name         TEXT,
+    city         TEXT,
+    signup_date  DATE,
+    segment      TEXT            -- 'consumer' | 'business'
+);
+
+CREATE TABLE products (
+    product_id   INT PRIMARY KEY,
+    name         TEXT,
+    category     TEXT,           -- 'Hardware' | 'Software'
+    unit_price   NUMERIC(10,2)
+);
+
+CREATE TABLE orders (
+    order_id     INT PRIMARY KEY,
+    customer_id  INT REFERENCES customers,
+    order_date   DATE,
+    status       TEXT            -- 'delivered' | 'shipped' | 'cancelled'
+);
+
+CREATE TABLE order_items (
+    order_id     INT REFERENCES orders,
+    product_id   INT REFERENCES products,
+    quantity     INT,
+    unit_price   NUMERIC(10,2),  -- price captured at sale time
+    PRIMARY KEY (order_id, product_id)
+);
+
+CREATE TABLE employees (
+    employee_id  INT PRIMARY KEY,
+    name         TEXT,
+    manager_id   INT REFERENCES employees,
+    title        TEXT
+);
+
+INSERT INTO customers VALUES
+ (1,'Alice Nguyen','Seattle','2022-11-03','consumer'),
+ (2,'Bob Martin','Austin','2023-01-15','consumer'),
+ (3,'Carla Reyes','Seattle','2023-02-20','business'),
+ (4,'Dan Osei','Chicago','2023-06-01','business'),
+ (5,'Eve Park','Austin','2024-01-10','consumer'),
+ (6,'Frank Li','Denver','2024-03-02','consumer');
+
+INSERT INTO products VALUES
+ (10,'Widget','Hardware',25.00),
+ (11,'Gadget','Hardware',80.00),
+ (12,'Gizmo','Hardware',12.50),
+ (13,'Dashboard License','Software',150.00),
+ (14,'API Credits','Software',40.00),
+ (15,'Legacy Adapter','Hardware',5.00);
+
+INSERT INTO orders VALUES
+ (1000,1,'2024-01-05','delivered'),
+ (1001,1,'2024-02-11','delivered'),
+ (1002,2,'2024-02-14','delivered'),
+ (1003,3,'2024-03-02','delivered'),
+ (1004,3,'2024-03-20','cancelled'),
+ (1005,1,'2024-04-01','delivered'),
+ (1006,4,'2024-04-15','shipped'),
+ (1007,2,'2024-05-02','delivered'),
+ (1008,5,'2024-05-18','delivered'),
+ (1009,3,'2024-06-07','delivered');
+
+INSERT INTO order_items VALUES
+ (1000,10,2,25.00),(1000,12,4,12.50),
+ (1001,11,1,80.00),
+ (1002,13,1,150.00),(1002,14,5,40.00),
+ (1003,10,10,25.00),
+ (1004,11,2,80.00),
+ (1005,12,8,12.50),(1005,14,2,40.00),
+ (1006,11,3,80.00),
+ (1007,10,4,25.00),(1007,13,1,150.00),
+ (1008,14,1,40.00),
+ (1009,12,2,12.50);
+
+INSERT INTO employees VALUES
+ (1,'Priya Shah',NULL,'CEO'),
+ (2,'Marco Diaz',1,'VP Sales'),
+ (3,'Lin Wei',1,'VP Engineering'),
+ (4,'Sam Cole',2,'Sales Lead'),
+ (5,'Ada Brown',4,'Account Executive'),
+ (6,'Tom Frost',3,'Engineering Manager'),
+ (7,'Nita Rao',6,'Engineer');</code></pre>
+
+    <div class="box note">
+      <span class="box-title">Order values (memorise these — every section reuses them)</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>order_id</th><th>customer</th><th>date</th><th>status</th><th>line items</th><th>order value</th></tr></thead>
+        <tbody>
+          <tr><td>1000</td><td>Alice</td><td>2024-01-05</td><td>delivered</td><td>2×Widget, 4×Gizmo</td><td>100.00</td></tr>
+          <tr><td>1001</td><td>Alice</td><td>2024-02-11</td><td>delivered</td><td>1×Gadget</td><td>80.00</td></tr>
+          <tr><td>1002</td><td>Bob</td><td>2024-02-14</td><td>delivered</td><td>1×Dashboard, 5×API Credits</td><td>350.00</td></tr>
+          <tr><td>1003</td><td>Carla</td><td>2024-03-02</td><td>delivered</td><td>10×Widget</td><td>250.00</td></tr>
+          <tr><td>1004</td><td>Carla</td><td>2024-03-20</td><td><em>cancelled</em></td><td>2×Gadget</td><td>160.00</td></tr>
+          <tr><td>1005</td><td>Alice</td><td>2024-04-01</td><td>delivered</td><td>8×Gizmo, 2×API Credits</td><td>180.00</td></tr>
+          <tr><td>1006</td><td>Dan</td><td>2024-04-15</td><td><em>shipped</em></td><td>3×Gadget</td><td>240.00</td></tr>
+          <tr><td>1007</td><td>Bob</td><td>2024-05-02</td><td>delivered</td><td>4×Widget, 1×Dashboard</td><td>250.00</td></tr>
+          <tr><td>1008</td><td>Eve</td><td>2024-05-18</td><td>delivered</td><td>1×API Credits</td><td>40.00</td></tr>
+          <tr><td>1009</td><td>Carla</td><td>2024-06-07</td><td>delivered</td><td>2×Gizmo</td><td>25.00</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Gross value of all 10 orders = <code>1675.00</code>. Delivered only (drops
+        1004 and 1006) = <code>1275.00</code>. Delivered revenue by customer:
+        Bob <code>600</code>, Alice <code>360</code>, Carla <code>275</code>,
+        Eve <code>40</code>, Dan <code>0</code>, Frank <code>0</code>.
+      </p>
+    </div>
+  </section>
+
+
+  <!-- ================= 1. ADVANCED SELECT ================= -->
+  <section class="topic" id="advanced-select">
+    <h2>1 · Advanced SELECT</h2>
+
+    <p>
+      Everything before <code>FROM</code> is a <em>projection</em>: you choose
+      columns, compute new ones, rename them with <code>AS</code>, and reshape
+      values. The workhorses are <strong><code>CASE</code></strong> (an inline
+      if/else that returns a value), the null-handlers
+      <strong><code>COALESCE</code></strong> (first non-null argument) and
+      <strong><code>NULLIF</code></strong> (null when two values are equal —
+      handy to dodge divide-by-zero), and scalar functions like
+      <code>EXTRACT</code>, <code>ROUND</code>, <code>CAST</code> /
+      <code>::</code>.
+    </p>
+    <p>
+      <strong><code>DISTINCT</code></strong> removes duplicate rows <em>after</em>
+      projection; PostgreSQL also has <code>DISTINCT ON (col)</code> to keep the
+      first row per group under an <code>ORDER BY</code>. <strong><code>LIMIT</code></strong>
+      with <strong><code>OFFSET</code></strong> paginates — but only meaningfully
+      when paired with a deterministic <code>ORDER BY</code>, otherwise "page 2" is
+      undefined. Remember the logical evaluation order:
+      <code>FROM → WHERE → GROUP BY → HAVING → SELECT → DISTINCT → ORDER BY → LIMIT</code>.
+      That is why you can't reference a <code>SELECT</code> alias in
+      <code>WHERE</code> (it doesn't exist yet) but you <em>can</em> in
+      <code>ORDER BY</code>.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        <code>SELECT</code> is a per-row transform: given one row's columns, what
+        do I output? If the answer needs other rows, that is not a
+        <code>SELECT</code> job — it's a join, an aggregate, or a window. Reach for
+        <code>CASE</code> the moment you hear "bucket", "label", "flag as", or
+        "otherwise".
+      </p>
+    </div>
+
+    <p class="code-label">Worked query — computed columns, CASE, EXTRACT, filtered + paginated</p>
+<pre><code>SELECT
+    c.name,
+    c.city,
+    c.segment,
+    EXTRACT(YEAR FROM c.signup_date)        AS signup_year,
+    CASE WHEN c.segment = 'business'
+         THEN 'priority' ELSE 'standard' END AS support_tier
+FROM customers c
+WHERE c.city IN ('Seattle', 'Austin')
+ORDER BY c.signup_date
+LIMIT 4;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>name</th><th>city</th><th>segment</th><th>signup_year</th><th>support_tier</th></tr></thead>
+        <tbody>
+          <tr><td>Alice Nguyen</td><td>Seattle</td><td>consumer</td><td>2022</td><td>standard</td></tr>
+          <tr><td>Bob Martin</td><td>Austin</td><td>consumer</td><td>2023</td><td>standard</td></tr>
+          <tr><td>Carla Reyes</td><td>Seattle</td><td>business</td><td>2023</td><td>priority</td></tr>
+          <tr><td>Eve Park</td><td>Austin</td><td>consumer</td><td>2024</td><td>standard</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Four of the six customers live in Seattle or Austin; ordered by signup date
+        that is Alice → Bob → Carla → Eve, and <code>LIMIT 4</code> keeps them all.
+      </p>
+    </div>
+
+    <p class="code-label">Also worth knowing — NULLIF + COALESCE + OFFSET</p>
+<pre><code>SELECT o.order_id,
+       o.status,
+       COALESCE(NULLIF(o.status, 'cancelled'), 'void') AS effective_status
+FROM orders o
+ORDER BY o.order_id
+OFFSET 2 LIMIT 3;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>order_id</th><th>status</th><th>effective_status</th></tr></thead>
+        <tbody>
+          <tr><td>1002</td><td>delivered</td><td>delivered</td></tr>
+          <tr><td>1003</td><td>delivered</td><td>delivered</td></tr>
+          <tr><td>1004</td><td>cancelled</td><td>void</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <code>OFFSET 2</code> skips orders 1000–1001. For 1004,
+        <code>NULLIF('cancelled','cancelled')</code> is <code>NULL</code>, so
+        <code>COALESCE</code> falls through to <code>'void'</code>.
+      </p>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">When this comes up in interviews</span>
+      <p class="small">
+        <strong>Always.</strong> Screening rounds are almost entirely
+        <code>SELECT</code> + <code>WHERE</code> + <code>CASE</code>. Expected
+        fluency: bucketing with <code>CASE</code>, null-safety with
+        <code>COALESCE</code>, cheap date parts with <code>EXTRACT</code>.
+        <strong>Overkill:</strong> <code>DISTINCT ON</code> and clever
+        <code>CASE</code> nesting when a small join or a window would read more
+        clearly — reviewers dislike "surprising" SQL more than long SQL.
+      </p>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-advanced-select"></div>
+  </section>
+
+
+  <!-- ================= 2. JOINS ================= -->
+  <section class="topic" id="joins">
+    <h2>2 · Joins — every type</h2>
+
+    <p>
+      A join pairs each row of one table with matching rows of another on a
+      predicate. <strong><code>INNER JOIN</code></strong> keeps only pairs that
+      match. <strong><code>LEFT JOIN</code></strong> keeps every left row, filling
+      <code>NULL</code>s where the right side has no match (<code>RIGHT JOIN</code>
+      is the mirror; <code>FULL OUTER JOIN</code> keeps unmatched rows from
+      <em>both</em> sides). <strong><code>CROSS JOIN</code></strong> is every
+      combination — the Cartesian product, no predicate. A <strong>self join</strong>
+      is just a table joined to itself under two aliases, for "compare a row to
+      other rows in the same table".
+    </p>
+    <p>
+      The <strong>anti-join</strong> deserves its own name: <code>LEFT JOIN … WHERE
+      right.key IS NULL</code> finds left rows with <em>no</em> match ("customers
+      who never ordered", "products never sold"). It is the single most common
+      "medium" SQL question. Its partner, the semi-join, asks only "does a match
+      exist" and is usually written with <code>EXISTS</code> (see §6).
+    </p>
+    <p>
+      The one trap that sinks people: putting a filter on the <em>right</em> table
+      of a <code>LEFT JOIN</code> in the <code>WHERE</code> clause silently turns it
+      back into an inner join (because <code>NULL = 'x'</code> is false). Filters on
+      the outer table must live in the <code>ON</code> clause.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Ask two questions. "Do I need rows that have no partner?" — yes ⇒ outer
+        join. "Which side must always survive?" — that side is <code>LEFT</code>.
+        Then decide where each filter goes: conditions on the always-survive table
+        go in <code>ON</code>, not <code>WHERE</code>.
+      </p>
+    </div>
+
+    <p class="code-label">INNER JOIN — orders with their customer</p>
+<pre><code>SELECT o.order_id, c.name, o.order_date, o.status
+FROM orders o
+JOIN customers c ON c.customer_id = o.customer_id
+WHERE o.status = 'delivered'
+ORDER BY o.order_id
+LIMIT 5;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>order_id</th><th>name</th><th>order_date</th><th>status</th></tr></thead>
+        <tbody>
+          <tr><td>1000</td><td>Alice Nguyen</td><td>2024-01-05</td><td>delivered</td></tr>
+          <tr><td>1001</td><td>Alice Nguyen</td><td>2024-02-11</td><td>delivered</td></tr>
+          <tr><td>1002</td><td>Bob Martin</td><td>2024-02-14</td><td>delivered</td></tr>
+          <tr><td>1003</td><td>Carla Reyes</td><td>2024-03-02</td><td>delivered</td></tr>
+          <tr><td>1005</td><td>Alice Nguyen</td><td>2024-04-01</td><td>delivered</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <p class="code-label">LEFT JOIN — order count per customer, including zero</p>
+<pre><code>SELECT c.name, COUNT(o.order_id) AS order_count
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.customer_id
+GROUP BY c.name
+ORDER BY order_count, c.name;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>name</th><th>order_count</th></tr></thead>
+        <tbody>
+          <tr><td>Frank Li</td><td>0</td></tr>
+          <tr><td>Dan Osei</td><td>1</td></tr>
+          <tr><td>Eve Park</td><td>1</td></tr>
+          <tr><td>Bob Martin</td><td>2</td></tr>
+          <tr><td>Alice Nguyen</td><td>3</td></tr>
+          <tr><td>Carla Reyes</td><td>3</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <code>COUNT(o.order_id)</code> — not <code>COUNT(*)</code> — is what gives
+        Frank a <code>0</code>: his single all-<code>NULL</code> right side counts
+        as nothing.
+      </p>
+    </div>
+
+    <p class="code-label">Anti-join — products that were never ordered</p>
+<pre><code>SELECT p.product_id, p.name
+FROM products p
+LEFT JOIN order_items oi ON oi.product_id = p.product_id
+WHERE oi.product_id IS NULL;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>product_id</th><th>name</th></tr></thead>
+        <tbody>
+          <tr><td>15</td><td>Legacy Adapter</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <p class="code-label">Self join — pairs of customers in the same city</p>
+<pre><code>SELECT a.name AS customer_a, b.name AS customer_b, a.city
+FROM customers a
+JOIN customers b
+  ON a.city = b.city
+ AND a.customer_id &lt; b.customer_id      -- each pair once, no self-pairing
+ORDER BY a.city;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>customer_a</th><th>customer_b</th><th>city</th></tr></thead>
+        <tbody>
+          <tr><td>Bob Martin</td><td>Eve Park</td><td>Austin</td></tr>
+          <tr><td>Alice Nguyen</td><td>Carla Reyes</td><td>Seattle</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        The <code>a.customer_id &lt; b.customer_id</code> condition is the whole
+        trick: <code>=</code> would return every customer paired with themselves,
+        <code>&lt;&gt;</code> would return each pair twice (A–B and B–A).
+      </p>
+    </div>
+
+    <p>
+      <strong><code>RIGHT JOIN</code></strong> is just <code>LEFT JOIN</code> with
+      the tables swapped — most teams ban it for readability.
+      <strong><code>FULL OUTER JOIN</code></strong> shows up when reconciling two
+      lists ("rows in yesterday's snapshot vs today's"); MySQL lacks it, so you
+      emulate with <code>LEFT JOIN … UNION … RIGHT JOIN</code>.
+      <strong><code>CROSS JOIN</code></strong> is for generating a grid to fill —
+      e.g. every <code>(customer, month)</code> cell before <code>LEFT JOIN</code>ing
+      actual orders so months with no orders still appear as zero.
+    </p>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Filtering the right table of a <code>LEFT JOIN</code> in <code>WHERE</code> — it collapses to an inner join. Move it to <code>ON</code>.</li>
+        <li>Join predicate too loose (missing a key column) → row explosion; the result has more rows than either table.</li>
+        <li><code>COUNT(*)</code> after a <code>LEFT JOIN</code> counting <code>1</code> for unmatched rows — use <code>COUNT(right.key)</code>.</li>
+        <li>Joining on a nullable column and forgetting <code>NULL = NULL</code> is <em>unknown</em>, not true.</li>
+        <li>Summing a parent column after joining to children — the parent value is duplicated per child and the sum is inflated.</li>
+        <li>Self join without an inequality → duplicate/self pairs.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">When this comes up in interviews</span>
+      <p class="small">
+        <strong>Every SQL interview, usually the first real question.</strong>
+        "Combine two tables", "customers who never ordered", "employees earning
+        more than their manager" are all just joins. Be instant on
+        <code>INNER</code> vs <code>LEFT</code> and the anti-join pattern.
+        <strong>Overkill:</strong> reaching for <code>FULL OUTER JOIN</code> or
+        multi-way self joins when the question is really a
+        <code>GROUP BY</code> or a window function.
+      </p>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-joins"></div>
+  </section>
+
+
+  <!-- ================= 3. SORTING & GROUPING ================= -->
+  <section class="topic" id="sorting-grouping">
+    <h2>3 · Sorting &amp; Grouping</h2>
+
+    <p>
+      <strong><code>GROUP BY</code></strong> collapses rows that share the grouping
+      key into one row per group; every column in <code>SELECT</code> must then be
+      either a grouping key or wrapped in an aggregate. <strong><code>HAVING</code></strong>
+      filters <em>groups</em> after aggregation, the way <code>WHERE</code> filters
+      rows before it — "departments with more than 5 people" is
+      <code>HAVING COUNT(*) &gt; 5</code>, and it cannot be done in
+      <code>WHERE</code>.
+    </p>
+    <p>
+      <strong><code>ORDER BY</code></strong> takes multiple keys (each
+      <code>ASC</code>/<code>DESC</code> independently), can sort by an expression
+      or a <code>SELECT</code> alias, and controls null placement with
+      <code>NULLS FIRST</code> / <code>NULLS LAST</code> (Postgres defaults nulls to
+      last for <code>ASC</code>, MySQL to first). <code>GROUP BY</code> extensions —
+      <code>ROLLUP</code>, <code>CUBE</code>, <code>GROUPING SETS</code> — produce
+      subtotal rows in one pass, useful for report-style "total per category
+      <em>and</em> a grand total".
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        "Per X" in the question ⇒ <code>GROUP BY X</code>. A condition on the
+        aggregated number ("more than", "at least", "average above") ⇒
+        <code>HAVING</code>. A condition on raw rows ("only delivered orders") ⇒
+        <code>WHERE</code>, and it runs <em>first</em>, so it shrinks the work.
+      </p>
+    </div>
+
+    <p class="code-label">Worked query — customers per city and segment, ranked</p>
+<pre><code>SELECT c.city, c.segment, COUNT(*) AS customer_count
+FROM customers c
+GROUP BY c.city, c.segment
+ORDER BY customer_count DESC, c.city ASC;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>city</th><th>segment</th><th>customer_count</th></tr></thead>
+        <tbody>
+          <tr><td>Austin</td><td>consumer</td><td>2</td></tr>
+          <tr><td>Chicago</td><td>business</td><td>1</td></tr>
+          <tr><td>Denver</td><td>consumer</td><td>1</td></tr>
+          <tr><td>Seattle</td><td>business</td><td>1</td></tr>
+          <tr><td>Seattle</td><td>consumer</td><td>1</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Five groups from six customers — only Austin/consumer (Bob + Eve) has two.
+        Ties on <code>customer_count</code> are broken by <code>city ASC</code>.
+      </p>
+    </div>
+
+    <p class="code-label">HAVING — customers with 3 or more orders (any status)</p>
+<pre><code>SELECT o.customer_id, COUNT(*) AS orders
+FROM orders o
+GROUP BY o.customer_id
+HAVING COUNT(*) &gt;= 3;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>customer_id</th><th>orders</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>3</td></tr>
+          <tr><td>3</td><td>3</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Alice (1) has 1000/1001/1005; Carla (3) has 1003/1004/1009. Bob has only 2.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Selecting a non-aggregated, non-grouped column — Postgres errors; MySQL (old mode) returns an arbitrary value.</li>
+        <li>Putting an aggregate condition in <code>WHERE</code> (<code>WHERE COUNT(*) &gt; 5</code>) — it belongs in <code>HAVING</code>.</li>
+        <li>Filtering rows in <code>HAVING</code> that could have been in <code>WHERE</code> — correct, but slower (you aggregated rows you then threw away).</li>
+        <li><code>COUNT(col)</code> skips <code>NULL</code>s; <code>COUNT(*)</code> counts rows. Different answers.</li>
+        <li>Relying on <code>GROUP BY</code> to also sort the output — it does not; add <code>ORDER BY</code>.</li>
+        <li><code>ORDER BY</code> a column not in <code>SELECT DISTINCT</code> — not allowed.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">When this comes up in interviews</span>
+      <p class="small">
+        <strong>Constantly</strong> — "top N per group", "count per day",
+        "categories with more than K items" are the bread and butter of the
+        medium tier. Know <code>WHERE</code> vs <code>HAVING</code> cold.
+        <strong>Overkill:</strong> <code>ROLLUP</code>/<code>CUBE</code>/
+        <code>GROUPING SETS</code> are almost never asked; mentioning them is a
+        nice bonus, leading with them is a red flag.
+      </p>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-sorting-grouping"></div>
+  </section>
+
+
+  <!-- ================= 4. AGGREGATION ================= -->
+  <section class="topic" id="aggregation">
+    <h2>4 · Aggregation</h2>
+
+    <p>
+      The five standard aggregates — <code>COUNT</code>, <code>SUM</code>,
+      <code>AVG</code>, <code>MIN</code>, <code>MAX</code> — all ignore
+      <code>NULL</code> (except <code>COUNT(*)</code>). <code>COUNT(DISTINCT col)</code>
+      counts unique non-null values. Used without <code>GROUP BY</code>, an
+      aggregate collapses the whole result to a single row.
+    </p>
+    <p>
+      <strong>Conditional aggregation</strong> is the technique that carries most
+      interview answers: aggregate over a subset within the same scan.
+      PostgreSQL's <code>SUM(x) FILTER (WHERE cond)</code> is the clean form;
+      the portable form is <code>SUM(CASE WHEN cond THEN x END)</code> and
+      <code>COUNT(CASE WHEN cond THEN 1 END)</code>. This is how you get
+      "delivered revenue and total revenue side by side", or pivot rows into
+      columns ("count of each status per day").
+    </p>
+    <p>
+      Watch precision: <code>AVG</code> of integers may do integer division in some
+      engines (cast one operand to numeric); <code>SUM</code> over many big rows can
+      overflow a narrow integer type; and <code>AVG</code> silently drops
+      <code>NULL</code>s from the denominator, which is sometimes right and
+      sometimes a bug ("average score" — do missing scores count as zero?).
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        If you're about to run two near-identical queries that differ only by a
+        <code>WHERE</code> filter and then compare the numbers, stop — that's one
+        query with two <code>FILTER</code>/<code>CASE</code> aggregates.
+      </p>
+    </div>
+
+    <p class="code-label">Worked query — one scan, several headline numbers</p>
+<pre><code>SELECT
+    COUNT(*)                             AS line_rows,
+    COUNT(DISTINCT o.customer_id)        AS buying_customers,
+    SUM(oi.quantity * oi.unit_price)     AS gross_revenue,
+    ROUND(AVG(oi.quantity * oi.unit_price), 2) AS avg_line_value,
+    MAX(oi.quantity * oi.unit_price)     AS biggest_line
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.order_id;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>line_rows</th><th>buying_customers</th><th>gross_revenue</th><th>avg_line_value</th><th>biggest_line</th></tr></thead>
+        <tbody>
+          <tr><td>14</td><td>5</td><td>1675.00</td><td>119.64</td><td>250.00</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        14 line items across 10 orders from 5 distinct customers (Frank never
+        ordered). <code>1675 / 14 = 119.64</code>; the biggest single line is
+        10×Widget = <code>250.00</code> in order 1003.
+      </p>
+    </div>
+
+    <p class="code-label">Conditional aggregation — delivered vs all revenue in one pass</p>
+<pre><code>SELECT
+    SUM(oi.quantity * oi.unit_price)                                       AS all_revenue,
+    SUM(oi.quantity * oi.unit_price) FILTER (WHERE o.status = 'delivered') AS delivered_revenue
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.order_id;
+-- MySQL: SUM(CASE WHEN o.status = 'delivered'
+--                 THEN oi.quantity * oi.unit_price END)</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>all_revenue</th><th>delivered_revenue</th></tr></thead>
+        <tbody>
+          <tr><td>1675.00</td><td>1275.00</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        The <code>400.00</code> difference is order 1004 (cancelled, 160) plus
+        order 1006 (shipped, 240).
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Assuming <code>COUNT(col)</code> and <code>COUNT(*)</code> are the same — they differ whenever <code>col</code> has <code>NULL</code>s.</li>
+        <li><code>AVG(int_col)</code> doing integer division (some engines) — <code>AVG(col::numeric)</code>.</li>
+        <li>Averaging over a join that duplicated the base row — the average is weighted by child count.</li>
+        <li><code>SUM</code> returning <code>NULL</code> (not <code>0</code>) when no rows match — wrap in <code>COALESCE(SUM(...), 0)</code>.</li>
+        <li>Counting after a <code>LEFT JOIN</code> and getting <code>1</code> for the no-match rows.</li>
+        <li>Mixing an aggregate and a bare column with no <code>GROUP BY</code>.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">When this comes up in interviews</span>
+      <p class="small">
+        <strong>In every question that has a "how many" or "how much".</strong>
+        Conditional aggregation (<code>SUM(CASE …)</code>) is a genuine
+        differentiator — it separates people who write three queries from people
+        who write one. <strong>Overkill:</strong> hand-rolling a pivot with a dozen
+        <code>CASE</code> columns when the interviewer would accept "…and I'd pivot
+        this in the BI layer".
+      </p>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-aggregation"></div>
+  </section>
+
+
+  <!-- ================= 5. CTEs ================= -->
+  <section class="topic" id="ctes">
+    <h2>5 · CTEs (Common Table Expressions)</h2>
+
+    <p>
+      A CTE is a named subquery declared up front with <code>WITH</code>, then
+      referenced by name in the main query (or in later CTEs). It doesn't make the
+      query more powerful than nested subqueries — it makes it <em>readable</em>:
+      you name each intermediate result, and you read the query top-to-bottom
+      instead of inside-out.
+    </p>
+    <p>
+      The typical shape is a pipeline: CTE 1 shapes the base rows, CTE 2 aggregates
+      CTE 1, the final <code>SELECT</code> joins that back to a dimension table. A
+      CTE can be referenced multiple times without repeating its text. In modern
+      PostgreSQL CTEs are <em>not</em> an optimization fence by default (they can be
+      inlined); if you rely on materialization, say <code>WITH x AS MATERIALIZED
+      (…)</code>.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        If you catch yourself writing a subquery inside a subquery inside a
+        <code>FROM</code>, stop and give each layer a name with <code>WITH</code>.
+        Same result, and the interviewer can now follow your logic — which is half
+        of what they're grading.
+      </p>
+    </div>
+
+    <p class="code-label">Worked query — two-stage pipeline: order totals → customer revenue</p>
+<pre><code>WITH order_totals AS (
+    SELECT o.order_id, o.customer_id,
+           SUM(oi.quantity * oi.unit_price) AS order_value
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.status = 'delivered'
+    GROUP BY o.order_id, o.customer_id
+),
+customer_revenue AS (
+    SELECT customer_id,
+           SUM(order_value) AS revenue,
+           COUNT(*)         AS delivered_orders
+    FROM order_totals
+    GROUP BY customer_id
+)
+SELECT c.name, r.revenue, r.delivered_orders
+FROM customer_revenue r
+JOIN customers c ON c.customer_id = r.customer_id
+ORDER BY r.revenue DESC;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>name</th><th>revenue</th><th>delivered_orders</th></tr></thead>
+        <tbody>
+          <tr><td>Bob Martin</td><td>600.00</td><td>2</td></tr>
+          <tr><td>Alice Nguyen</td><td>360.00</td><td>3</td></tr>
+          <tr><td>Carla Reyes</td><td>275.00</td><td>2</td></tr>
+          <tr><td>Eve Park</td><td>40.00</td><td>1</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Dan and Frank don't appear — Dan's only order is <code>shipped</code>, Frank
+        has none, so neither survives the <code>WHERE o.status = 'delivered'</code>
+        in the first CTE. Alice has more orders but lower total than Bob.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Expecting a CTE to be evaluated once and reused — before PG 12 it was; now it may be inlined and run per reference.</li>
+        <li>Trying to reference a CTE defined <em>later</em> in the same <code>WITH</code> list (only recursive CTEs self-reference).</li>
+        <li>A trailing comma after the last CTE, or forgetting the comma between CTEs.</li>
+        <li>Putting <code>ORDER BY</code> inside a non-recursive CTE and assuming the outer query preserves it — it doesn't.</li>
+        <li>Very long CTE chains that would be clearer as a view or a temp table.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">When this comes up in interviews</span>
+      <p class="small">
+        <strong>Whenever the answer has more than one step</strong> — which is most
+        medium/hard questions. Using a CTE instead of nested subqueries is a
+        readability signal reviewers actively look for. <strong>Overkill:</strong> a
+        CTE for a single trivial subquery, or five CTEs where two would do. It's a
+        clarity tool, not a checkbox.
+      </p>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-ctes"></div>
+  </section>
+
+
+  <!-- ================= 6. SUBQUERIES ================= -->
+  <section class="topic" id="subqueries">
+    <h2>6 · Subqueries</h2>
+
+    <p>
+      A subquery is a <code>SELECT</code> nested inside another statement. Four
+      positions: <strong>scalar</strong> (returns one row/one column — usable
+      anywhere a value is, e.g. <code>WHERE x &gt; (SELECT AVG(x) …)</code>);
+      <strong><code>IN</code> / <code>NOT IN</code></strong> (a value against a
+      column list); <strong><code>EXISTS</code> / <code>NOT EXISTS</code></strong>
+      (a correlated existence test); and <strong>derived table</strong> (a subquery
+      in <code>FROM</code>, which must be aliased).
+    </p>
+    <p>
+      A <strong>correlated</strong> subquery references a column from the outer
+      query, so it conceptually re-runs per outer row — <code>EXISTS (SELECT 1 FROM
+      orders o WHERE o.customer_id = c.customer_id)</code>. <code>EXISTS</code>
+      short-circuits on the first match and handles <code>NULL</code>s safely, which
+      is why it's preferred over <code>IN</code> for "has any" / "has none"
+      questions. <code>NOT IN</code> with a subquery that can produce a
+      <code>NULL</code> is a classic bug: the whole predicate becomes
+      <em>unknown</em> and you get zero rows.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        "Compared to an overall number" ⇒ scalar subquery. "Is in / not in a set" ⇒
+        <code>IN</code> for a static-ish list, <code>EXISTS</code> for "does a
+        related row exist". "Not in a set" and the set might contain
+        <code>NULL</code> ⇒ <code>NOT EXISTS</code>, never <code>NOT IN</code>.
+      </p>
+    </div>
+
+    <p class="code-label">Scalar + derived table — customers above the average customer's revenue</p>
+<pre><code>SELECT c.name, rev.revenue
+FROM customers c
+JOIN (
+    SELECT o.customer_id,
+           SUM(oi.quantity * oi.unit_price) AS revenue
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.status = 'delivered'
+    GROUP BY o.customer_id
+) AS rev ON rev.customer_id = c.customer_id
+WHERE rev.revenue &gt; (
+    SELECT AVG(t.revenue)
+    FROM (
+        SELECT SUM(oi.quantity * oi.unit_price) AS revenue
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE o.status = 'delivered'
+        GROUP BY o.customer_id
+    ) AS t
+);</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>name</th><th>revenue</th></tr></thead>
+        <tbody>
+          <tr><td>Alice Nguyen</td><td>360.00</td></tr>
+          <tr><td>Bob Martin</td><td>600.00</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Delivered revenues are 600 / 360 / 275 / 40; their average is
+        <code>1275 / 4 = 318.75</code>. Only Bob and Alice clear it. (A CTE would
+        let you write that subquery once — this is exactly the case §5 is for.)
+      </p>
+    </div>
+
+    <p class="code-label">Correlated EXISTS — customers who ever bought a Software product</p>
+<pre><code>SELECT c.name
+FROM customers c
+WHERE EXISTS (
+    SELECT 1
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    JOIN products p     ON p.product_id = oi.product_id
+    WHERE o.customer_id = c.customer_id
+      AND p.category = 'Software'
+)
+ORDER BY c.name;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>name</th></tr></thead>
+        <tbody>
+          <tr><td>Alice Nguyen</td></tr>
+          <tr><td>Bob Martin</td></tr>
+          <tr><td>Eve Park</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Software = Dashboard License (13) + API Credits (14). Bought by Bob (1002,
+        1007), Alice (1005), Eve (1008). Carla and Dan only ever bought Hardware.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><code>NOT IN (subquery with NULLs)</code> → zero rows. Use <code>NOT EXISTS</code> or add <code>WHERE col IS NOT NULL</code>.</li>
+        <li>A scalar subquery that returns more than one row → runtime error.</li>
+        <li>Derived table without an alias → syntax error.</li>
+        <li>Repeating a big subquery verbatim in two places instead of using a CTE.</li>
+        <li>Correlated subquery in <code>SELECT</code> that runs per row when a join would do it once — a real performance trap on big tables.</li>
+        <li>Assuming <code>IN</code> and <code>EXISTS</code> always plan the same — usually similar, but not guaranteed.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">When this comes up in interviews</span>
+      <p class="small">
+        <strong>"Second highest salary", "customers who bought all products",
+        "managers with ≥5 reports"</strong> — these are subquery questions, and
+        they're extremely common. <code>NOT EXISTS</code> for "bought all / missing
+        none" is a pattern worth drilling. <strong>Overkill:</strong> deeply nested
+        correlated subqueries where a <code>JOIN</code> + <code>GROUP BY</code> or a
+        window function is both faster and clearer.
+      </p>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-subqueries"></div>
+  </section>
+
+
+  <!-- ================= 7. WINDOW FUNCTIONS ================= -->
+  <section class="topic" id="window-functions">
+    <h2>7 · Window Functions <span class="muted">(the deep one)</span></h2>
+
+    <p>
+      A window function computes a value for each row using a <em>window</em> of
+      related rows — <strong>without collapsing the result</strong>. That is the
+      whole point: <code>GROUP BY</code> gives you one row per group;
+      <code>OVER (PARTITION BY …)</code> gives you every original row <em>plus</em>
+      the group-level number. The clause has three parts:
+      <code>PARTITION BY</code> (which rows share a window),
+      <code>ORDER BY</code> (order within the window — required for ranking and
+      offset functions), and the <strong>frame</strong>
+      (<code>ROWS</code>/<code>RANGE BETWEEN … AND …</code> — which slice of the
+      ordered partition to aggregate).
+    </p>
+    <p>
+      They run <em>after</em> <code>WHERE</code>/<code>GROUP BY</code>/
+      <code>HAVING</code> and <em>before</em> <code>ORDER BY</code>/
+      <code>LIMIT</code>, so you cannot filter on a window result in the same
+      <code>SELECT</code> — you wrap it in a CTE or subquery and filter outside.
+      "Top 3 per group", "latest row per group", "running total", "compare to
+      previous row", "percent of total" are all window-function questions, and this
+      is the single highest-leverage SQL topic for product-company interviews.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Hear "<strong>per</strong> group but <strong>keep the detail rows</strong>",
+        or "<strong>compared to the previous / next / first</strong>", or
+        "<strong>running / cumulative / rolling</strong>", or "<strong>Nth
+        highest per</strong>" → window function. If you need to filter on that
+        computed number, you'll need two query levels.
+      </p>
+    </div>
+
+    <h3>7a · ROW_NUMBER vs RANK vs DENSE_RANK</h3>
+    <p>
+      All three number rows within a partition by an <code>ORDER BY</code>.
+      <code>ROW_NUMBER</code> is always <code>1, 2, 3, 4</code> — arbitrary among
+      ties. <code>RANK</code> gives ties the same number then <em>skips</em>
+      (<code>1, 1, 3</code>). <code>DENSE_RANK</code> ties without skipping
+      (<code>1, 1, 2</code>). Use <code>ROW_NUMBER</code> for "exactly one row per
+      group" (dedupe, latest-per-key); <code>RANK</code>/<code>DENSE_RANK</code> for
+      "top N including ties".
+    </p>
+
+    <p class="code-label">Cities ranked by customer count — all three functions</p>
+<pre><code>SELECT
+    city,
+    COUNT(*) AS customers,
+    ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS row_number,
+    RANK()       OVER (ORDER BY COUNT(*) DESC) AS rank,
+    DENSE_RANK() OVER (ORDER BY COUNT(*) DESC) AS dense_rank
+FROM customers
+GROUP BY city;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>city</th><th>customers</th><th>row_number</th><th>rank</th><th>dense_rank</th></tr></thead>
+        <tbody>
+          <tr><td>Austin</td><td>2</td><td>1</td><td>1</td><td>1</td></tr>
+          <tr><td>Seattle</td><td>2</td><td>2</td><td>1</td><td>1</td></tr>
+          <tr><td>Chicago</td><td>1</td><td>3</td><td>3</td><td>2</td></tr>
+          <tr><td>Denver</td><td>1</td><td>4</td><td>3</td><td>2</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Austin and Seattle both have 2 customers. <code>ROW_NUMBER</code> still
+        forces 1 and 2 (which one gets 1 is engine-dependent without a tie-breaker
+        in the <code>OVER … ORDER BY</code>). <code>RANK</code> gives both
+        <code>1</code> then jumps to <code>3</code>; <code>DENSE_RANK</code> gives
+        both <code>1</code> then <code>2</code>.
+      </p>
+    </div>
+
+    <h3>7b · Top-N per group</h3>
+    <p>
+      The canonical pattern: number rows within each partition, then filter in an
+      outer query.
+    </p>
+
+    <p class="code-label">Each customer's two highest-value orders</p>
+<pre><code>WITH ranked AS (
+    SELECT
+        o.customer_id,
+        o.order_id,
+        SUM(oi.quantity * oi.unit_price) AS order_value,
+        ROW_NUMBER() OVER (
+            PARTITION BY o.customer_id
+            ORDER BY SUM(oi.quantity * oi.unit_price) DESC
+        ) AS rn
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    GROUP BY o.customer_id, o.order_id
+)
+SELECT customer_id, order_id, order_value
+FROM ranked
+WHERE rn &lt;= 2
+ORDER BY customer_id, order_value DESC;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>customer_id</th><th>order_id</th><th>order_value</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>1005</td><td>180.00</td></tr>
+          <tr><td>1</td><td>1000</td><td>100.00</td></tr>
+          <tr><td>2</td><td>1002</td><td>350.00</td></tr>
+          <tr><td>2</td><td>1007</td><td>250.00</td></tr>
+          <tr><td>3</td><td>1003</td><td>250.00</td></tr>
+          <tr><td>3</td><td>1004</td><td>160.00</td></tr>
+          <tr><td>4</td><td>1006</td><td>240.00</td></tr>
+          <tr><td>5</td><td>1008</td><td>40.00</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Alice's 1001 (80) is dropped — it's her 3rd. Carla's 1009 (25) is dropped.
+        Dan and Eve have fewer than two orders, so they contribute what they have.
+        Note this counts <em>all</em> statuses (no <code>WHERE</code> on status).
+      </p>
+    </div>
+
+    <h3>7c · LAG / LEAD — reach across rows</h3>
+    <p>
+      <code>LAG(col, n, default)</code> reads <code>n</code> rows back in the
+      ordered partition; <code>LEAD</code> reads forward. This is "difference from
+      previous row", "days since last order", "did the value change" — without a
+      self join.
+    </p>
+
+    <p class="code-label">Gap between each customer's consecutive orders</p>
+<pre><code>SELECT
+    o.customer_id,
+    o.order_id,
+    o.order_date,
+    LAG(o.order_date) OVER w AS prev_order_date,
+    o.order_date
+      - LAG(o.order_date) OVER w AS days_since_prev
+FROM orders o
+WINDOW w AS (PARTITION BY o.customer_id ORDER BY o.order_date)
+ORDER BY o.customer_id, o.order_date;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>customer_id</th><th>order_id</th><th>order_date</th><th>prev_order_date</th><th>days_since_prev</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>1000</td><td>2024-01-05</td><td><em>NULL</em></td><td><em>NULL</em></td></tr>
+          <tr><td>1</td><td>1001</td><td>2024-02-11</td><td>2024-01-05</td><td>37</td></tr>
+          <tr><td>1</td><td>1005</td><td>2024-04-01</td><td>2024-02-11</td><td>50</td></tr>
+          <tr><td>2</td><td>1002</td><td>2024-02-14</td><td><em>NULL</em></td><td><em>NULL</em></td></tr>
+          <tr><td>2</td><td>1007</td><td>2024-05-02</td><td>2024-02-14</td><td>78</td></tr>
+          <tr><td>3</td><td>1003</td><td>2024-03-02</td><td><em>NULL</em></td><td><em>NULL</em></td></tr>
+          <tr><td>3</td><td>1004</td><td>2024-03-20</td><td>2024-03-02</td><td>18</td></tr>
+          <tr><td>3</td><td>1009</td><td>2024-06-07</td><td>2024-03-20</td><td>79</td></tr>
+          <tr><td>4</td><td>1006</td><td>2024-04-15</td><td><em>NULL</em></td><td><em>NULL</em></td></tr>
+          <tr><td>5</td><td>1008</td><td>2024-05-18</td><td><em>NULL</em></td><td><em>NULL</em></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        First order per customer has no predecessor → <code>NULL</code>. 2024 is a
+        leap year, so Feb has 29 days: Alice's 1001→1005 gap is
+        <code>18 + 31 + 1 = 50</code>. (The <code>WINDOW w AS …</code> clause names
+        a window so both <code>LAG</code>s reuse it.)
+      </p>
+    </div>
+
+    <h3>7d · Running totals, moving averages &amp; the frame</h3>
+    <p>
+      With an <code>ORDER BY</code> in <code>OVER</code> but no explicit frame, the
+      default frame is <code>RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code>
+      — which means <em>all rows with an order-key ≤ the current row's</em>, so
+      ties are lumped together. For a true row-by-row running total, say
+      <code>ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</code>. A rolling
+      window of the last 3 rows is <code>ROWS BETWEEN 2 PRECEDING AND CURRENT
+      ROW</code>. This distinction is a favourite interview follow-up.
+    </p>
+
+    <p class="code-label">Cumulative delivered revenue + 3-order moving average</p>
+<pre><code>WITH daily AS (
+    SELECT o.order_id, o.order_date,
+           SUM(oi.quantity * oi.unit_price) AS order_value
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.status = 'delivered'
+    GROUP BY o.order_id, o.order_date
+)
+SELECT
+    order_date,
+    order_value,
+    SUM(order_value) OVER (ORDER BY order_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total,
+    ROUND(AVG(order_value) OVER (ORDER BY order_date
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)     AS moving_avg_3
+FROM daily
+ORDER BY order_date;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>order_date</th><th>order_value</th><th>running_total</th><th>moving_avg_3</th></tr></thead>
+        <tbody>
+          <tr><td>2024-01-05</td><td>100.00</td><td>100.00</td><td>100.00</td></tr>
+          <tr><td>2024-02-11</td><td>80.00</td><td>180.00</td><td>90.00</td></tr>
+          <tr><td>2024-02-14</td><td>350.00</td><td>530.00</td><td>176.67</td></tr>
+          <tr><td>2024-03-02</td><td>250.00</td><td>780.00</td><td>226.67</td></tr>
+          <tr><td>2024-04-01</td><td>180.00</td><td>960.00</td><td>260.00</td></tr>
+          <tr><td>2024-05-02</td><td>250.00</td><td>1210.00</td><td>226.67</td></tr>
+          <tr><td>2024-05-18</td><td>40.00</td><td>1250.00</td><td>156.67</td></tr>
+          <tr><td>2024-06-07</td><td>25.00</td><td>1275.00</td><td>105.00</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <code>running_total</code> ends at <code>1275.00</code> — the delivered
+        total. <code>moving_avg_3</code> at 2024-02-14 is
+        <code>(100 + 80 + 350) / 3 = 176.67</code>; the first two rows average over
+        fewer than 3 because the frame is clipped at the partition start.
+      </p>
+    </div>
+
+    <h3>7e · Share of total, NTILE, FIRST_VALUE</h3>
+    <p>
+      An <code>OVER ()</code> with no <code>PARTITION</code> and no
+      <code>ORDER BY</code> aggregates the whole result — perfect for "percent of
+      grand total". <code>NTILE(k)</code> splits the ordered partition into
+      <code>k</code> roughly equal buckets (quartiles, deciles).
+      <code>FIRST_VALUE</code>/<code>LAST_VALUE</code>/<code>NTH_VALUE</code> pull a
+      specific row's value into every row.
+    </p>
+
+    <p class="code-label">Each customer's delivered revenue, its share, and which half they're in</p>
+<pre><code>SELECT
+    c.name,
+    SUM(oi.quantity * oi.unit_price) AS revenue,
+    ROUND(100.0 * SUM(oi.quantity * oi.unit_price)
+          / SUM(SUM(oi.quantity * oi.unit_price)) OVER (), 1) AS pct_of_total,
+    NTILE(2) OVER (ORDER BY SUM(oi.quantity * oi.unit_price) DESC) AS revenue_half
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.order_id
+JOIN customers c    ON c.customer_id = o.customer_id
+WHERE o.status = 'delivered'
+GROUP BY c.name
+ORDER BY revenue DESC;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>name</th><th>revenue</th><th>pct_of_total</th><th>revenue_half</th></tr></thead>
+        <tbody>
+          <tr><td>Bob Martin</td><td>600.00</td><td>47.1</td><td>1</td></tr>
+          <tr><td>Alice Nguyen</td><td>360.00</td><td>28.2</td><td>1</td></tr>
+          <tr><td>Carla Reyes</td><td>275.00</td><td>21.6</td><td>2</td></tr>
+          <tr><td>Eve Park</td><td>40.00</td><td>3.1</td><td>2</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <code>SUM(SUM(...)) OVER ()</code> is a window over the grouped rows: the
+        inner <code>SUM</code> is the per-customer total, the outer sums those four
+        totals to <code>1275</code>. <code>NTILE(2)</code> over 4 rows → two buckets
+        of two.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Filtering on a window result in the same <code>SELECT</code> (<code>WHERE rn = 1</code>) — wrap it in a CTE/subquery first.</li>
+        <li><code>LAST_VALUE</code> returning the current row because the default frame ends at <code>CURRENT ROW</code> — add <code>ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</code>.</li>
+        <li>Running total that jumps on tied <code>ORDER BY</code> values — that's the default <code>RANGE</code> frame; switch to <code>ROWS</code>.</li>
+        <li><code>ROW_NUMBER</code> where ties must share a rank — use <code>RANK</code>/<code>DENSE_RANK</code>.</li>
+        <li>Mixing a window function into <code>GROUP BY</code> as if it were an aggregate — it runs after grouping, over the grouped rows.</li>
+        <li>Forgetting <code>PARTITION BY</code> resets every function (rank, running total, lag) at each partition boundary.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">When this comes up in interviews</span>
+      <p class="small">
+        <strong>The defining topic of a product-company SQL round.</strong>
+        "Top 3 salaries per department", "consecutive login streak", "month-over-
+        month growth", "latest event per user", "median / percentile" — all window
+        functions. If you're weak on one thing, make it this.
+        <strong>Overkill:</strong> a window function for a plain "one number per
+        group" (that's <code>GROUP BY</code>), or <code>NTILE</code>/
+        <code>NTH_VALUE</code> when a simple <code>RANK</code> filter is what's
+        asked. Also overkill in OLTP code paths where the sort is expensive at
+        scale — fine in interviews, flag it in real design.
+      </p>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-window-functions"></div>
+  </section>
+
+
+  <!-- ================= 8. RECURSIVE CTEs ================= -->
+  <section class="topic" id="recursive-ctes">
+    <h2>8 · Recursive CTEs</h2>
+
+    <p>
+      A recursive CTE walks a graph or generates a sequence. It has two halves
+      joined by <code>UNION ALL</code>: the <strong>anchor</strong> (a normal
+      query — the starting rows) and the <strong>recursive member</strong> (a query
+      that joins the CTE <em>to itself</em>, producing the next layer from the
+      previous one). It repeats the recursive member until it yields no new rows.
+      PostgreSQL requires the keyword <code>WITH RECURSIVE</code>; MySQL 8+ too.
+    </p>
+    <p>
+      The two things it's for: <strong>hierarchies</strong> — org charts, category
+      trees, bill-of-materials, "all reports under a manager", "all ancestors of a
+      comment" — and <strong>series generation</strong> — a row per day/month to
+      left-join sparse data onto, or filling an ID gap. Use <code>UNION</code>
+      (not <code>ALL</code>) to auto-dedupe if the graph has diamonds, carry a
+      <code>depth</code> column and cap it as a safety net, and know PG's
+      <code>CYCLE</code> clause exists for genuinely cyclic graphs.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        "All descendants / ancestors", "explode the tree", "traverse until", "every
+        date between" ⇒ recursive CTE. Anchor = where you start. Recursive member =
+        given a row I already have, what's the next one? Termination = when the join
+        finds nothing.
+      </p>
+    </div>
+
+    <p class="code-label">Worked query — the full org tree with depth and path</p>
+<pre><code>WITH RECURSIVE org AS (
+    SELECT employee_id, name, manager_id, title,
+           1 AS depth,
+           name AS path
+    FROM employees
+    WHERE manager_id IS NULL              -- anchor: the CEO
+
+    UNION ALL
+
+    SELECT e.employee_id, e.name, e.manager_id, e.title,
+           o.depth + 1,
+           o.path || ' &gt; ' || e.name     -- recursive: attach each report
+    FROM employees e
+    JOIN org o ON e.manager_id = o.employee_id
+)
+SELECT depth, name, title, path
+FROM org
+ORDER BY path;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>depth</th><th>name</th><th>title</th><th>path</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Priya Shah</td><td>CEO</td><td>Priya Shah</td></tr>
+          <tr><td>2</td><td>Lin Wei</td><td>VP Engineering</td><td>Priya Shah &gt; Lin Wei</td></tr>
+          <tr><td>3</td><td>Tom Frost</td><td>Engineering Manager</td><td>Priya Shah &gt; Lin Wei &gt; Tom Frost</td></tr>
+          <tr><td>4</td><td>Nita Rao</td><td>Engineer</td><td>Priya Shah &gt; Lin Wei &gt; Tom Frost &gt; Nita Rao</td></tr>
+          <tr><td>2</td><td>Marco Diaz</td><td>VP Sales</td><td>Priya Shah &gt; Marco Diaz</td></tr>
+          <tr><td>3</td><td>Sam Cole</td><td>Sales Lead</td><td>Priya Shah &gt; Marco Diaz &gt; Sam Cole</td></tr>
+          <tr><td>4</td><td>Ada Brown</td><td>Account Executive</td><td>Priya Shah &gt; Marco Diaz &gt; Sam Cole &gt; Ada Brown</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Iteration 1 emits Priya (depth 1). Iteration 2 finds her reports Marco and
+        Lin (depth 2). Iteration 3 finds Sam and Tom. Iteration 4 finds Ada and
+        Nita. Iteration 5 finds nothing → stop. Ordering by the text
+        <code>path</code> produces a depth-first layout.
+      </p>
+    </div>
+
+    <p class="code-label">Series generation — one row per month, to fill gaps</p>
+<pre><code>WITH RECURSIVE months AS (
+    SELECT DATE '2024-01-01' AS month
+    UNION ALL
+    SELECT (month + INTERVAL '1 month')::date
+    FROM months
+    WHERE month &lt; DATE '2024-06-01'
+)
+SELECT m.month, COUNT(o.order_id) AS orders_placed
+FROM months m
+LEFT JOIN orders o
+       ON date_trunc('month', o.order_date) = m.month
+GROUP BY m.month
+ORDER BY m.month;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>month</th><th>orders_placed</th></tr></thead>
+        <tbody>
+          <tr><td>2024-01-01</td><td>1</td></tr>
+          <tr><td>2024-02-01</td><td>2</td></tr>
+          <tr><td>2024-03-01</td><td>2</td></tr>
+          <tr><td>2024-04-01</td><td>2</td></tr>
+          <tr><td>2024-05-01</td><td>2</td></tr>
+          <tr><td>2024-06-01</td><td>1</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        Jan: 1000. Feb: 1001, 1002. Mar: 1003, 1004. Apr: 1005, 1006. May: 1007,
+        1008. Jun: 1009. Every month appears even if it had zero orders — that's the
+        reason to generate the series instead of <code>GROUP BY</code> on
+        <code>orders</code> alone. (In Postgres you'd normally use
+        <code>generate_series</code>; the recursive form is the portable one and
+        the one interviewers want to see you write.)
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>Omitting <code>RECURSIVE</code> (required in PG/MySQL even though some engines infer it).</li>
+        <li>No terminating condition in the recursive member → runs to the engine's recursion cap and errors.</li>
+        <li><code>UNION ALL</code> on a cyclic graph → infinite rows; use <code>UNION</code>, a depth cap, or the <code>CYCLE</code> clause.</li>
+        <li>Referencing the CTE twice in the recursive member — most engines allow it exactly once.</li>
+        <li><code>SELECT *</code> in the recursive member when column types don't line up with the anchor.</li>
+        <li>Recursing when a plain self-join to a fixed depth (e.g. "manager and skip-manager only") would do.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">When this comes up in interviews</span>
+      <p class="small">
+        <strong>Sometimes — and it's a screening filter.</strong> Org-hierarchy and
+        "all subtasks / all reports" questions are the common form; a chunk of
+        candidates freeze on them, so being fluent is a real edge. Series generation
+        for gap-filling shows up in analytics-heavy roles.
+        <strong>Overkill:</strong> a recursive CTE for a fixed 2–3 level lookup, or
+        when the platform has a native path/ltree/array type. If the hierarchy is
+        deep and hot, real systems store a materialized path or closure table
+        instead — worth saying out loud.
+      </p>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-recursive-ctes"></div>
+  </section>
+
+
+  <!-- ================= 9. STRING FUNCTIONS ================= -->
+  <section class="topic" id="string-functions">
+    <h2>9 · Advanced String Functions</h2>
+
+    <p>
+      Concatenate with <code>||</code> (Postgres/standard) or <code>CONCAT(...)</code>
+      (also MySQL; <code>CONCAT</code> treats <code>NULL</code> as empty, whereas
+      <code>||</code> propagates <code>NULL</code> — use <code>CONCAT_WS</code> for
+      null-safe joining with a separator). Case:
+      <code>UPPER</code>/<code>LOWER</code>, and <code>INITCAP</code> (Postgres only)
+      for Title Case. Slice with <code>SUBSTRING(s FROM p FOR n)</code>,
+      <code>LEFT</code>/<code>RIGHT</code>, and <code>SPLIT_PART(s, delim, k)</code>
+      to grab the k-th token. Find with <code>POSITION(sub IN s)</code> /
+      <code>STRPOS</code>. Clean with <code>TRIM</code>/<code>LTRIM</code>/
+      <code>RTRIM</code>, <code>REPLACE</code>, <code>LPAD</code>/<code>RPAD</code>.
+      Measure with <code>LENGTH</code>.
+    </p>
+    <p>
+      For pattern work: <code>LIKE</code> (<code>%</code>, <code>_</code>),
+      <code>ILIKE</code> for case-insensitive (PG), and full regex via
+      <code>~</code> / <code>regexp_replace</code> / <code>regexp_matches</code>
+      (PG) or <code>REGEXP_REPLACE</code>/<code>REGEXP_LIKE</code> (MySQL 8).
+      To roll many rows into one string, use <code>STRING_AGG(expr, delim ORDER BY …)</code>
+      in Postgres — MySQL's equivalent is
+      <code>GROUP_CONCAT(expr ORDER BY … SEPARATOR delim)</code>.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        String questions are usually "parse a field that should have been three
+        columns" (split), "normalize for comparison" (lower + trim), "validate a
+        format" (regex / <code>LIKE</code>), or "collapse a group into a list"
+        (<code>STRING_AGG</code>). Identify which before reaching for functions.
+      </p>
+    </div>
+
+    <p class="code-label">Worked query — derive codes, emails and cleaned forms from a name</p>
+<pre><code>SELECT
+    name,
+    UPPER(LEFT(SPLIT_PART(name, ' ', 2), 3))                       AS surname_code,
+    LOWER(SPLIT_PART(name, ' ', 1) || '.' ||
+          SPLIT_PART(name, ' ', 2)) || '@corp.com'                 AS email,
+    LENGTH(name)                                                   AS name_len,
+    REGEXP_REPLACE(name, '[aeiou]', '', 'gi')                      AS no_vowels,
+    LPAD(customer_id::text, 4, '0')                                AS padded_id
+FROM customers
+ORDER BY customer_id;</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>name</th><th>surname_code</th><th>email</th><th>name_len</th><th>no_vowels</th><th>padded_id</th></tr></thead>
+        <tbody>
+          <tr><td>Alice Nguyen</td><td>NGU</td><td>alice.nguyen@corp.com</td><td>12</td><td>lc Ngyn</td><td>0001</td></tr>
+          <tr><td>Bob Martin</td><td>MAR</td><td>bob.martin@corp.com</td><td>10</td><td>Bb Mrtn</td><td>0002</td></tr>
+          <tr><td>Carla Reyes</td><td>REY</td><td>carla.reyes@corp.com</td><td>11</td><td>Crl Rys</td><td>0003</td></tr>
+          <tr><td>Dan Osei</td><td>OSE</td><td>dan.osei@corp.com</td><td>8</td><td>Dn s</td><td>0004</td></tr>
+          <tr><td>Eve Park</td><td>PAR</td><td>eve.park@corp.com</td><td>8</td><td>v Prk</td><td>0005</td></tr>
+          <tr><td>Frank Li</td><td>LI</td><td>frank.li@corp.com</td><td>8</td><td>Frnk L</td><td>0006</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="small">
+        <code>SPLIT_PART(name,' ',2)</code> is the surname; <code>LEFT(...,3)</code>
+        of "Li" is just "Li". <code>REGEXP_REPLACE</code> flags: <code>g</code> =
+        all matches, <code>i</code> = case-insensitive, so both "A" and "e" go from
+        "Alice". <code>LPAD(customer_id::text, 4, '0')</code> zero-pads the id.
+      </p>
+    </div>
+
+    <p class="code-label">STRING_AGG — product list per category</p>
+<pre><code>SELECT category,
+       STRING_AGG(name, ', ' ORDER BY name) AS products,
+       COUNT(*)                             AS n
+FROM products
+GROUP BY category;
+-- MySQL: GROUP_CONCAT(name ORDER BY name SEPARATOR ', ')</code></pre>
+
+    <div class="box dryrun">
+      <span class="box-title">Result</span>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>category</th><th>products</th><th>n</th></tr></thead>
+        <tbody>
+          <tr><td>Hardware</td><td>Gadget, Gizmo, Legacy Adapter, Widget</td><td>4</td></tr>
+          <tr><td>Software</td><td>API Credits, Dashboard License</td><td>2</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li>SQL string positions are <strong>1-based</strong>, not 0-based — <code>SUBSTRING(s, 1, 3)</code> is the first three chars.</li>
+        <li><code>x || NULL</code> is <code>NULL</code> in Postgres; use <code>CONCAT</code>/<code>CONCAT_WS</code> or <code>COALESCE</code>.</li>
+        <li><code>INITCAP</code> doesn't exist in MySQL; <code>||</code> concatenation doesn't (by default) either.</li>
+        <li><code>LIKE</code> is case-sensitive in Postgres — use <code>ILIKE</code> or <code>LOWER(col) LIKE</code>.</li>
+        <li>Un-anchored regex validation (<code>~ 'abc'</code> matches anywhere) — anchor with <code>^…$</code>.</li>
+        <li><code>GROUP_CONCAT</code> silently truncates at <code>group_concat_max_len</code> (default 1024 in MySQL).</li>
+        <li>Leading/trailing whitespace defeating a join or <code>GROUP BY</code> — <code>TRIM</code> first.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">When this comes up in interviews</span>
+      <p class="small">
+        <strong>Light but real</strong> — "fix the capitalization of names",
+        "valid-email filter", "patients whose conditions contain DIAB1",
+        "comma-separate the products sold each day". Know <code>SPLIT_PART</code>,
+        <code>LIKE</code>/regex, and <code>STRING_AGG</code>/<code>GROUP_CONCAT</code>.
+        <strong>Overkill:</strong> elaborate regex when a <code>LIKE</code> would
+        pass, or parsing structured text in SQL that should be parsed in the
+        application. Heavy string munging in queries is a smell worth naming.
+      </p>
+    </div>
+
+    <h4>Practice problems</h4>
+    <div id="t-string-functions"></div>
+  </section>
+
+
+  <div class="box note">
+    <span class="box-title">Where this leads next</span>
+    <p class="small">
+      This page is the <em>query</em> half of Phase 2 SQL. The other half is the
+      systems side that a backend interviewer will push into: <strong>indexing</strong>
+      (B-tree vs hash, covering indexes, when an index hurts), <strong>query
+      plans</strong> (<code>EXPLAIN ANALYZE</code>, seq scan vs index scan, join
+      strategies), <strong>transactions &amp; isolation</strong> (ACID, the four
+      isolation levels, what anomalies each allows), <strong>normalization</strong>
+      vs denormalization, and the <strong>N+1 problem</strong>. Get comfortable
+      writing any query on this page in under 10 minutes, then move to those.
+    </p>
+  </div>
+
+  <p class="backlink"><a href="index.html">← Back to home &amp; dashboard</a> &nbsp;·&nbsp; <a href="roadmap.html">See where this fits in the roadmap →</a></p>
+
+  <footer class="foot">
+    <p>Phase 2 of the <a href="roadmap.html">8-month roadmap</a>. Next: Low-Level Design.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("sql", [
+  {
+    group: "Advanced SELECT",
+    mount: "#t-advanced-select",
+    items: [
+      "Big Countries (595)",
+      "Recyclable and Low Fat Products (1757)",
+      "Find Customer Referee (584)",
+      "Article Views I (1148)",
+      "Invalid Tweets (1683)",
+      "Calculate Special Bonus (1873)",
+      "Swap Salary (627)"
+    ]
+  },
+  {
+    group: "Joins",
+    mount: "#t-joins",
+    items: [
+      "Combine Two Tables (175)",
+      "Customers Who Never Order (183)",
+      "Employees Earning More Than Their Managers (181)",
+      "Replace Employee ID With The Unique Identifier (1378)",
+      "Product Sales Analysis I (1068)",
+      "Rising Temperature (197)",
+      "Students and Examinations (1280)",
+      "Employee Bonus (577)"
+    ]
+  },
+  {
+    group: "Sorting & Grouping",
+    mount: "#t-sorting-grouping",
+    items: [
+      "Classes More Than 5 Students (596)",
+      "Group Sold Products By The Date (1484)",
+      "Daily Leads and Partners (1693)",
+      "Number of Unique Subjects Taught by Each Teacher (2356)",
+      "Find Followers Count (1729)",
+      "Biggest Single Number (619)"
+    ]
+  },
+  {
+    group: "Aggregation",
+    mount: "#t-aggregation",
+    items: [
+      "Game Play Analysis I (511)",
+      "Average Selling Price (1251)",
+      "Queries Quality and Percentage (1211)",
+      "Percentage of Users Attended a Contest (1633)",
+      "Count Salary Categories (1907)",
+      "Average Time of Process per Machine (1661)",
+      "Not Boring Movies (620)"
+    ]
+  },
+  {
+    group: "CTEs",
+    mount: "#t-ctes",
+    items: [
+      "Find the Team Size (1303)",
+      "Immediate Food Delivery II (1174)",
+      "Last Person to Fit in the Bus (1204)",
+      "Movie Rating (1341)",
+      "Percentage of Users Attended a Contest (1633)",
+      "Restaurant Growth (1321)"
+    ]
+  },
+  {
+    group: "Subqueries",
+    mount: "#t-subqueries",
+    items: [
+      "Second Highest Salary (176)",
+      "Nth Highest Salary (177)",
+      "Department Highest Salary (184)",
+      "Customers Who Bought All Products (1045)",
+      "Managers with at Least 5 Direct Reports (570)",
+      "Employees Whose Manager Left the Company (1978)",
+      "Product Price at a Given Date (1164)"
+    ]
+  },
+  {
+    group: "Window Functions",
+    mount: "#t-window-functions",
+    items: [
+      "Rank Scores (178)",
+      "Consecutive Numbers (180)",
+      "Department Top Three Salaries (185)",
+      "Exchange Seats (626)",
+      "The Number of Employees Which Report to Each Employee (1731)",
+      "Restaurant Growth (1321)",
+      "Human Traffic of Stadium (601)",
+      "Find the Start and End Number of Continuous Ranges (1285)"
+    ]
+  },
+  {
+    group: "Recursive CTEs",
+    mount: "#t-recursive-ctes",
+    items: [
+      "Find the Missing IDs (1270)",
+      "All People Report to the Given Manager (1892)",
+      "Find the Subtasks That Did Not Execute (1543)",
+      "Number of Transactions per Visit (1532)"
+    ]
+  },
+  {
+    group: "String Functions",
+    mount: "#t-string-functions",
+    items: [
+      "Fix Names in a Table (1667)",
+      "Patients With a Condition (1527)",
+      "Find Users With Valid E-Mails (1517)",
+      "Group Sold Products By The Date (1484)",
+      "Delete Duplicate Emails (196)",
+      "Invalid Tweets (1683)"
+    ]
+  }
+], { pageTitle: "SQL: Querying, Joins & Window Functions" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("sql");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

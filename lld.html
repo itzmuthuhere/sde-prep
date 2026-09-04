@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Low-Level Design — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html" class="active">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Low-Level Design — SOLID, Patterns &amp; Class Modelling</h1>
+  <p class="lede">
+    Phase 2. An LLD round gives you a fuzzy prompt ("design a parking lot") and
+    45 minutes. The interviewer is watching one thing: can you turn requirements
+    into a small set of classes with clear responsibilities, name the pattern
+    that fits, and defend the trade-off when they push back. This page is the
+    three things you get tested on — the SOLID principles as before/after code,
+    the ten patterns that actually show up, and ten classic problems worked as
+    design walkthroughs.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>How to use this page.</strong> For SOLID, read the "bad" snippet and
+      try to name the smell before scrolling to the fix. For each pattern, the
+      <strong>trigger scenario</strong> box is the most important part — patterns
+      are answers to specific problems, and quoting the trigger in an interview is
+      what separates "I memorised the GoF book" from "I know when to reach for
+      this". For the problems, sketch your own class list first, then compare.
+      Tick items off to feed the <a href="index.html">home dashboard</a> — aim for
+      SOLID + 3 patterns a week, one problem per weekend.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — SOLID, patterns &amp; problems</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#approach">How to run an LLD round</a></li>
+      <li><a href="#solid">SOLID principles (bad → good)</a></li>
+      <li><a href="#patterns">Design patterns</a>
+        <ul>
+          <li><a href="#singleton">Singleton</a></li>
+          <li><a href="#factory">Factory</a></li>
+          <li><a href="#builder">Builder</a></li>
+          <li><a href="#adapter">Adapter</a></li>
+          <li><a href="#decorator">Decorator</a></li>
+          <li><a href="#facade">Facade</a></li>
+          <li><a href="#observer">Observer</a></li>
+          <li><a href="#strategy">Strategy</a></li>
+          <li><a href="#state">State</a></li>
+          <li><a href="#chain">Chain of Responsibility</a></li>
+        </ul>
+      </li>
+      <li><a href="#problems">Classic LLD problems</a>
+        <ul>
+          <li><a href="#parking-lot">Parking Lot</a></li>
+          <li><a href="#elevator">Elevator System</a></li>
+          <li><a href="#library">Library Management</a></li>
+          <li><a href="#atm">ATM</a></li>
+          <li><a href="#splitwise">Splitwise</a></li>
+          <li><a href="#rate-limiter">Rate Limiter</a></li>
+          <li><a href="#lru">LRU Cache</a></li>
+          <li><a href="#bookmyshow">BookMyShow</a></li>
+          <li><a href="#chess">Chess</a></li>
+          <li><a href="#snake-ladder">Snake &amp; Ladder</a></li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+
+
+  <!-- ================= APPROACH ================= -->
+  <section class="topic" id="approach">
+    <h2>How to run an LLD round</h2>
+
+    <p>
+      The failure mode is jumping straight to classes. Spend the first 5–10
+      minutes pinning down scope out loud: <strong>clarify requirements</strong>
+      ("multiple floors? electric vehicles? monthly passes?"), then state the
+      <strong>core use cases</strong> you will support and explicitly park the
+      rest. Interviewers almost always <em>want</em> you to cut scope — a tight
+      design of three use cases beats a sprawling one that never compiles.
+    </p>
+    <p>
+      Then work outside-in: <strong>identify the nouns</strong> (they become
+      classes or enums), <strong>assign each one responsibility</strong> (if you
+      can't say what a class is responsible for in one sentence, it's wrong),
+      and <strong>define the relationships</strong> (has-a vs is-a — prefer
+      composition). Only then write code, and only for the interesting parts:
+      the pricing logic, the state machine, the concurrency point. Nobody wants
+      to watch you type getters.
+    </p>
+    <p>
+      Keep the <strong>API-first</strong> habit: sketch the key method signatures
+      (<code>Ticket park(Vehicle v)</code>, <code>boolean book(Show s, List&lt;Seat&gt; seats)</code>)
+      before their bodies. That surfaces the design decisions early and gives the
+      interviewer something concrete to push on.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A class should have <strong>one reason to change</strong>, depend on
+        <strong>abstractions</strong>, and be <strong>open for extension</strong>
+        without editing its source. Every pattern below is just a disciplined way
+        to get one of those three properties in a situation where the naive code
+        loses it.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Designing for requirements nobody asked for.</strong> "What if we add helicopters" — only if the interviewer says so.</li>
+        <li><strong>Anemic domain model:</strong> all data in classes, all behaviour in one giant <code>Service</code>. Put behaviour next to the data it uses.</li>
+        <li><strong>Pattern name-dropping.</strong> Saying "I'll use a Factory" without a creation problem to solve reads as cargo-culting.</li>
+        <li><strong>Ignoring concurrency until asked.</strong> For parking / booking / ATM, name the race condition yourself.</li>
+        <li><strong>One enum with a giant switch</strong> that you edit for every new type — the exact thing OCP and Strategy exist to prevent.</li>
+      </ul>
+    </div>
+  </section>
+
+
+  <!-- ================= SOLID ================= -->
+  <section class="topic" id="solid">
+    <h2>SOLID principles (bad → good)</h2>
+    <p>
+      Five heuristics for where to draw class boundaries. Each one below is a
+      concrete smell and its fix — that's how they come up in interviews ("what's
+      wrong with this class?"), not as definitions to recite.
+    </p>
+
+    <h3>S — Single Responsibility Principle</h3>
+    <p>
+      A class should have one reason to change. The classic violation is a
+      domain object that also formats itself and persists itself: a change to the
+      report layout, the database, or the tax rules all force edits to the same
+      file, and the three concerns can't be tested or reused independently.
+    </p>
+    <p class="code-label">❌ Bad — Invoice does maths, formatting, and persistence</p>
+<pre><code>class Invoice {
+    private List&lt;LineItem&gt; items;
+    private Customer customer;
+
+    double total() {
+        return items.stream().mapToDouble(LineItem::amount).sum();
+    }
+
+    // reason to change #2: the print format
+    void printInvoice() {
+        System.out.println("INVOICE for " + customer.getName());
+        items.forEach(i -&gt; System.out.println(i.getName() + "  " + i.amount()));
+        System.out.println("TOTAL: " + total());
+    }
+
+    // reason to change #3: the storage technology
+    void saveToDatabase() {
+        Connection c = DriverManager.getConnection("jdbc:...");
+        // ... INSERT INTO invoices ...
+    }
+}</code></pre>
+    <p class="code-label">✅ Good — one responsibility per class</p>
+<pre><code>class Invoice {                       // domain + business rules only
+    private final List&lt;LineItem&gt; items;
+    private final Customer customer;
+    Invoice(Customer c, List&lt;LineItem&gt; items) { this.customer = c; this.items = items; }
+    double total() { return items.stream().mapToDouble(LineItem::amount).sum(); }
+    List&lt;LineItem&gt; getItems() { return items; }
+    Customer getCustomer() { return customer; }
+}
+
+class InvoicePrinter {               // changes only when the layout changes
+    String format(Invoice inv) { /* build the text / PDF */ return "..."; }
+}
+
+interface InvoiceRepository { void save(Invoice inv); }
+
+class JdbcInvoiceRepository implements InvoiceRepository {
+    public void save(Invoice inv) { /* INSERT ... */ }
+}</code></pre>
+
+    <h3>O — Open/Closed Principle</h3>
+    <p>
+      Software entities should be open for extension, closed for modification.
+      If adding a new shape, payment type, or export format means editing an
+      existing <code>switch</code>, that switch is a magnet for bugs and merge
+      conflicts. Push the varying behaviour behind an interface so new cases are
+      new classes.
+    </p>
+    <p class="code-label">❌ Bad — every new shape edits AreaCalculator</p>
+<pre><code>class AreaCalculator {
+    double area(Object shape) {
+        if (shape instanceof Circle c)       return Math.PI * c.r * c.r;
+        else if (shape instanceof Square s)  return s.side * s.side;
+        // add Triangle? edit this method, re-test everything here
+        throw new IllegalArgumentException("unknown shape");
+    }
+}</code></pre>
+    <p class="code-label">✅ Good — new shape = new class, calculator untouched</p>
+<pre><code>interface Shape { double area(); }
+
+record Circle(double r) implements Shape {
+    public double area() { return Math.PI * r * r; }
+}
+record Square(double side) implements Shape {
+    public double area() { return side * side; }
+}
+record Triangle(double b, double h) implements Shape {   // added later, nothing else changes
+    public double area() { return 0.5 * b * h; }
+}
+
+class AreaCalculator {
+    double totalArea(List&lt;Shape&gt; shapes) {
+        return shapes.stream().mapToDouble(Shape::area).sum();
+    }
+}</code></pre>
+
+    <h3>L — Liskov Substitution Principle</h3>
+    <p>
+      A subtype must be usable anywhere its supertype is expected, without
+      surprising the caller. The famous violation: <code>Square extends
+      Rectangle</code>. A square must keep width == height, so it has to override
+      the setters — and now code that "sets width to 5, height to 4, expects area
+      20" breaks when handed a Square. The inheritance models "is-a" in English
+      but not in behaviour.
+    </p>
+    <p class="code-label">❌ Bad — Square breaks Rectangle's contract</p>
+<pre><code>class Rectangle {
+    protected int width, height;
+    void setWidth(int w)  { this.width = w; }
+    void setHeight(int h) { this.height = h; }
+    int area() { return width * height; }
+}
+
+class Square extends Rectangle {
+    @Override void setWidth(int w)  { this.width = w; this.height = w; }
+    @Override void setHeight(int h) { this.width = h; this.height = h; }
+}
+
+void resizeAndCheck(Rectangle r) {
+    r.setWidth(5);
+    r.setHeight(4);
+    assert r.area() == 20;      // passes for Rectangle, FAILS for Square (gives 16)
+}</code></pre>
+    <p class="code-label">✅ Good — no false is-a; share the abstraction, not the setters</p>
+<pre><code>interface Shape { int area(); }
+
+final class Rectangle implements Shape {
+    private final int width, height;
+    Rectangle(int w, int h) { this.width = w; this.height = h; }
+    public int area() { return width * height; }
+}
+
+final class Square implements Shape {
+    private final int side;
+    Square(int side) { this.side = side; }
+    public int area() { return side * side; }
+}
+// Immutable + no inheritance between them => no contract to violate.</code></pre>
+
+    <h3>I — Interface Segregation Principle</h3>
+    <p>
+      No client should be forced to depend on methods it doesn't use. A fat
+      interface makes every implementer carry stubs that throw
+      <code>UnsupportedOperationException</code> — and callers can't tell from the
+      type which methods are real. Split it along the lines of who calls what.
+    </p>
+    <p class="code-label">❌ Bad — an old printer forced to implement scan/fax</p>
+<pre><code>interface MultiFunctionDevice {
+    void print(Document d);
+    void scan(Document d);
+    void fax(Document d);
+}
+
+class OldPrinter implements MultiFunctionDevice {
+    public void print(Document d) { /* real */ }
+    public void scan(Document d)  { throw new UnsupportedOperationException(); }
+    public void fax(Document d)   { throw new UnsupportedOperationException(); }
+}</code></pre>
+    <p class="code-label">✅ Good — small role interfaces, compose as needed</p>
+<pre><code>interface Printer { void print(Document d); }
+interface Scanner { void scan(Document d); }
+interface Fax     { void fax(Document d); }
+
+class OldPrinter implements Printer {
+    public void print(Document d) { /* real */ }
+}
+
+class WorkgroupMFD implements Printer, Scanner, Fax {
+    public void print(Document d) { /* ... */ }
+    public void scan(Document d)  { /* ... */ }
+    public void fax(Document d)   { /* ... */ }
+}</code></pre>
+
+    <h3>D — Dependency Inversion Principle</h3>
+    <p>
+      High-level policy should not depend on low-level details; both depend on an
+      abstraction. When a service <code>new</code>s its collaborators directly, you
+      can't swap the transport, can't unit-test without hitting the network, and a
+      change to the low-level class ripples upward. Depend on an interface and
+      inject the implementation.
+    </p>
+    <p class="code-label">❌ Bad — policy welded to a concrete sender</p>
+<pre><code>class OrderService {
+    private final SmtpEmailClient email = new SmtpEmailClient();  // hard-wired
+
+    void placeOrder(Order o) {
+        // ... save order ...
+        email.sendSmtp(o.getCustomerEmail(), "Order confirmed #" + o.getId());
+    }
+}</code></pre>
+    <p class="code-label">✅ Good — depend on an abstraction, inject it</p>
+<pre><code>interface NotificationSender { void send(String to, String message); }
+
+class EmailSender implements NotificationSender {
+    public void send(String to, String msg) { /* SMTP */ }
+}
+class SmsSender implements NotificationSender {
+    public void send(String to, String msg) { /* provider API */ }
+}
+
+class OrderService {
+    private final NotificationSender sender;
+    OrderService(NotificationSender sender) { this.sender = sender; }   // injected
+
+    void placeOrder(Order o) {
+        // ... save order ...
+        sender.send(o.getContact(), "Order confirmed #" + o.getId());
+    }
+}
+// Tests pass a FakeNotificationSender; prod wires EmailSender or a composite.</code></pre>
+
+    <div id="t-solid"></div>
+  </section>
+
+
+  <!-- ================= PATTERNS ================= -->
+  <section class="topic" id="patterns">
+    <h2>Design patterns</h2>
+    <p>
+      Ten patterns cover the vast majority of LLD rounds. For each: what it is in
+      two lines, a <strong>trigger scenario</strong> (the concrete situation that
+      should make you reach for it), a compact Java example, and the
+      <strong>probe</strong> an interviewer uses to check you actually understand
+      the trade-off rather than the name.
+    </p>
+
+    <!-- Singleton -->
+    <h3 id="singleton">Singleton — Creational</h3>
+    <p>
+      Guarantees a class has exactly one instance and gives a global access point
+      to it. Use sparingly: it's a global variable with a nicer name, and it
+      makes testing harder because callers can't substitute a fake.
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Trigger scenario</span>
+      <p>
+        You have exactly one of something physical or expensive and everyone must
+        share it: an in-memory app config, a connection pool, a metrics registry,
+        a hardware driver handle. Creating a second one would be wrong, not just
+        wasteful.
+      </p>
+    </div>
+    <p class="code-label">Java — enum singleton (thread-safe, serialization-safe, no reflection attack)</p>
+<pre><code>enum ConfigManager {
+    INSTANCE;
+
+    private final Map&lt;String, String&gt; settings = new ConcurrentHashMap&lt;&gt;();
+
+    public String get(String key)            { return settings.get(key); }
+    public void   set(String key, String v)  { settings.put(key, v); }
+}
+
+// usage
+ConfigManager.INSTANCE.set("region", "ap-south-1");
+
+// If you need lazy init with a class: double-checked locking
+class ConnectionPool {
+    private static volatile ConnectionPool instance;
+    private ConnectionPool() { /* open sockets */ }
+
+    static ConnectionPool getInstance() {
+        if (instance == null) {                       // 1st check (no lock)
+            synchronized (ConnectionPool.class) {
+                if (instance == null)                 // 2nd check (with lock)
+                    instance = new ConnectionPool();
+            }
+        }
+        return instance;
+    }
+}</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Is your version thread-safe?" (eager holder / enum yes; naive lazy no).
+        "Why <code>volatile</code> in double-checked locking?" (stop other threads
+        seeing a half-constructed object). "How do you test a class that calls
+        this?" — the honest answer is <em>you inject it as a dependency instead of
+        calling <code>getInstance()</code> everywhere</em>, which is why many teams
+        avoid the pattern and let a DI container manage the single instance.
+      </p>
+    </div>
+
+    <!-- Factory -->
+    <h3 id="factory">Factory — Creational</h3>
+    <p>
+      Moves the <code>new</code> decision into one place so callers ask for
+      <em>what</em> they want, not <em>how</em> it's built. "Simple factory" is a
+      static method with a switch; "Factory Method" defers the choice to a
+      subclass; "Abstract Factory" produces families of related objects.
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Trigger scenario</span>
+      <p>
+        Which concrete class to instantiate depends on runtime input — a
+        <code>"UPI"</code> / <code>"CARD"</code> string from a request, a file
+        extension, an OS — and that <code>if/switch</code> would otherwise be
+        copy-pasted at every call site.
+      </p>
+    </div>
+    <p class="code-label">Java — simple factory for payment processors</p>
+<pre><code>interface PaymentProcessor { void pay(long amountPaise); }
+
+class UpiProcessor  implements PaymentProcessor { public void pay(long a) { /* ... */ } }
+class CardProcessor implements PaymentProcessor { public void pay(long a) { /* ... */ } }
+class WalletProcessor implements PaymentProcessor { public void pay(long a) { /* ... */ } }
+
+class PaymentProcessorFactory {
+    static PaymentProcessor create(PaymentMethod method) {
+        return switch (method) {
+            case UPI    -&gt; new UpiProcessor();
+            case CARD   -&gt; new CardProcessor();
+            case WALLET -&gt; new WalletProcessor();
+        };
+    }
+}
+
+// caller
+PaymentProcessor p = PaymentProcessorFactory.create(request.getMethod());
+p.pay(request.getAmount());</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Doesn't the switch still violate OCP?" — yes, the factory is the one
+        place that changes; alternatively register suppliers in a
+        <code>Map&lt;PaymentMethod, Supplier&lt;PaymentProcessor&gt;&gt;</code> so
+        adding a type is a map entry. "Factory Method vs Abstract Factory?" —
+        Factory Method = one product, chosen by subclass; Abstract Factory = a
+        set of products that must be consistent (e.g. all "dark theme" widgets).
+      </p>
+    </div>
+
+    <!-- Builder -->
+    <h3 id="builder">Builder — Creational</h3>
+    <p>
+      Constructs a complex object step by step, then hands back an immutable
+      result. Replaces telescoping constructors
+      (<code>new Pizza(12, true, false, true, 2, ...)</code>) and half-initialised
+      objects from a pile of setters.
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Trigger scenario</span>
+      <p>
+        An object has many fields, several optional, some with defaults, and you
+        want it immutable and validated once it's built — HTTP requests, DB
+        queries, config objects, a <code>Notification</code> with optional cc /
+        attachments / priority.
+      </p>
+    </div>
+    <p class="code-label">Java — nested static Builder</p>
+<pre><code>class HttpRequest {
+    private final String url;            // required
+    private final String method;         // required
+    private final Map&lt;String, String&gt; headers;
+    private final String body;           // optional
+    private final int timeoutMs;         // optional, defaulted
+
+    private HttpRequest(Builder b) {
+        this.url = b.url; this.method = b.method;
+        this.headers = b.headers; this.body = b.body; this.timeoutMs = b.timeoutMs;
+    }
+
+    static class Builder {
+        private final String url;
+        private final String method;
+        private Map&lt;String, String&gt; headers = new HashMap&lt;&gt;();
+        private String body = null;
+        private int timeoutMs = 5000;
+
+        Builder(String url, String method) { this.url = url; this.method = method; }
+
+        Builder header(String k, String v) { headers.put(k, v); return this; }
+        Builder body(String b)             { this.body = b; return this; }
+        Builder timeoutMs(int t)           { this.timeoutMs = t; return this; }
+
+        HttpRequest build() {
+            if (url == null || method == null) throw new IllegalStateException("url/method required");
+            return new HttpRequest(this);
+        }
+    }
+}
+
+HttpRequest r = new HttpRequest.Builder("https://api.example.com/orders", "POST")
+        .header("Content-Type", "application/json")
+        .body("{\"id\":42}")
+        .timeoutMs(2000)
+        .build();</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Why not just setters?" — the object is never in a partially-built,
+        mutable state; required fields are enforced by the builder constructor;
+        the result can be <code>final</code> and thread-safe. "When is it
+        overkill?" — 2–3 fields, all required: just use a constructor or a
+        <code>record</code>.
+      </p>
+    </div>
+
+    <!-- Adapter -->
+    <h3 id="adapter">Adapter — Structural</h3>
+    <p>
+      Wraps a class so its interface matches what your code expects. The classic
+      "translate between two incompatible APIs" move.
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Trigger scenario</span>
+      <p>
+        You designed to an interface (<code>PaymentGateway</code>) and now must
+        plug in a third-party SDK whose method names and types are completely
+        different, and you can't (or don't want to) change either side.
+      </p>
+    </div>
+    <p class="code-label">Java — adapting a third-party SDK to your interface</p>
+<pre><code>// your app's expectation
+interface PaymentGateway { PaymentResult charge(String customerId, long amountPaise); }
+
+// the vendor SDK you can't modify
+class StripeClient {
+    Charge createCharge(int amountCents, String currency, String source) { /* ... */ }
+}
+
+class StripeGatewayAdapter implements PaymentGateway {
+    private final StripeClient stripe;
+    StripeGatewayAdapter(StripeClient stripe) { this.stripe = stripe; }
+
+    public PaymentResult charge(String customerId, long amountPaise) {
+        int cents = (int) (amountPaise / 100 * 100);          // translate units
+        Charge c = stripe.createCharge(cents, "inr", customerId);
+        return new PaymentResult(c.getId(), c.getStatus().equals("succeeded"));
+    }
+}</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Adapter vs Facade?" — Adapter changes an interface to match an existing
+        expectation (1:1, no new behaviour); Facade invents a new simpler
+        interface over many classes. "Object adapter vs class adapter?" — object
+        adapter holds a reference (composition, flexible); class adapter extends
+        the adaptee (needs multiple inheritance, rare in Java).
+      </p>
+    </div>
+
+    <!-- Decorator -->
+    <h3 id="decorator">Decorator — Structural</h3>
+    <p>
+      Wraps an object to add behaviour at runtime without touching the class or
+      exploding the subclass count. Each decorator implements the same interface
+      and delegates to the thing it wraps.
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Trigger scenario</span>
+      <p>
+        You need combinations of optional features — a coffee with milk +
+        caramel + extra shot, a data stream that is buffered + compressed +
+        encrypted — and one subclass per combination would be dozens of classes.
+        <code>java.io</code> (<code>new BufferedReader(new InputStreamReader(...))</code>)
+        is the canonical example.
+      </p>
+    </div>
+    <p class="code-label">Java — beverage cost with stackable add-ons</p>
+<pre><code>interface Beverage { String description(); int costPaise(); }
+
+class Espresso implements Beverage {
+    public String description() { return "Espresso"; }
+    public int costPaise() { return 15000; }
+}
+
+abstract class AddOn implements Beverage {
+    protected final Beverage base;
+    AddOn(Beverage base) { this.base = base; }
+}
+
+class Milk extends AddOn {
+    Milk(Beverage b) { super(b); }
+    public String description() { return base.description() + " + Milk"; }
+    public int costPaise() { return base.costPaise() + 2000; }
+}
+
+class Caramel extends AddOn {
+    Caramel(Beverage b) { super(b); }
+    public String description() { return base.description() + " + Caramel"; }
+    public int costPaise() { return base.costPaise() + 3000; }
+}
+
+Beverage order = new Caramel(new Milk(new Espresso()));
+// "Espresso + Milk + Caramel", 20000 paise</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Decorator vs inheritance?" — inheritance fixes the combination at compile
+        time; decorators compose at runtime and in any order. "Decorator vs
+        Strategy?" — Strategy swaps one algorithm via a plugged-in object;
+        Decorator layers many wrappers, each adding a slice of behaviour. Watch
+        out for lots of tiny classes and hard-to-read stack traces.
+      </p>
+    </div>
+
+    <!-- Facade -->
+    <h3 id="facade">Facade — Structural</h3>
+    <p>
+      A single class that gives a simple entry point to a complicated subsystem,
+      so callers don't have to orchestrate five collaborators in the right order.
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Trigger scenario</span>
+      <p>
+        "Place an order" really means: reserve inventory, authorise payment,
+        create a shipment, send a confirmation — and every caller currently wires
+        those four services together themselves. One <code>OrderFacade.placeOrder()</code>
+        hides the choreography.
+      </p>
+    </div>
+    <p class="code-label">Java — one method over a multi-step flow</p>
+<pre><code>class OrderFacade {
+    private final InventoryService inventory;
+    private final PaymentService payment;
+    private final ShippingService shipping;
+    private final NotificationSender notifier;
+
+    OrderFacade(InventoryService i, PaymentService p, ShippingService s, NotificationSender n) {
+        this.inventory = i; this.payment = p; this.shipping = s; this.notifier = n;
+    }
+
+    OrderResult placeOrder(Cart cart, PaymentDetails pd, Address addr) {
+        inventory.reserve(cart.getItems());
+        PaymentResult pr = payment.authorize(pd, cart.total());
+        if (!pr.success()) { inventory.release(cart.getItems()); return OrderResult.failed(pr.reason()); }
+        Shipment sh = shipping.schedule(cart.getItems(), addr);
+        notifier.send(cart.getCustomerContact(), "Order confirmed, arriving " + sh.getEta());
+        return OrderResult.ok(sh.getTrackingId());
+    }
+}</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Does the facade forbid using the subsystem directly?" — no, it's a
+        convenience, not a wall; advanced callers can still talk to
+        <code>PaymentService</code>. "Facade vs Mediator?" — Facade is one-way
+        (caller → subsystem); Mediator sits between peers that talk back and
+        forth. Risk: the facade becomes a god object — keep it to orchestration,
+        no business rules of its own.
+      </p>
+    </div>
+
+    <!-- Observer -->
+    <h3 id="observer">Observer — Behavioral</h3>
+    <p>
+      Defines a one-to-many dependency: when the subject's state changes, all
+      registered observers are notified. Decouples "something happened" from
+      "who cares".
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Trigger scenario</span>
+      <p>
+        Multiple, independently-evolving reactions to one event: a stock price
+        tick updates a chart, a ticker, and an alert rule; an order status change
+        emails the customer, updates analytics, and notifies the warehouse. You
+        don't want the subject importing all of them.
+      </p>
+    </div>
+    <p class="code-label">Java — subject with register / notify</p>
+<pre><code>interface OrderObserver { void onStatusChanged(Order o, OrderStatus from, OrderStatus to); }
+
+class Order {
+    private final List&lt;OrderObserver&gt; observers = new CopyOnWriteArrayList&lt;&gt;();
+    private OrderStatus status = OrderStatus.CREATED;
+
+    void subscribe(OrderObserver o)   { observers.add(o); }
+    void unsubscribe(OrderObserver o) { observers.remove(o); }
+
+    void setStatus(OrderStatus next) {
+        OrderStatus prev = this.status;
+        this.status = next;
+        for (OrderObserver o : observers) o.onStatusChanged(this, prev, next);
+    }
+}
+
+class EmailNotifier implements OrderObserver {
+    public void onStatusChanged(Order o, OrderStatus from, OrderStatus to) {
+        if (to == OrderStatus.SHIPPED) { /* send "your order shipped" */ }
+    }
+}
+class WarehouseListener implements OrderObserver { /* ... */ }</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Push or pull?" — push passes the changed data in the callback; pull
+        passes only the subject and lets observers query what they need.
+        "Memory leak risk?" — observers that never unsubscribe keep the subject
+        alive (lapsed-listener); use weak references or explicit lifecycle.
+        "Synchronous notify blocks the setter" — hand off to a queue / executor
+        if observers are slow. This is the guts of any event bus / pub-sub.
+      </p>
+    </div>
+
+    <!-- Strategy -->
+    <h3 id="strategy">Strategy — Behavioral</h3>
+    <p>
+      Encapsulates interchangeable algorithms behind one interface and lets the
+      caller pick at runtime. The antidote to a method that's one big
+      <code>switch</code> over "mode".
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Trigger scenario</span>
+      <p>
+        Several ways to do the same job and the choice varies per call or per
+        config: pricing rules (regular / member / surge), route planning
+        (shortest / cheapest / scenic), compression (gzip / brotli / none),
+        parking fees by vehicle type.
+      </p>
+    </div>
+    <p class="code-label">Java — pluggable pricing</p>
+<pre><code>interface PricingStrategy { long priceFor(Ride ride); }
+
+class RegularPricing implements PricingStrategy {
+    public long priceFor(Ride r) { return 5000 + r.getKm() * 1200; }
+}
+class SurgePricing implements PricingStrategy {
+    private final double multiplier;
+    SurgePricing(double m) { this.multiplier = m; }
+    public long priceFor(Ride r) { return (long) ((5000 + r.getKm() * 1200) * multiplier); }
+}
+
+class FareCalculator {
+    private PricingStrategy strategy;
+    FareCalculator(PricingStrategy s) { this.strategy = s; }
+    void setStrategy(PricingStrategy s) { this.strategy = s; }   // swap at runtime
+    long fare(Ride ride) { return strategy.priceFor(ride); }
+}</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Strategy vs State?" — same structure, different intent: with Strategy the
+        client chooses and it rarely changes mid-flight; with State the object
+        transitions itself between states. "Isn't a lambda enough?" — yes for a
+        single method with no config;
+        promote to a class when the strategy has its own fields or multiple
+        methods. "How is the strategy selected?" — often a small factory / map
+        keyed by an enum.
+      </p>
+    </div>
+
+    <!-- State -->
+    <h3 id="state">State — Behavioral</h3>
+    <p>
+      Lets an object change its behaviour when its internal state changes, by
+      delegating to a state object instead of checking flags everywhere. Each
+      state class knows what's allowed and which state comes next.
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Trigger scenario</span>
+      <p>
+        An entity has a lifecycle where the same action means different things
+        per stage and many actions are illegal in most stages: a vending machine,
+        an ATM session, a document (draft → in review → published), an order
+        (created → paid → shipped → delivered / cancelled).
+      </p>
+    </div>
+    <p class="code-label">Java — vending machine states</p>
+<pre><code>interface VendingState {
+    void insertCoin(VendingMachine m, int paise);
+    void selectItem(VendingMachine m, String code);
+    void dispense(VendingMachine m);
+}
+
+class IdleState implements VendingState {
+    public void insertCoin(VendingMachine m, int paise) {
+        m.addBalance(paise);
+        m.setState(new HasMoneyState());
+    }
+    public void selectItem(VendingMachine m, String c) { throw new IllegalStateException("insert coin first"); }
+    public void dispense(VendingMachine m)             { throw new IllegalStateException("nothing selected"); }
+}
+
+class HasMoneyState implements VendingState {
+    public void insertCoin(VendingMachine m, int paise) { m.addBalance(paise); }
+    public void selectItem(VendingMachine m, String code) {
+        if (m.priceOf(code) &lt;= m.getBalance()) m.setState(new DispensingState(code));
+        else throw new IllegalStateException("insufficient balance");
+    }
+    public void dispense(VendingMachine m) { throw new IllegalStateException("select an item"); }
+}
+
+class VendingMachine {
+    private VendingState state = new IdleState();
+    void setState(VendingState s) { this.state = s; }
+    void insertCoin(int p) { state.insertCoin(this, p); }
+    void selectItem(String c) { state.selectItem(this, c); }
+    void dispense() { state.dispense(this); }
+    // + addBalance / getBalance / priceOf ...
+}</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Who owns the transitions?" — the state classes themselves here (each
+        calls <code>m.setState(...)</code>); alternatively a central table. "State
+        vs Strategy again?" — Strategy objects are usually stateless and
+        externally chosen; State objects encode transition rules. "State
+        explosion?" — if you have 8 states × 6 events, consider a transition table
+        or a small state-machine library rather than 8 classes.
+      </p>
+    </div>
+
+    <!-- Chain of Responsibility -->
+    <h3 id="chain">Chain of Responsibility — Behavioral</h3>
+    <p>
+      Passes a request along a chain of handlers; each either handles it or
+      forwards it. Decouples the sender from knowing which handler will act.
+    </p>
+    <div class="box intuition">
+      <span class="box-title">Trigger scenario</span>
+      <p>
+        A request must go through an ordered series of checks / processors, any of
+        which might stop it or pass it on: expense approval by amount (manager →
+        director → VP → CFO), servlet filters / middleware, logging levels, a
+        support-ticket escalation ladder.
+      </p>
+    </div>
+    <p class="code-label">Java — expense approval ladder</p>
+<pre><code>abstract class Approver {
+    protected Approver next;
+    Approver linkTo(Approver next) { this.next = next; return next; }
+
+    void handle(ExpenseRequest req) {
+        if (canApprove(req)) approve(req);
+        else if (next != null) next.handle(req);
+        else throw new IllegalStateException("no approver for " + req.amount());
+    }
+    protected abstract boolean canApprove(ExpenseRequest req);
+    protected abstract void approve(ExpenseRequest req);
+}
+
+class Manager extends Approver {
+    protected boolean canApprove(ExpenseRequest r) { return r.amount() &lt;= 50_000_00; }
+    protected void approve(ExpenseRequest r) { /* stamp APPROVED by manager */ }
+}
+class Director extends Approver {
+    protected boolean canApprove(ExpenseRequest r) { return r.amount() &lt;= 5_00_000_00; }
+    protected void approve(ExpenseRequest r) { /* ... */ }
+}
+class CFO extends Approver {
+    protected boolean canApprove(ExpenseRequest r) { return true; }
+    protected void approve(ExpenseRequest r) { /* ... */ }
+}
+
+Approver chain = new Manager();
+chain.linkTo(new Director()).linkTo(new CFO());
+chain.handle(new ExpenseRequest(2_00_000_00));   // Director approves</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "What if nobody handles it?" — decide explicitly: throw, or have a
+        guaranteed catch-all at the tail. "Can a handler do work <em>and</em> pass
+        on?" — yes (that's the filter/middleware variant: pre-process, call
+        <code>next</code>, post-process). "How is order decided?" — it's part of
+        the config; the wrong order is a common bug.
+      </p>
+    </div>
+
+    <div id="t-creational"></div>
+    <div id="t-structural"></div>
+    <div id="t-behavioral"></div>
+  </section>
+
+
+  <!-- ================= PROBLEMS ================= -->
+  <section class="topic" id="problems">
+    <h2>Classic LLD problems</h2>
+    <p>
+      Each problem below is a walkthrough, not full code: the key classes and
+      their one-line responsibility, the pattern(s) that fit, and the
+      <strong>trade-off the interviewer will probe</strong>. Do the exercise of
+      writing your own class list first — the gap between yours and this is the
+      lesson.
+    </p>
+
+    <!-- Parking Lot -->
+    <h3 id="parking-lot">Parking Lot</h3>
+    <p>
+      <strong>Scope to state up front:</strong> multiple floors, spot sizes
+      (motorcycle / compact / large), hourly pricing, entry/exit gates with
+      tickets. Park the rest (monthly passes, EV charging, license-plate OCR).
+    </p>
+    <p class="code-label">Key classes &amp; responsibilities</p>
+<pre><code>ParkingLot          — singleton; holds floors; entry point park()/unpark()
+ParkingFloor        — owns a list of ParkingSpot; can find a free spot by size
+ParkingSpot         — one physical spot; type, isFree, currentVehicle
+Vehicle (abstract)  — Car / Motorcycle / Truck; each maps to a required SpotType
+Ticket              — spotId, vehicle, entryTime; issued at gate
+EntryGate / ExitGate— issue ticket / accept ticket + take payment
+ParkingRateStrategy — cost(Duration, VehicleType) — pluggable pricing
+PaymentProcessor    — handles the exit-gate transaction</code></pre>
+    <p><strong>Patterns:</strong> Strategy (rate calculation), Factory (ticket / spot
+      assignment), Singleton (the lot), optionally Observer (display boards showing
+      free counts).</p>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        <strong>Concurrency:</strong> two cars arrive, one free spot — how do you
+        stop both being assigned it? (synchronize the find-and-reserve, or an
+        atomic <code>compareAndSet</code> on spot state, or a DB row lock.)
+        <strong>Spot selection:</strong> first-free vs nearest-to-entrance vs
+        best-fit by size — and how that query stays fast with 10k spots (per-floor
+        free-lists / counters, not a full scan). <strong>Pricing:</strong> where
+        does the rate table live so ops can change it without a deploy?
+      </p>
+    </div>
+
+    <!-- Elevator -->
+    <h3 id="elevator">Elevator System</h3>
+    <p>
+      <strong>Scope:</strong> a building with N elevator cars, up/down hall
+      buttons per floor, floor buttons inside each car, a dispatcher that assigns
+      requests to cars.
+    </p>
+    <p class="code-label">Key classes &amp; responsibilities</p>
+<pre><code>Building          — floors + list of ElevatorCar + one Dispatcher
+ElevatorCar       — currentFloor, direction, doorState, a sorted set of stops
+ElevatorState     — Idle / MovingUp / MovingDown / DoorsOpen / Maintenance
+Request           — HallRequest(floor, direction) or CarRequest(car, floor)
+Dispatcher        — assigns a Request to the best ElevatorCar
+SchedulingStrategy— pickCar(request, cars): SCAN / LOOK / nearest-car
+Door              — open / close with a safety sensor
+DisplayPanel      — observer of ElevatorCar; shows floor + direction</code></pre>
+    <p><strong>Patterns:</strong> Strategy (scheduling algorithm), State (car
+      lifecycle), Observer (display panels / logging), Command (a Request as an
+      object queued on a car).</p>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        <strong>Scheduling:</strong> defend your algorithm — pure nearest-car
+        starves far requests; the standard answer is <em>elevator/LOOK</em> (keep
+        moving one direction, serving stops in order, reverse when none remain
+        ahead). <strong>Data structure for stops:</strong> two <code>TreeSet</code>s
+        (stops above, stops below) so "next stop in current direction" is O(log n).
+        <strong>Assignment cost function:</strong> distance + direction agreement
+        + current load. <strong>Idle policy:</strong> where do free cars park?
+      </p>
+    </div>
+
+    <!-- Library -->
+    <h3 id="library">Library Management System</h3>
+    <p>
+      <strong>Scope:</strong> catalog search, borrow/return with per-member
+      limits and due dates, fines for late returns, reservations when all copies
+      are out.
+    </p>
+    <p class="code-label">Key classes &amp; responsibilities</p>
+<pre><code>Book             — title, authors, subject, ISBN (the abstract work)
+BookItem         — one physical copy: barcode, rack location, status, dueDate
+BookStatus       — Available / Loaned / Reserved / Lost
+Catalog          — search by title / author / subject (indexes)
+Member           — has an Account; borrowingLimit, currently-held items
+Librarian        — can add/remove BookItem, override fines
+Loan             — bookItem, member, issueDate, dueDate, returnDate
+Fine             — amount = ratePerDay * daysLate; paid flag
+Reservation      — member + book + timestamp; FIFO queue per Book
+NotificationService — due-date reminders, "your reserved book is ready"</code></pre>
+    <p><strong>Patterns:</strong> Observer (notifications on due date / availability),
+      Strategy (search strategies, fine calculation), State (BookItem status).</p>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        <strong>Search:</strong> how do title/author/subject lookups stay fast —
+        in-memory <code>Map&lt;String, List&lt;Book&gt;&gt;</code> inverted indexes,
+        rebuilt on catalog change, or a real search engine for fuzzy match.
+        <strong>Reservation race:</strong> a copy is returned and two members have
+        it reserved — the FIFO queue decides, and the notification + a hold TTL
+        prevent it sitting idle. <strong>Rules placement:</strong> "max 5 books,
+        max 10 days" — config on <code>Member</code> tier, checked in one
+        <code>LendingService.checkout()</code>.
+      </p>
+    </div>
+
+    <!-- ATM -->
+    <h3 id="atm">ATM</h3>
+    <p>
+      <strong>Scope:</strong> card auth via PIN, balance inquiry, withdrawal with
+      cash dispensing, deposit; talks to a bank backend for the actual balance.
+    </p>
+    <p class="code-label">Key classes &amp; responsibilities</p>
+<pre><code>ATM               — hardware handle + current ATMState + session
+ATMState          — Idle / CardInserted / Authenticated / TransactionInProgress
+CardReader        — read card, eject
+Keypad / Screen   — input / output
+CashDispenser     — inventory of notes by denomination; dispense(amount)
+BankService       — validatePin(), getBalance(), debit(), credit() (remote)
+Transaction (abs) — Withdrawal / Deposit / BalanceInquiry / Transfer
+Account           — accountNumber, linked to a customer at the bank</code></pre>
+    <p><strong>Patterns:</strong> State (the session flow — actions are only legal in
+      certain states), Template Method or Strategy (per-transaction-type steps),
+      Chain of Responsibility (dispense from highest denomination down).</p>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        <strong>State machine:</strong> draw it — what happens on "cancel" or
+        "card timeout" from each state, and card capture after 3 wrong PINs.
+        <strong>Note dispensing:</strong> greedy highest-first can fail (want
+        ₹30 from ₹20/₹10 notes is fine; want ₹30 from only ₹20s isn't) — check
+        feasibility first, and account for empty denominations. <strong>Consistency:</strong>
+        debit at the bank and dispense cash must not disagree — reserve/authorise
+        the amount, dispense, then confirm; on dispense failure, reverse.
+      </p>
+    </div>
+
+    <!-- Splitwise -->
+    <h3 id="splitwise">Splitwise-style expense sharing</h3>
+    <p>
+      <strong>Scope:</strong> users and groups, add an expense split equally / by
+      exact amounts / by percentage, show each person's net balance, simplify
+      debts.
+    </p>
+    <p class="code-label">Key classes &amp; responsibilities</p>
+<pre><code>User             — id, name, contact
+Group            — name + members
+Expense          — description, totalAmount, paidBy (User), List&lt;Split&gt;
+Split (abstract)  — EqualSplit / ExactSplit / PercentSplit; user + owedAmount
+SplitStrategy    — validate + compute Split list from input
+BalanceSheet     — Map&lt;UserPair, amount&gt;: who owes whom, updated per expense
+ExpenseService   — addExpense(): validate splits sum to total, update balances
+SettlementService— simplifyDebts(balances): minimise number of transfers</code></pre>
+    <p><strong>Patterns:</strong> Strategy (split types), Observer (notify group
+      members of a new expense), Factory (create the right Split objects).</p>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        <strong>Balance model:</strong> store pairwise net balances
+        (<code>balances[a][b] = x</code> means a owes b x) — updating on each
+        expense is O(participants). <strong>Debt simplification:</strong>
+        minimising the number of transactions is NP-hard; the expected answer is
+        a greedy heuristic — repeatedly match the biggest creditor with the
+        biggest debtor. <strong>Validation:</strong> exact splits must sum to the
+        total, percentages to 100 — reject otherwise. <strong>Concurrency:</strong>
+        two expenses added to the same group at once must not lose an update.
+      </p>
+    </div>
+
+    <!-- Rate Limiter -->
+    <h3 id="rate-limiter">Rate Limiter</h3>
+    <p>
+      <strong>Scope:</strong> <code>boolean allowRequest(clientId)</code> — allow
+      or reject based on a per-client rate. Discuss several algorithms and their
+      trade-offs; that comparison <em>is</em> the interview.
+    </p>
+    <p class="code-label">Key classes &amp; responsibilities</p>
+<pre><code>RateLimiter (interface)   — boolean allow(String clientId)
+TokenBucketLimiter        — refill tokens at a rate; each request spends one
+LeakyBucketLimiter        — queue drains at fixed rate; full queue => reject
+FixedWindowCounterLimiter — count per clientId per wall-clock window
+SlidingWindowLogLimiter   — timestamps in a window; exact but memory-heavy
+SlidingWindowCounterLimiter— weighted blend of current + previous window
+ClientState store         — Map&lt;clientId, counters/tokens&gt; (+ eviction)
+Clock                     — injected, so tests control time</code></pre>
+    <p><strong>Patterns:</strong> Strategy (swap the algorithm behind
+      <code>RateLimiter</code>).</p>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        <strong>Algorithm trade-offs:</strong> fixed window is cheap but allows
+        a 2× burst across the boundary; sliding-window log is exact but stores
+        every timestamp; token bucket allows controlled bursts and is the usual
+        pick; sliding-window counter is the good-enough approximation.
+        <strong>Distributed:</strong> per-node counters over-admit — move state to
+        Redis and make check-and-decrement atomic (Lua script / <code>INCR</code>
+        + <code>EXPIRE</code>). <strong>Memory:</strong> evict idle clients; cap
+        the map.
+      </p>
+    </div>
+
+    <!-- LRU Cache -->
+    <h3 id="lru">LRU Cache</h3>
+    <p>
+      <strong>Scope:</strong> fixed capacity, <code>get</code> and <code>put</code>
+      both O(1), evict the least-recently-used entry on overflow.
+    </p>
+    <p class="code-label">Key classes &amp; responsibilities</p>
+<pre><code>LRUCache&lt;K,V&gt;   — capacity, get(K), put(K,V)
+Node&lt;K,V&gt;      — key, value, prev, next (doubly linked)
+HashMap&lt;K, Node&gt;— O(1) lookup from key to its node
+Doubly linked list — order by recency; head = most recent, tail = LRU
+  · on get/put: unlink the node, move it to head
+  · on overflow: remove tail node, also remove its key from the map
+EvictionPolicy (optional) — make LRU / LFU / FIFO pluggable</code></pre>
+    <p class="code-label">Java — the core moves</p>
+<pre><code>class LRUCache&lt;K,V&gt; {
+    private final int capacity;
+    private final Map&lt;K, Node&lt;K,V&gt;&gt; map = new HashMap&lt;&gt;();
+    private final Node&lt;K,V&gt; head = new Node&lt;&gt;(null, null); // sentinels
+    private final Node&lt;K,V&gt; tail = new Node&lt;&gt;(null, null);
+
+    LRUCache(int capacity) {
+        this.capacity = capacity;
+        head.next = tail; tail.prev = head;
+    }
+
+    V get(K key) {
+        Node&lt;K,V&gt; n = map.get(key);
+        if (n == null) return null;
+        moveToFront(n);
+        return n.value;
+    }
+
+    void put(K key, V value) {
+        Node&lt;K,V&gt; n = map.get(key);
+        if (n != null) { n.value = value; moveToFront(n); return; }
+        if (map.size() == capacity) {
+            Node&lt;K,V&gt; lru = tail.prev;
+            unlink(lru); map.remove(lru.key);
+        }
+        Node&lt;K,V&gt; fresh = new Node&lt;&gt;(key, value);
+        map.put(key, fresh); insertFront(fresh);
+    }
+
+    private void moveToFront(Node&lt;K,V&gt; n) { unlink(n); insertFront(n); }
+    private void unlink(Node&lt;K,V&gt; n) { n.prev.next = n.next; n.next.prev = n.prev; }
+    private void insertFront(Node&lt;K,V&gt; n) {
+        n.next = head.next; n.prev = head;
+        head.next.prev = n; head.next = n;
+    }
+    static class Node&lt;K,V&gt; { K key; V value; Node&lt;K,V&gt; prev, next;
+        Node(K k, V v) { key = k; value = v; } }
+}</code></pre>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        <strong>Why the doubly linked list?</strong> a singly linked list can't
+        unlink a middle node in O(1). <strong>Shortcut:</strong>
+        <code>LinkedHashMap</code> with <code>accessOrder=true</code> and an
+        overridden <code>removeEldestEntry</code> — mention it, then show you can
+        build it by hand. <strong>Thread safety:</strong> wrap in a lock, or
+        segment the cache; a fully lock-free LRU is hard. <strong>Extension:</strong>
+        pull eviction behind an interface so LFU / TTL drop in.
+      </p>
+    </div>
+
+    <!-- BookMyShow -->
+    <h3 id="bookmyshow">BookMyShow-style ticket booking</h3>
+    <p>
+      <strong>Scope:</strong> browse movies by city, pick a show, select seats,
+      hold them while paying, confirm on payment. The seat-locking problem is the
+      whole point.
+    </p>
+    <p class="code-label">Key classes &amp; responsibilities</p>
+<pre><code>City / Cinema / Screen — location hierarchy
+Seat                  — row, number, type (regular / premium); belongs to Screen
+Movie                 — title, language, duration
+Show                  — movie + screen + startTime; owns ShowSeat status
+ShowSeat              — Seat + status (AVAILABLE / LOCKED / BOOKED) + lockedBy/until
+SeatLockProvider      — lock(show, seats, user, ttl); unlock; validate before booking
+Booking               — user, show, seats, status (CREATED / CONFIRMED / EXPIRED)
+BookingService        — orchestrates lock -&gt; payment -&gt; confirm
+PaymentService        — idempotent charge keyed by bookingId
+NotificationService   — ticket + reminder</code></pre>
+    <p><strong>Patterns:</strong> State (Booking lifecycle), Strategy (pricing by
+      seat type / demand, payment method), Observer (notifications), Singleton
+      (SeatLockProvider).</p>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        <strong>Double booking:</strong> the core question. Pessimistic lock —
+        mark seats <code>LOCKED</code> with a holder + expiry <em>in one atomic
+        transaction</em>, reject if any seat isn't <code>AVAILABLE</code>; confirm
+        only from a valid lock held by the same user. <strong>Lock expiry:</strong>
+        a sweeper or lazy check releases stale locks so abandoned carts don't
+        freeze seats forever. <strong>Idempotency:</strong> payment webhook may
+        fire twice — key the charge by <code>bookingId</code>. <strong>Optimistic
+        alternative:</strong> version column, retry on conflict — better under low
+        contention.
+      </p>
+    </div>
+
+    <!-- Chess -->
+    <h3 id="chess">Chess</h3>
+    <p>
+      <strong>Scope:</strong> a legal 2-player game — board setup, move
+      validation per piece, turn alternation, check/checkmate/stalemate, ideally
+      undo. Skip clocks, notation export, AI unless asked.
+    </p>
+    <p class="code-label">Key classes &amp; responsibilities</p>
+<pre><code>Board            — 8x8 grid of Cell; setup(); pieceAt(pos); applyMove(move)
+Cell             — position + occupying Piece (or null)
+Piece (abstract) — color; abstract canMove(Board, from, to)
+  King / Queen / Rook / Bishop / Knight / Pawn — movement rules each
+Move             — from, to, pieceMoved, pieceCaptured, flags (castle, promo, en-passant)
+Player           — color, isHuman
+Game             — players, Board, turn, status; makeMove(player, from, to)
+GameStatus       — ACTIVE / CHECK / CHECKMATE / STALEMATE / RESIGNED
+MoveValidator    — piece rule + path clear + not own king in check after move
+MoveHistory      — stack of Move for undo (Memento-ish)</code></pre>
+    <p><strong>Patterns:</strong> polymorphism / Strategy for per-piece movement,
+      State for <code>GameStatus</code>, Memento or a move stack for undo, Factory
+      for initial board setup.</p>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        <strong>Where does move legality live?</strong> the piece knows its
+        movement shape; the board knows occupancy and path; a rules layer knows
+        "does this move leave my king in check" (simulate, test, roll back).
+        Keep those separate. <strong>Check detection:</strong> after a candidate
+        move, can any enemy piece reach the king's square. <strong>Undo:</strong>
+        store captured piece and flags on the <code>Move</code> so it fully
+        reverses. <strong>Extensibility:</strong> a new piece = one class, no
+        edits elsewhere — that's the design goal to state.
+      </p>
+    </div>
+
+    <!-- Snake & Ladder -->
+    <h3 id="snake-ladder">Snake &amp; Ladder</h3>
+    <p>
+      <strong>Scope:</strong> a board of 100 cells, snakes and ladders as jumps,
+      a die, players taking turns from a queue, first to exactly 100 wins.
+      Deliberately simple — the interviewer is watching for clean modelling and
+      <em>not</em> over-engineering.
+    </p>
+    <p class="code-label">Key classes &amp; responsibilities</p>
+<pre><code>Board       — size; Map&lt;Integer, Jump&gt; jumps (start cell -&gt; end cell)
+Jump        — start, end; snake if end &lt; start, ladder if end &gt; start
+Dice        — roll(): 1..6 (count configurable for "2 dice")
+Player      — name, currentPosition
+Game        — Board, Dice, Deque&lt;Player&gt; turnQueue; play() loop
+  · roll, advance; if overshoot 100, stay; apply jump if landed on one;
+    if position == 100, that player wins</code></pre>
+    <p><strong>Patterns:</strong> essentially none required — mention Strategy only
+      if dice behaviour needs to vary. Forcing patterns here is a red flag.</p>
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        <strong>Modelling:</strong> one <code>Map</code> for both snakes and
+        ladders (a jump is a jump) is cleaner than two lists.
+        <strong>Rules:</strong> exact-finish vs any-overshoot-wins, extra turn on
+        a six, multiple dice — clarify, don't assume. <strong>Restraint:</strong>
+        if you reach for Singleton/Factory/Observer here, the interviewer learns
+        you pattern-match on keywords. <strong>Extensibility that matters:</strong>
+        board size and jump list are data, so a 10×10 or a custom board needs no
+        code change.
+      </p>
+    </div>
+
+    <div id="t-problems"></div>
+  </section>
+
+  <p class="backlink"><a href="index.html">← Back to home &amp; dashboard</a> &nbsp;·&nbsp; <a href="roadmap.html">See where this fits in the roadmap →</a></p>
+
+  <footer class="foot">
+    <p>Phase 2 of the <a href="roadmap.html">8-month roadmap</a>. Next: High-Level Design.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("lld", [
+  {
+    group: "SOLID Principles",
+    mount: "#t-solid",
+    items: [
+      "Single Responsibility (SRP)",
+      "Open/Closed (OCP)",
+      "Liskov Substitution (LSP)",
+      "Interface Segregation (ISP)",
+      "Dependency Inversion (DIP)"
+    ]
+  },
+  {
+    group: "Creational Patterns",
+    mount: "#t-creational",
+    items: [
+      "Singleton",
+      "Factory",
+      "Builder"
+    ]
+  },
+  {
+    group: "Structural Patterns",
+    mount: "#t-structural",
+    items: [
+      "Adapter",
+      "Decorator",
+      "Facade"
+    ]
+  },
+  {
+    group: "Behavioral Patterns",
+    mount: "#t-behavioral",
+    items: [
+      "Observer",
+      "Strategy",
+      "State",
+      "Chain of Responsibility"
+    ]
+  },
+  {
+    group: "Classic LLD Problems",
+    mount: "#t-problems",
+    items: [
+      "Parking Lot",
+      "Elevator System",
+      "Library Management System",
+      "ATM",
+      "Splitwise expense sharing",
+      "Rate Limiter",
+      "LRU Cache",
+      "BookMyShow ticket booking",
+      "Chess",
+      "Snake & Ladder"
+    ]
+  }
+], { pageTitle: "LLD: SOLID, Patterns & Class Modelling" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("lld");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

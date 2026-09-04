@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Full-Stack JS — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html" class="active">Full-Stack JS</a>
+      <a href="genai.html">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Full-Stack JS — Enough to Work Across the Stack</h1>
+  <p class="lede">
+    Phase 3, lighter half. You're a Java backend engineer; nobody expects React
+    mastery. But product teams ship features end to end, and the interviewer may
+    ask you to reason about a component, a Redux store, an Express route, or a
+    Mongo schema. This page is the working knowledge to be useful in a JS
+    codebase and hold a conversation about it — not a front-end deep dive.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>Scope.</strong> This is "I can pick up a ticket in the React/Node
+      repo and not be lost." For the depth interviewers expect on the
+      <em>backend</em> round, that's <a href="fullstack-java.html">Full-Stack
+      Java</a>. Tick items to feed the <a href="index.html">home dashboard</a>.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — cross-stack JS working knowledge</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#react">React fundamentals + hooks</a></li>
+      <li><a href="#redux">Redux concepts</a></li>
+      <li><a href="#node">Node / Express basics</a></li>
+      <li><a href="#mongo">MongoDB schema basics</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ================= REACT ================= -->
+  <section class="topic" id="react">
+    <h2>React fundamentals + hooks</h2>
+
+    <p>
+      React is a library for building UIs as a tree of <strong>components</strong>
+      — functions that take <strong>props</strong> (inputs from the parent) and
+      return JSX describing what to render. When a component's
+      <strong>state</strong> or props change, React re-runs the function, diffs
+      the new element tree against the old one (the "virtual DOM"), and applies
+      the minimal set of real DOM changes. You describe <em>what</em> the UI
+      should look like for a given state; React figures out the DOM mutations.
+    </p>
+    <p>
+      JSX is syntax sugar for <code>React.createElement</code>. <code>{expr}</code>
+      embeds a JS expression; attributes are camelCase (<code>onClick</code>,
+      <code>className</code>); lists render via <code>.map()</code> and each item
+      needs a stable <code>key</code> so the diff can track it across renders.
+    </p>
+
+    <p class="code-label">A component with state, effect, and a child</p>
+<pre><code>function ProductList({ category }) {          // prop from the parent
+  const [products, setProducts] = useState([]);   // state: [value, setter]
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(null);
+
+  useEffect(() =&gt; {                            // run after render, when deps change
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/products?category=${category}`)
+      .then(r =&gt; { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(data =&gt; { if (!cancelled) { setProducts(data.content); setLoading(false); } })
+      .catch(e  =&gt; { if (!cancelled) { setError(e); setLoading(false); } });
+    return () =&gt; { cancelled = true; };        // cleanup: ignore a stale response
+  }, [category]);                              // dependency array
+
+  if (loading) return &lt;Spinner /&gt;;
+  if (error)   return &lt;p role="alert"&gt;Failed to load.&lt;/p&gt;;
+
+  return (
+    &lt;ul&gt;
+      {products.map(p =&gt; (
+        &lt;ProductCard key={p.id} product={p} /&gt;   // stable key per item
+      ))}
+    &lt;/ul&gt;
+  );
+}</code></pre>
+
+    <h3>The hooks you actually use</h3>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Hook</th><th>Purpose</th><th>Gotcha</th></tr></thead>
+      <tbody>
+        <tr><td><code>useState</code></td><td>Local component state. Setter triggers a re-render.</td><td>Updates are batched &amp; async; use the updater form <code>setN(n =&gt; n + 1)</code> when the next value depends on the previous.</td></tr>
+        <tr><td><code>useEffect</code></td><td>Side effects after render: data fetch, subscriptions, timers.</td><td>Missing deps ⇒ stale closures; return a cleanup fn; runs twice in dev StrictMode (by design).</td></tr>
+        <tr><td><code>useContext</code></td><td>Read a value from a <code>Context.Provider</code> ancestor without prop-drilling.</td><td>Every consumer re-renders when the context value changes — memoize the value.</td></tr>
+        <tr><td><code>useRef</code></td><td>Mutable box that survives renders without causing one; also holds DOM nodes.</td><td>Changing <code>.current</code> does <em>not</em> re-render.</td></tr>
+        <tr><td><code>useMemo</code> / <code>useCallback</code></td><td>Cache an expensive value / a stable function identity across renders.</td><td>Premature use adds noise; measure first.</td></tr>
+        <tr><td><code>useReducer</code></td><td>State with complex transitions — a local Redux.</td><td>Reach for it when <code>useState</code> calls cluster together.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A component is a pure function of <code>(props, state)</code> → UI.
+        "Rendering" just calls that function; it should have no side effects.
+        Anything that touches the outside world (network, DOM, timers,
+        subscriptions) goes in <code>useEffect</code>, with a dependency array
+        saying <em>when</em> to re-run it and a cleanup function saying how to
+        undo it.
+      </p>
+    </div>
+
+    <h3>Rules of hooks</h3>
+    <ul>
+      <li>Only call hooks at the <strong>top level</strong> of a component or another hook — never in a condition, loop, or nested function. React tracks them by call order.</li>
+      <li>Only call them from <strong>React functions</strong> (components or custom <code>useX</code> hooks).</li>
+      <li>State is <strong>immutable</strong> — never mutate it; create a new object/array (<code>setItems([...items, x])</code>).</li>
+    </ul>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Missing/wrong <code>useEffect</code> deps.</strong> The lint rule <code>react-hooks/exhaustive-deps</code> is right almost always — listen to it.</li>
+        <li><strong>Mutating state:</strong> <code>items.push(x); setItems(items)</code> — same reference, no re-render.</li>
+        <li><strong>Index as <code>key</code></strong> in a reorderable/filterable list — breaks the diff and loses input focus/state.</li>
+        <li><strong>Fetching without cleanup</strong> — a slow response for the old <code>category</code> lands after you've switched, and overwrites the new data.</li>
+        <li><strong>Derived state in <code>useState</code></strong> — if it can be computed from props/state during render, just compute it; don't copy it into state.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "What triggers a re-render?" — a state setter, a new prop, or a parent
+        re-rendering. "Why does the dependency array matter?" — it's how the
+        effect knows when to re-run and which values it closes over; omit a dep
+        and you read a stale value. "Controlled vs uncontrolled input?" —
+        controlled: value lives in React state (<code>value</code> +
+        <code>onChange</code>); uncontrolled: the DOM holds it, read via a ref.
+        "<code>useRef</code> vs <code>useState</code>?" — ref for values that
+        change without needing a re-render (a timer id, a previous value).
+      </p>
+    </div>
+
+    <div id="t-react"></div>
+  </section>
+
+
+  <!-- ================= REDUX ================= -->
+  <section class="topic" id="redux">
+    <h2>Redux concepts</h2>
+
+    <p>
+      Redux is a predictable state container for state that many far-apart
+      components need (the logged-in user, a cart, cached server data). One
+      <strong>store</strong> holds the whole app state as a single immutable
+      object. You never mutate it; you <strong>dispatch</strong> an
+      <strong>action</strong> (a plain object describing what happened), and a
+      pure <strong>reducer</strong> <code>(state, action) =&gt; newState</code>
+      computes the next state. Components <strong>select</strong> the slices they
+      need and re-render when those slices change.
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">The one-way data flow</span>
+<pre><code>UI event ──dispatch(action)──▶ store ──▶ reducer(state, action) ──▶ new state
+   ▲                                                                   │
+   └───────────────── components re-render via useSelector ◀───────────┘</code></pre>
+      <p class="small">
+        Unidirectional: the only way to change state is an action, so every
+        change is describable, loggable, and replayable (time-travel debugging).
+      </p>
+    </div>
+
+    <p class="code-label">Redux Toolkit — the modern, non-boilerplate way</p>
+<pre><code>// cartSlice.js
+import { createSlice } from "@reduxjs/toolkit";
+
+const cartSlice = createSlice({
+  name: "cart",
+  initialState: { items: [] },        // { productId, name, qty, pricePaise }[]
+  reducers: {
+    // Immer lets you "mutate" a draft; it produces a new immutable state
+    addItem(state, action) {
+      const line = state.items.find(i =&gt; i.productId === action.payload.productId);
+      if (line) line.qty += 1;
+      else state.items.push({ ...action.payload, qty: 1 });
+    },
+    removeItem(state, action) {
+      state.items = state.items.filter(i =&gt; i.productId !== action.payload);
+    },
+    clear(state) { state.items = []; },
+  },
+});
+
+export const { addItem, removeItem, clear } = cartSlice.actions;
+export default cartSlice.reducer;
+
+// selectors — derive, don't store
+export const selectCartCount = (s) =&gt; s.cart.items.reduce((n, i) =&gt; n + i.qty, 0);
+export const selectCartTotal = (s) =&gt; s.cart.items.reduce((t, i) =&gt; t + i.qty * i.pricePaise, 0);
+
+// store.js
+import { configureStore } from "@reduxjs/toolkit";
+import cart from "./cartSlice";
+export const store = configureStore({ reducer: { cart } });</code></pre>
+
+    <p class="code-label">Using it in a component</p>
+<pre><code>import { useSelector, useDispatch } from "react-redux";
+import { addItem, selectCartCount } from "./cartSlice";
+
+function AddToCartButton({ product }) {
+  const dispatch = useDispatch();
+  const count = useSelector(selectCartCount);   // re-renders only when the count changes
+  return (
+    &lt;button onClick={() =&gt; dispatch(addItem({
+      productId: product.id, name: product.name, pricePaise: product.pricePaise,
+    }))}&gt;
+      Add to cart ({count})
+    &lt;/button&gt;
+  );
+}</code></pre>
+
+    <p>
+      <strong>Async</strong> (calling an API) doesn't belong in a reducer —
+      reducers are pure. Use <code>createAsyncThunk</code> (or RTK Query for
+      server-cache) which dispatches <code>pending</code> / <code>fulfilled</code>
+      / <code>rejected</code> actions you handle in <code>extraReducers</code>.
+    </p>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Putting everything in Redux.</strong> Form field state, "is this dropdown open" — that's local <code>useState</code>. Redux is for shared, app-wide state.</li>
+        <li><strong>Storing derived data</strong> (cart total) in the store instead of computing it in a selector — now it can drift out of sync.</li>
+        <li><strong>Mutating state outside Immer</strong> (plain Redux, or a selector) — breaks change detection and time-travel.</li>
+        <li><strong>Selecting a new object each render</strong> (<code>useSelector(s =&gt; ({a: s.a}))</code>) — always "changed", re-renders every time. Select primitives, or use <code>createSelector</code> / <code>shallowEqual</code>.</li>
+        <li><strong>Reaching for Redux before you need it</strong> — Context + <code>useReducer</code>, or a server-cache lib (React Query), covers many apps.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Why not just Context?" — Context is a transport, not a state manager;
+        every consumer re-renders on any change, and there's no dev-tools,
+        middleware, or structured updates. "What makes a reducer a reducer?" —
+        pure, synchronous, <code>(state, action) =&gt; newState</code>, no side
+        effects, no mutation. "Where does the API call go?" — a thunk / RTK
+        Query, which dispatches lifecycle actions the reducer handles. "How does a
+        component avoid needless re-renders?" — select the narrowest slice
+        possible, memoize derived selectors.
+      </p>
+    </div>
+
+    <div id="t-redux"></div>
+  </section>
+
+
+  <!-- ================= NODE / EXPRESS ================= -->
+  <section class="topic" id="node">
+    <h2>Node / Express basics</h2>
+
+    <p>
+      Node runs JavaScript on the server on a <strong>single-threaded event
+      loop</strong> with non-blocking I/O: instead of a thread per request, one
+      thread juggles thousands of connections, parking each while it waits on I/O
+      and resuming it via callbacks/promises. Great for I/O-bound APIs; a
+      CPU-bound task blocks everyone (offload to a worker thread or another
+      service). This is the opposite of the Spring/Tomcat thread-per-request
+      model — the mental adjustment for a Java dev.
+    </p>
+
+    <p class="code-label">A small Express REST API</p>
+<pre><code>import express from "express";
+import { z } from "zod";
+
+const app = express();
+app.use(express.json());                       // body parser -&gt; req.body
+
+// middleware: runs in order, calls next() to continue (like a filter chain)
+app.use((req, res, next) =&gt; {
+  req.id = crypto.randomUUID();
+  console.log(`${req.id} ${req.method} ${req.path}`);
+  next();
+});
+
+const CreateProduct = z.object({
+  name: z.string().min(1),
+  pricePaise: z.number().int().positive(),
+});
+
+app.get("/api/products", async (req, res, next) =&gt; {
+  try {
+    const items = await productRepo.search(req.query.category, req.query.page ?? 0);
+    res.json({ content: items });
+  } catch (err) { next(err); }                 // forward to the error handler
+});
+
+app.post("/api/products", requireAuth, requireRole("admin"), async (req, res, next) =&gt; {
+  try {
+    const body = CreateProduct.parse(req.body); // throws on invalid -> 400 below
+    const created = await productRepo.create(body);
+    res.status(201).location(`/api/products/${created.id}`).json(created);
+  } catch (err) { next(err); }
+});
+
+// central error handler — 4 args marks it as such
+app.use((err, req, res, next) =&gt; {
+  if (err instanceof z.ZodError)
+    return res.status(400).json({ message: "validation failed", issues: err.issues });
+  console.error(req.id, err);
+  res.status(err.status ?? 500).json({ message: err.expose ? err.message : "server error" });
+});
+
+app.listen(3000);</code></pre>
+
+    <p class="code-label">Auth middleware (JWT) — mirrors the Spring filter</p>
+<pre><code>import jwt from "jsonwebtoken";
+
+export function requireAuth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) return res.status(401).json({ message: "no token" });
+  try {
+    req.user = jwt.verify(header.slice(7), process.env.JWT_SECRET); // { sub, roles }
+    next();
+  } catch {
+    res.status(401).json({ message: "invalid token" });
+  }
+}
+export const requireRole = (role) =&gt; (req, res, next) =&gt;
+  req.user?.roles?.includes(role) ? next() : res.status(403).json({ message: "forbidden" });</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Express is a chain of middleware functions
+        <code>(req, res, next)</code>. Each does its bit and calls
+        <code>next()</code> to pass control on, or ends the response. It's the
+        same "chain of responsibility" as the Spring Security filter chain, just
+        explicit and in one file. <code>async/await</code> over promises is how
+        you write non-blocking I/O that reads sequentially.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Blocking the event loop</strong> — a synchronous loop over 100k items, <code>JSON.parse</code> of a huge payload, bcrypt in a tight loop. Every other request stalls.</li>
+        <li><strong>Unhandled promise rejections</strong> — forgetting <code>try/catch</code> in an async route (or not calling <code>next(err)</code>) crashes or hangs the request.</li>
+        <li><strong>Not validating <code>req.body</code></strong> — trusting client JSON straight into the DB.</li>
+        <li><strong>Secrets / config from anywhere but <code>process.env</code></strong>; committing <code>.env</code>.</li>
+        <li><strong>One process, one core.</strong> Use the platform's replica count, or the <code>cluster</code> module / PM2, to use all cores.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Node is single-threaded — how does it handle concurrency?" — non-blocking
+        I/O + event loop; the OS/libuv thread pool does the actual I/O, JS
+        resumes via callbacks. "What breaks that model?" — CPU-bound work; it
+        blocks the loop, so offload it. "Express middleware order — does it
+        matter?" — yes, it's sequential; auth before the handler, error handler
+        last. "How is this different from Spring MVC?" — thread-per-request vs one
+        loop; blocking JDBC is fine in Spring, a blocking call is poison in Node.
+      </p>
+    </div>
+
+    <div id="t-node"></div>
+  </section>
+
+
+  <!-- ================= MONGODB ================= -->
+  <section class="topic" id="mongo">
+    <h2>MongoDB schema basics</h2>
+
+    <p>
+      MongoDB stores <strong>documents</strong> (BSON, JSON-like) in
+      <strong>collections</strong>. No fixed schema is enforced by default, no
+      joins in the SQL sense, no multi-collection transactions you'd lean on.
+      The design question is always: <strong>embed</strong> related data in one
+      document, or <strong>reference</strong> it by id in another collection?
+    </p>
+
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th></th><th>Embed</th><th>Reference</th></tr></thead>
+      <tbody>
+        <tr><td>When</td><td>"contains" / "belongs to one" — read together, bounded size</td><td>Many-to-many, large/unbounded, or edited independently</td></tr>
+        <tr><td>Read</td><td>One query gets everything</td><td>Multiple queries or a <code>$lookup</code></td></tr>
+        <tr><td>Write</td><td>Update the whole subtree together (atomic per doc)</td><td>Update pieces independently</td></tr>
+        <tr><td>Example</td><td>Order → its line items &amp; shipping address</td><td>Order → the customer; product catalog</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="code-label">The eCommerce model, Mongo-style (Mongoose)</p>
+<pre><code>import { Schema, model, Types } from "mongoose";
+
+const productSchema = new Schema({
+  name:        { type: String, required: true },
+  slug:        { type: String, required: true, unique: true },
+  pricePaise:  { type: Number, required: true, min: 0 },
+  stock:       { type: Number, default: 0 },
+  category:    { type: String, index: true },          // denormalized: just the name
+  createdAt:   { type: Date, default: Date.now },
+});
+
+const orderSchema = new Schema({
+  user:   { type: Types.ObjectId, ref: "User", required: true, index: true }, // reference
+  status: { type: String, enum: ["PENDING", "PAID", "SHIPPED", "CANCELLED"], default: "PENDING" },
+  // embed the lines — always read with the order, bounded, and price is snapshotted
+  items: [{
+    productId:      { type: Types.ObjectId, ref: "Product" },
+    name:           String,        // copied at purchase time
+    qty:            { type: Number, min: 1 },
+    unitPricePaise: Number,
+  }],
+  shippingAddress: {               // embedded sub-document, not its own collection
+    line1: String, city: String, pincode: String,
+  },
+  totalPaise: Number,
+  placedAt:   { type: Date, default: Date.now },
+});
+orderSchema.index({ user: 1, placedAt: -1 });          // "my orders, newest first"
+
+export const Product = model("Product", productSchema);
+export const Order   = model("Order", orderSchema);</code></pre>
+
+    <p class="code-label">Querying</p>
+<pre><code>// list a user's recent orders (uses the compound index)
+const orders = await Order.find({ user: userId }).sort({ placedAt: -1 }).limit(20).lean();
+
+// join to the customer only when you need it
+const withUser = await Order.findById(id).populate("user", "email name");
+
+// aggregation: revenue per day
+const revenue = await Order.aggregate([
+  { $match: { status: "PAID" } },
+  { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$placedAt" } },
+              total: { $sum: "$totalPaise" } } },
+  { $sort: { _id: 1 } },
+]);</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        Model around <strong>how the app reads the data</strong>, not around
+        normalized entities. If a screen always shows an order with its lines,
+        store them in one document so one query serves the screen. Duplication
+        (the product name copied into the order line) is fine and often correct —
+        it's a historical snapshot, and there's no join to keep it live anyway.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Modeling like SQL</strong> — a collection per entity, everything referenced, <code>$lookup</code> everywhere. You lose Mongo's main advantage and gain slow queries.</li>
+        <li><strong>Unbounded embedded arrays</strong> — embedding "all comments" in a post; the 16MB document limit and rewrite cost eventually bite. Reference when the child set grows without limit.</li>
+        <li><strong>No indexes</strong> — every query is a collection scan. Index your filter + sort fields; check with <code>.explain()</code>.</li>
+        <li><strong>Assuming ACID across documents</strong> — single-document writes are atomic; multi-document needs an explicit transaction (replica set) and costs more.</li>
+        <li><strong>Storing money as a float.</strong> Use integer minor units (paise/cents) or <code>Decimal128</code>.</li>
+      </ul>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Interviewer probe</span>
+      <p>
+        "Embed or reference the order lines?" — embed: bounded, always read with
+        the order, price snapshotted. "Embed or reference the customer?" —
+        reference: shared across many orders, edited independently.
+        "How do you make <code>find({user, sort: placedAt})</code> fast?" — a
+        compound index <code>{ user: 1, placedAt: -1 }</code>. "SQL vs Mongo for
+        this shop?" — a relational DB is the safer default for orders/payments
+        (transactions, constraints); Mongo shines for catalog, sessions, event
+        logs, flexible content. See <a href="hld.html">HLD → SQL vs NoSQL</a>.
+      </p>
+    </div>
+
+    <div id="t-mongo"></div>
+  </section>
+
+  <p class="backlink"><a href="index.html">← Back to home &amp; dashboard</a> &nbsp;·&nbsp; <a href="fullstack-java.html">← Full-Stack Java</a></p>
+
+  <footer class="foot">
+    <p>Phase 3 of the <a href="roadmap.html">8-month roadmap</a>, lighter half. Next: GenAI.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("fullstack-js", [
+  {
+    group: "React",
+    mount: "#t-react",
+    items: [
+      "Components, props, state & the render model",
+      "useState & useEffect (deps + cleanup)",
+      "useContext, useRef, useMemo/useCallback",
+      "Rules of hooks & immutable state updates"
+    ]
+  },
+  {
+    group: "Redux",
+    mount: "#t-redux",
+    items: [
+      "Store / action / reducer & one-way data flow",
+      "Redux Toolkit slice + selectors",
+      "useSelector / useDispatch & avoiding re-renders",
+      "Async via thunks (not in reducers)"
+    ]
+  },
+  {
+    group: "Node / Express",
+    mount: "#t-node",
+    items: [
+      "Event loop & non-blocking I/O vs thread-per-request",
+      "Express middleware chain & routing",
+      "Central error handling & request validation",
+      "JWT auth middleware"
+    ]
+  },
+  {
+    group: "MongoDB",
+    mount: "#t-mongo",
+    items: [
+      "Documents & collections; embed vs reference",
+      "Modeling around read patterns (eCommerce example)",
+      "Indexes (compound) & .explain()",
+      "Atomicity per document; money as integers"
+    ]
+  }
+], { pageTitle: "Full-Stack JS: Enough to Work Across the Stack" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("fullstack-js");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

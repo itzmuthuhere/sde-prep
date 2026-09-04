@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GenAI — SDE Prep</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sdeprep:theme')||'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html">SDE<span>·</span>Prep</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="phase0-fundamentals.html">Phase 0</a>
+      <a href="dsa-linear.html">DSA · Linear</a>
+      <a href="dsa-nonlinear.html">DSA · Non-linear</a>
+      <a href="sql.html">SQL</a>
+      <a href="lld.html">LLD</a>
+      <a href="hld.html">HLD</a>
+      <a href="fullstack-java.html">Full-Stack Java</a>
+      <a href="fullstack-js.html">Full-Stack JS</a>
+      <a href="genai.html" class="active">GenAI</a>
+      <a href="electives.html">Electives</a>
+      <a href="projects.html">Projects</a>
+      <a href="job-search.html">Job Search</a>
+    </nav>
+    <button class="theme-toggle" data-theme-toggle type="button">☾ Dark</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>GenAI — For Backend Engineers Building on LLMs</h1>
+  <p class="lede">
+    Phase 4. You will not be asked to train a transformer. You will be asked to
+    put one behind an API: retrieve the right context, keep latency and cost
+    sane, stop it from doing something stupid in production, and explain the
+    trade-offs you chose. This page is the working mental model plus the
+    judgment calls — fine-tune or prompt or RAG, embed or reference, agent or
+    plain call — that interviewers actually probe.
+  </p>
+
+  <div class="box note">
+    <p class="small">
+      <strong>Scope.</strong> Conceptual on the model internals (enough to
+      reason, not to derive backprop), concrete on everything you own as the
+      engineer wiring it up: retrieval, orchestration, evaluation, guardrails,
+      the bill. Tick items to feed the <a href="index.html">home dashboard</a>.
+    </p>
+  </div>
+
+  <div id="page-progress" class="tracker" style="display:none">
+    <div class="tracker-head">
+      <span class="t-title">This page — building on LLMs</span>
+      <span class="t-count" id="pp-count">0 / 0</span>
+    </div>
+    <div class="tracker-bar"><div class="tracker-fill" id="pp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="topic-toc">
+    <ol>
+      <li><a href="#llm">LLMs &amp; Transformers</a></li>
+      <li><a href="#vectordb">Vector DBs &amp; semantic search</a></li>
+      <li><a href="#apis">LLM APIs &amp; fine-tuning</a></li>
+      <li><a href="#rag">RAG systems</a></li>
+      <li><a href="#agents">Agentic AI workflows</a></li>
+      <li><a href="#langchain">LangChain &amp; LangGraph</a></li>
+      <li><a href="#prompting">Prompt engineering</a></li>
+      <li><a href="#mcp">MCP (Model Context Protocol)</a></li>
+      <li><a href="#prod">Production trade-offs</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ================= LLMs & TRANSFORMERS ================= -->
+  <section class="topic" id="llm">
+    <h2>LLMs &amp; Transformers</h2>
+
+    <p>
+      A large language model is a function that takes a sequence of
+      <strong>tokens</strong> (word-ish chunks — "tokenization" splits
+      <code>"unhappiness"</code> into <code>["un", "happiness"]</code> or similar)
+      and predicts a probability distribution over the next token. That's the
+      whole objective: given everything so far, what comes next. Text generation
+      is just running that prediction in a loop, appending each sampled token and
+      feeding the result back in (<strong>autoregressive decoding</strong>).
+      Everything that feels intelligent — following instructions, writing code,
+      summarizing — is an emergent consequence of getting very good at that one
+      prediction task over a large chunk of the internet, then being nudged with
+      instruction tuning and RLHF to prefer helpful, well-formatted answers.
+    </p>
+    <p>
+      The <strong>transformer</strong> is the architecture that made this scale.
+      Its key move is <strong>self-attention</strong>. For each token, the model
+      computes three vectors: a <strong>query</strong> ("what am I looking
+      for?"), a <strong>key</strong> ("what do I offer?"), and a
+      <strong>value</strong> ("what I'll contribute if selected"). Every token's
+      query is compared against every other token's key (a dot product → a
+      relevance score), the scores are softmax-normalized into weights, and each
+      token's new representation becomes the weighted sum of all the values. In
+      plain terms: <em>every token gets to look at every other token and pull in
+      the information that's relevant to it</em>. "The animal didn't cross the
+      street because <strong>it</strong> was too tired" — attention is how "it"
+      binds to "animal" and not "street". Stack ~30–100 of these layers (with
+      "heads" doing this in parallel on different subspaces, plus feed-forward
+      layers in between) and the model builds progressively richer, more
+      contextual representations.
+    </p>
+    <p>
+      Why this beat RNNs: an RNN processes tokens one at a time, threading a
+      hidden state forward, so training can't parallelize across the sequence and
+      long-range dependencies decay. Attention looks at the whole sequence at
+      once — fully parallel on a GPU during training, and any token can
+      directly influence any other regardless of distance. The cost is that
+      attention is <strong>O(n²)</strong> in sequence length (every token vs
+      every token), which is why context windows are a scaling battle and why
+      long prompts get expensive fast. At inference the model caches the keys and
+      values of tokens it's already seen (the <strong>KV cache</strong>), so
+      generating token <em>n+1</em> doesn't reprocess the whole prompt — but that
+      cache grows with context length and dominates memory for long conversations.
+    </p>
+
+    <p class="code-label">The generation loop, conceptually</p>
+<pre><code>tokens = tokenize(prompt)
+while not done:
+    logits = model(tokens)          # distribution over the vocabulary, for the *next* token
+    next_id = sample(logits,         # temperature: 0 = argmax (deterministic-ish),
+                     temperature=0.7, #   higher = flatter distribution = more variety
+                     top_p=0.9)       # nucleus: sample only from the smallest set summing to 0.9
+    tokens.append(next_id)
+    if next_id == EOS or len(tokens) &gt; max_tokens:
+        done = True
+return detokenize(tokens)</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        An LLM is a <strong>next-token predictor</strong> with no memory beyond
+        its context window and no ability to "look things up" unless you put the
+        information in the prompt. Attention is content-based routing: it lets
+        each position gather exactly the earlier context it needs. Two
+        consequences you'll rely on constantly — (1) whatever the model knows
+        about <em>your</em> domain has to be <em>in the context</em> (that's why
+        RAG exists), and (2) output is sampled, so the same prompt can give
+        different answers; set <code>temperature=0</code> when you need
+        repeatability.
+      </p>
+    </div>
+
+    <div class="box note">
+      <span class="box-title">Terms worth being able to define</span>
+      <ul class="small">
+        <li><strong>Parameters / weights</strong> — the learned numbers (7B, 70B, …). More ≈ more capable and more expensive per token.</li>
+        <li><strong>Context window</strong> — max tokens (prompt + output) the model can attend to at once (e.g. 8K, 128K, 1M).</li>
+        <li><strong>Embedding</strong> — a vector representation of a token or a whole text; nearby vectors ≈ similar meaning. Used for retrieval (next section).</li>
+        <li><strong>Pre-training vs instruction tuning vs RLHF</strong> — learn language → learn to follow instructions → learn to prefer human-preferred answers.</li>
+        <li><strong>Hallucination</strong> — confident, fluent, wrong. It's not a bug in the usual sense; the model optimizes plausibility, not truth.</li>
+      </ul>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Treating the model as a database.</strong> It has no rows; it has a compressed, lossy statistical picture of its training data with a knowledge cutoff.</li>
+        <li><strong>Assuming determinism.</strong> Non-zero temperature, load-balanced backends, and model updates all make output drift. Pin versions; test with <code>temperature=0</code>.</li>
+        <li><strong>Ignoring tokenization.</strong> Costs, limits, and truncation are all in tokens, not characters (~4 chars/token for English, worse for code and other languages).</li>
+        <li><strong>"Just increase the context window."</strong> Cost and latency scale with tokens, and models attend unevenly — facts buried mid-context get missed ("lost in the middle").</li>
+      </ul>
+    </div>
+
+    <div id="t-llm"></div>
+  </section>
+
+
+  <!-- ================= VECTOR DBs ================= -->
+  <section class="topic" id="vectordb">
+    <h2>Vector DBs &amp; Semantic Search</h2>
+
+    <p>
+      Keyword search matches <em>strings</em>; semantic search matches
+      <em>meaning</em>. An <strong>embedding model</strong> maps a piece of text
+      to a fixed-length vector (say 768 or 1536 floats) such that texts with
+      similar meaning land near each other in that space. "How do I reset my
+      password?" and "I forgot my login credentials" share no keywords but sit
+      close as vectors. So the retrieval recipe is: embed every document chunk
+      once at ingest time, store the vectors; at query time embed the query and
+      find the nearest stored vectors. "Nearest" is usually
+      <strong>cosine similarity</strong> (angle between vectors) or dot product.
+    </p>
+    <p>
+      Doing that exactly means comparing the query against every vector — fine
+      for 10K chunks, hopeless for 50M. A <strong>vector database</strong>
+      (Pinecone, Weaviate, Qdrant, Milvus, pgvector on Postgres, Elasticsearch's
+      dense_vector) builds an <strong>approximate nearest neighbor (ANN)</strong>
+      index — most commonly <strong>HNSW</strong>, a navigable small-world graph
+      you greedily walk toward the query. You trade a small amount of recall
+      (you might miss a true top-10 result occasionally) for 100–1000× faster
+      queries. Knobs like <code>ef_search</code> / <code>ef_construction</code>
+      tune that recall-vs-latency trade-off.
+    </p>
+    <p>
+      For a backend engineer the practical questions are: <strong>Do I even need
+      a dedicated vector DB?</strong> If you're on Postgres already and have
+      &lt; ~1M chunks, <code>pgvector</code> keeps everything in one system,
+      one backup story, one transaction boundary — start there. Reach for a
+      dedicated store when you need scale, high write throughput, metadata
+      filtering at speed, or managed ops. <strong>Metadata filtering</strong>
+      matters more than people expect: you almost always want "nearest chunks
+      <em>where tenant_id = X and doc_type = 'policy' and not archived</em>",
+      and doing the filter <em>pre</em>-ANN vs <em>post</em>-ANN changes both
+      correctness and performance.
+    </p>
+
+    <p class="code-label">pgvector — the "it's just a table" option</p>
+<pre><code>CREATE EXTENSION vector;
+
+CREATE TABLE doc_chunks (
+  id          bigserial PRIMARY KEY,
+  document_id bigint NOT NULL REFERENCES documents(id),
+  tenant_id   bigint NOT NULL,
+  content     text   NOT NULL,
+  embedding   vector(1536) NOT NULL          -- from your embedding model
+);
+
+-- ANN index (HNSW). Without it, queries are exact but do a full scan.
+CREATE INDEX ON doc_chunks USING hnsw (embedding vector_cosine_ops);
+
+-- retrieval: 8 nearest chunks for this tenant, cosine distance
+SELECT id, document_id, content,
+       1 - (embedding &lt;=&gt; $1) AS similarity   -- &lt;=&gt; is cosine distance
+FROM   doc_chunks
+WHERE  tenant_id = $2                          -- metadata filter
+ORDER  BY embedding &lt;=&gt; $1
+LIMIT  8;</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        A vector DB is a <strong>nearest-neighbor index over embeddings</strong>,
+        nothing more mystical. The embedding model defines the meaning space; the
+        DB just makes "find the closest N" fast and filterable. Two hard rules:
+        (1) the <em>same</em> embedding model must embed both documents and
+        queries — mixing models gives garbage; (2) changing the embedding model
+        later means re-embedding your entire corpus.
+      </p>
+    </div>
+
+    <div class="box dryrun">
+      <span class="box-title">When it comes up in interviews vs overkill</span>
+      <p class="small">
+        <strong>Right call:</strong> search over support tickets, docs, code, or
+        product catalog descriptions where users phrase things differently than
+        the source. <strong>Overkill:</strong> exact lookups (order by ID),
+        structured filtering ("orders &gt; $100 last week" — that's SQL),
+        small fixed FAQ (just put all 20 Q&amp;As in the prompt). Often the best
+        answer is <strong>hybrid</strong>: BM25 keyword score + vector score,
+        combined (e.g. Reciprocal Rank Fusion) — keyword catches exact names,
+        IDs, and rare terms that embeddings smear together.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Different embedding models for index and query</strong> — or silently upgrading the model and not re-indexing.</li>
+        <li><strong>No metadata filtering plan</strong> — multi-tenant data with no <code>tenant_id</code> filter is a data-leak incident waiting to happen.</li>
+        <li><strong>Treating similarity score as a probability</strong> — 0.82 cosine isn't "82% relevant"; calibrate a threshold against your own data, and expect the top result to sometimes be irrelevant.</li>
+        <li><strong>Embedding huge chunks</strong> — a 4,000-token chunk produces a mushy "average" vector that matches everything weakly. See chunking under RAG.</li>
+        <li><strong>Forgetting it's eventually consistent</strong> — a freshly written doc isn't retrievable until it's embedded and indexed.</li>
+      </ul>
+    </div>
+
+    <div id="t-vectordb"></div>
+  </section>
+
+
+  <!-- ================= LLM APIs & FINE-TUNING ================= -->
+  <section class="topic" id="apis">
+    <h2>LLM APIs &amp; Fine-Tuning</h2>
+
+    <p>
+      Calling a hosted LLM is a plain HTTPS request: you send a list of
+      <strong>messages</strong> with roles (<code>system</code>,
+      <code>user</code>, <code>assistant</code>), some parameters
+      (<code>model</code>, <code>temperature</code>, <code>max_tokens</code>,
+      optionally <code>tools</code> and a response schema), and you get back
+      generated text plus a <code>usage</code> block counting input and output
+      tokens — which is exactly what you're billed on, output tokens usually
+      3–5× the price of input. You'll almost always want
+      <strong>streaming</strong> (server-sent events, token by token) so the
+      user sees output in ~300&nbsp;ms instead of waiting 8&nbsp;s for the full
+      response. The <code>system</code> message is where durable instructions,
+      persona, and rules go; it's not magic, but models are tuned to weight it
+      heavily.
+    </p>
+    <p>
+      The judgment call interviewers love: <strong>you need the model to behave
+      differently than it does out of the box — do you prompt, retrieve (RAG),
+      or fine-tune?</strong> These solve different problems and stack:
+    </p>
+
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th></th><th>Prompting / few-shot</th><th>RAG</th><th>Fine-tuning</th></tr></thead>
+      <tbody>
+        <tr><td>Fixes</td><td>Format, tone, task framing, simple rules</td><td>Missing <em>knowledge</em> — private, fresh, or too large for context</td><td>Missing <em>behavior</em> / style / implicit task skill the model can't be instructed into</td></tr>
+        <tr><td>Data needed</td><td>0–20 examples in the prompt</td><td>A corpus + retrieval pipeline</td><td>Hundreds–thousands of clean input→output pairs</td></tr>
+        <tr><td>Iteration speed</td><td>Seconds</td><td>Minutes–hours (re-index)</td><td>Hours–days per run; a real ML loop</td></tr>
+        <tr><td>Keeps facts current?</td><td>Only if you paste them in</td><td>Yes — swap the document, done</td><td>No — knowledge is frozen at training time</td></tr>
+        <tr><td>Cost shape</td><td>Longer prompts = more tokens/call</td><td>Retrieval infra + more input tokens</td><td>Training cost up front; often <em>shorter</em> prompts after</td></tr>
+        <tr><td>Main risk</td><td>Prompt gets huge and brittle</td><td>Retrieval quality is now your ceiling</td><td>Overfitting, catastrophic forgetting, stale, hard to debug</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p>
+      Default order: <strong>prompt first, add RAG when it's a knowledge gap,
+      fine-tune last</strong> and only when you have evidence prompting can't get
+      there and you have the data. Classic fine-tune wins: enforcing a rigid
+      output style across thousands of calls (and cutting the giant instruction
+      prompt), a narrow classification/extraction task where you have labeled
+      data, matching a very specific domain voice. Classic mistake: fine-tuning
+      to "teach it our product docs" — that's a retrieval problem, and the
+      fine-tuned model will still hallucinate and now can't be updated without
+      retraining. Modern fine-tuning is usually <strong>LoRA / PEFT</strong>
+      (train a small adapter, not all the weights) — cheaper, and you can host
+      many adapters over one base model.
+    </p>
+
+    <p class="code-label">A typical call with tools + structured output (shape, provider-agnostic)</p>
+<pre><code>POST /v1/chat/completions
+{
+  "model": "some-capable-model",
+  "temperature": 0,
+  "messages": [
+    { "role": "system", "content": "You are a support triage assistant. Be terse." },
+    { "role": "user",   "content": "My invoice #4491 is wrong, I was double charged." }
+  ],
+  "tools": [{
+    "type": "function",
+    "function": {
+      "name": "lookup_invoice",
+      "description": "Fetch an invoice by number",
+      "parameters": { "type": "object", "properties": { "number": { "type": "string" } },
+                      "required": ["number"] }
+    }
+  }],
+  "response_format": { "type": "json_schema", "json_schema": { /* force valid JSON out */ } }
+}
+
+// -> model responds with tool_calls: [{ name: "lookup_invoice", arguments: {"number":"4491"} }]
+// your code runs it, appends a role:"tool" message with the result, calls again -> final answer</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        <strong>Prompting changes the instructions. RAG changes the knowledge.
+        Fine-tuning changes the model.</strong> The further down that list, the
+        more it costs to build and change, and the more it can go wrong silently.
+        Reach for the cheapest lever that could plausibly work, measure, then
+        escalate.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Fine-tuning for knowledge.</strong> It bakes in facts you can't update and doesn't stop hallucination. Use RAG.</li>
+        <li><strong>No eval set.</strong> You cannot tell if a prompt change or a fine-tune helped without a held-out set of cases and a scoring method. Build the eval before the fix.</li>
+        <li><strong>Not pinning the model version</strong> — a provider's "latest" pointer moves and your carefully-tuned prompt regresses overnight.</li>
+        <li><strong>Ignoring token budgets in the response</strong> — no <code>max_tokens</code> cap means a runaway generation and a surprise bill; too low means truncated JSON.</li>
+        <li><strong>Sending PII to a third-party API without checking the data-processing terms / retention.</strong> This is a real compliance question in interviews now.</li>
+      </ul>
+    </div>
+
+    <div id="t-apis"></div>
+  </section>
+
+
+  <!-- ================= RAG ================= -->
+  <section class="topic" id="rag">
+    <h2>RAG Systems</h2>
+
+    <p>
+      <strong>Retrieval-Augmented Generation</strong>: before answering, fetch
+      relevant text from your own data and put it in the prompt, then ask the
+      model to answer <em>using only that</em>. It's how you get an LLM to answer
+      questions about private, large, or fresh information without fine-tuning
+      and with a citation trail. Architecturally it's two pipelines:
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">RAG architecture</span>
+<pre><code>INGEST (offline, on document change)
+  source docs ─▶ parse/clean ─▶ chunk ─▶ embed each chunk ─▶ upsert {vector, text, metadata}
+
+QUERY (per request)
+  user question
+     ├─▶ (optional) rewrite / expand the query
+     ├─▶ embed ─▶ vector search (+ keyword search) ─▶ top-K chunks
+     ├─▶ (optional) rerank K chunks with a cross-encoder ─▶ top-N
+     ├─▶ build prompt:  system rules + N chunks (with source IDs) + question
+     └─▶ LLM ─▶ answer + citations ─▶ (optional) verify answer is grounded in chunks</code></pre>
+    </div>
+
+    <p>
+      <strong>Chunking is the highest-leverage design decision</strong> and it's
+      all trade-offs. Chunks that are too <em>large</em> dilute the embedding
+      (one vector trying to represent many ideas) and waste context tokens on
+      irrelevant text; chunks too <em>small</em> lose the context needed to be
+      understood ("It must be renewed every 90 days" — <em>what</em> must?) and
+      fragment answers across many retrievals. Fixed-size chunking (e.g. 500
+      tokens, 50-token overlap) is the simple baseline; <strong>structure-aware
+      chunking</strong> (split on headings, code blocks, table rows) is usually
+      better because it respects natural boundaries. The <strong>overlap</strong>
+      exists so a sentence split across a boundary still appears whole somewhere.
+      A common upgrade: embed small chunks for precise matching but retrieve the
+      <em>surrounding parent section</em> for context ("small-to-big").
+    </p>
+    <p>
+      <strong>Retrieval failure modes</strong> — most "the LLM is dumb"
+      complaints are actually retrieval bugs:
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Failure</th><th>Looks like</th><th>Usual cause / fix</th></tr></thead>
+      <tbody>
+        <tr><td>Missing content</td><td>"I don't have information on that" for something that <em>is</em> in the docs</td><td>Bad chunking, doc never ingested, query/doc vocabulary mismatch → add keyword/hybrid search, query rewriting</td></tr>
+        <tr><td>Retrieved but not in top-K</td><td>Right doc exists, wrong ones ranked above it</td><td>K too small, no reranker → add a cross-encoder reranker, raise K then rerank down</td></tr>
+        <tr><td>Retrieved but ignored</td><td>Answer contradicts a chunk that was in the prompt</td><td>Too many chunks / lost-in-the-middle, weak prompt → fewer, better chunks; instruct "answer only from context"</td></tr>
+        <tr><td>Wrong extraction</td><td>Chunk is right, answer misreads it</td><td>Conflicting chunks, table flattened to mush → dedupe, better parsing, ask for quotes</td></tr>
+        <tr><td>Stale answer</td><td>Cites an old policy</td><td>Ingest lag, no versioning, old + new both retrieved → recency filter, delete superseded docs</td></tr>
+        <tr><td>No-answer not handled</td><td>Confidently makes something up when nothing relevant was found</td><td>No similarity floor → if best score &lt; threshold, return "not found" instead of calling the LLM</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="code-label">Query pipeline, sketched</p>
+<pre><code>def answer(question, tenant_id):
+    chunks = hybrid_search(question, tenant_id, k=20)      # vector + BM25, fused
+    if not chunks or chunks[0].score &lt; MIN_SCORE:
+        return NoAnswer("Nothing relevant in the knowledge base.")
+
+    chunks = rerank(question, chunks)[:6]                  # cross-encoder, keep best 6
+    context = "\n\n".join(f"[{c.doc_id}#{c.idx}] {c.text}" for c in chunks)
+
+    prompt = [
+      {"role": "system", "content":
+        "Answer ONLY from the context. Cite sources as [doc#chunk]. "
+        "If the context doesn't contain the answer, say so."},
+      {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
+    ]
+    ans = llm(prompt, temperature=0)
+    return ans  # optionally: a second call to check every claim is supported by context</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        RAG turns "what does the model know?" into "what can my search find and
+        fit in the context?" — so <strong>your retrieval quality is the ceiling
+        on your answer quality</strong>. A better model can't fix a chunk that
+        was never retrieved. Debug RAG by first checking <em>what got
+        retrieved</em>, not what the LLM said.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>No evaluation of retrieval separately from generation.</strong> Track retrieval recall/precision (did the right chunk come back?) apart from answer quality.</li>
+        <li><strong>One giant K.</strong> Stuffing 30 chunks in raises cost, latency, and "lost in the middle" — retrieve wide, rerank, keep few.</li>
+        <li><strong>Ignoring document structure</strong> — PDFs with tables/multi-column layouts parsed to flat text destroy meaning before you even chunk.</li>
+        <li><strong>No "I don't know" path</strong> — a similarity floor and a grounded-ness check are what keep RAG honest.</li>
+        <li><strong>Never re-indexing after an embedding model change</strong>, or mixing chunk versions in the same index.</li>
+        <li><strong>Putting access control only in the prompt</strong> ("don't show HR docs to non-HR") — filter at the query, not with a plea to the model.</li>
+      </ul>
+    </div>
+
+    <div id="t-rag"></div>
+  </section>
+
+
+  <!-- ================= AGENTIC AI ================= -->
+  <section class="topic" id="agents">
+    <h2>Agentic AI Workflows</h2>
+
+    <p>
+      An <strong>agent</strong> is an LLM in a loop with tools. Instead of one
+      prompt → one answer, the model is given a goal and a set of
+      <strong>tools</strong> (functions it can call — search, DB query, HTTP
+      request, code execution), and on each turn it decides: call a tool, or
+      finish. Your code executes the tool, feeds the result back, and the model
+      goes again. This is the <strong>ReAct</strong> pattern —
+      reason, act, observe, repeat — and it's what lets an LLM do multi-step
+      work: "find the customer's last order, check if it shipped, draft a reply."
+    </p>
+    <p>
+      The design spectrum, cheapest and most reliable first:
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Pattern</th><th>What it is</th><th>Use when</th></tr></thead>
+      <tbody>
+        <tr><td>Single call</td><td>One prompt, one response</td><td>The task fits in one shot. Most tasks.</td></tr>
+        <tr><td>Chain / pipeline</td><td>Fixed sequence of calls, output → input (extract → classify → draft)</td><td>You know the steps ahead of time</td></tr>
+        <tr><td>Router</td><td>One call picks a branch; each branch is its own prompt/chain</td><td>Distinct request types needing different handling</td></tr>
+        <tr><td>Tool-use loop (agent)</td><td>Model chooses tools and when to stop</td><td>Steps depend on intermediate results; genuinely dynamic</td></tr>
+        <tr><td>Multi-agent</td><td>Specialized agents (planner, researcher, critic) coordinate</td><td>Rarely worth it — coordination overhead is real; try one good agent first</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      The engineering hard parts are not the prompt. They are: <strong>loop
+      control</strong> (max iterations, cost/time budget, detecting "stuck in a
+      loop"), <strong>error handling</strong> (a tool 500s — retry? tell the
+      model? abort?), <strong>state</strong> (what's carried between turns; the
+      context window fills up fast), <strong>determinism &amp; testing</strong>
+      (the path varies run to run), and <strong>safety</strong> — an agent with
+      a <code>delete_file</code> or <code>send_email</code> tool and a
+      prompt-injected document is a genuine hazard. Give agents the narrowest
+      tools that work, make destructive actions require confirmation, and log
+      every tool call.
+    </p>
+
+    <p class="code-label">The agent loop, unrolled</p>
+<pre><code>messages = [system_prompt, user_goal]
+for step in range(MAX_STEPS):                 # hard cap — non-negotiable
+    resp = llm(messages, tools=TOOLS, temperature=0)
+    if resp.tool_calls:
+        for call in resp.tool_calls:
+            try:
+                result = TOOLS[call.name](**call.args)   # you run it, with your own authz checks
+            except Exception as e:
+                result = {"error": str(e)}               # let the model react, don't crash the loop
+            messages.append(tool_result_message(call.id, result))
+    else:
+        return resp.content                   # model decided it's done
+    if cost_so_far &gt; BUDGET or time_so_far &gt; DEADLINE:
+        return "Stopping: budget exceeded. Partial progress: ..."
+return "Stopping: hit step limit."</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        An agent is a <code>while</code> loop where an LLM picks the next
+        function call. That's powerful and inherently less predictable than a
+        fixed pipeline. <strong>Prefer the most constrained pattern that solves
+        the task</strong> — a chain you can test beats an agent you can only hope
+        about. Add autonomy only where the steps truly can't be known in advance.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>No iteration cap or budget</strong> — one bad run burns $40 and 5 minutes.</li>
+        <li><strong>Too many tools</strong> — 30 tools in the prompt and the model picks wrong; group them or use a router.</li>
+        <li><strong>Broad, powerful tools</strong> — <code>run_sql(query)</code> instead of <code>get_order(id)</code>. Least privilege applies to tools.</li>
+        <li><strong>Trusting tool output / retrieved docs as instructions</strong> — prompt injection. Keep a boundary: data is data, only the system prompt gives orders.</li>
+        <li><strong>Building multi-agent systems first</strong> — the demo impresses, the reliability doesn't. Start with one agent.</li>
+        <li><strong>No observability</strong> — you can't debug an agent without a trace of every prompt, tool call, and result.</li>
+      </ul>
+    </div>
+
+    <div id="t-agents"></div>
+  </section>
+
+
+  <!-- ================= LANGCHAIN / LANGGRAPH ================= -->
+  <section class="topic" id="langchain">
+    <h2>LangChain &amp; LangGraph Basics</h2>
+
+    <p>
+      <strong>LangChain</strong> is a toolkit that wraps the common pieces —
+      model clients, prompt templates, output parsers, vector-store connectors,
+      document loaders, retrievers, tool/agent scaffolding — behind uniform
+      interfaces, so swapping an OpenAI model for an Anthropic one, or Pinecone
+      for pgvector, is a config change. Its composition style is
+      <strong>LCEL</strong> (LangChain Expression Language): you pipe components
+      with <code>|</code>, and the resulting chain gets streaming, batching, and
+      async for free. It's genuinely useful for getting a RAG prototype running
+      in an afternoon; the criticism is that the abstractions can obscure what
+      prompt is actually being sent, so know how to drop to the raw SDK when
+      debugging.
+    </p>
+    <p>
+      <strong>LangGraph</strong> is the same team's answer to "agents need real
+      control flow." You model the workflow as a <strong>graph</strong>: nodes
+      are functions (call the model, run a tool, check a condition), edges are
+      transitions, and a shared <strong>state</strong> object is threaded
+      through. Conditional edges let you branch ("if the model asked for a tool,
+      go to the tool node; else go to END"), and cycles are first-class (that's
+      the agent loop). It adds <strong>persistence / checkpointing</strong> (pause
+      a run, resume it, time-travel), <strong>human-in-the-loop</strong>
+      (interrupt before a risky node for approval), and a clear place to enforce
+      the caps and budgets from the last section. Think of it as a state machine
+      for LLM workflows.
+    </p>
+
+    <p class="code-label">LCEL RAG chain (LangChain) — the whole thing</p>
+<pre><code>chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt            # ChatPromptTemplate with {context} and {question}
+    | model             # ChatOpenAI / ChatAnthropic / ...
+    | StrOutputParser()
+)
+chain.invoke("What's our refund window?")     # also .stream(), .batch(), .ainvoke()</code></pre>
+
+    <p class="code-label">LangGraph — an agent as a graph</p>
+<pre><code>graph = StateGraph(AgentState)                 # state = {messages: [...], steps: int}
+graph.add_node("model", call_model)
+graph.add_node("tools", run_tools)
+graph.set_entry_point("model")
+graph.add_conditional_edges("model", lambda s:
+    "tools" if s["messages"][-1].tool_calls else END)
+graph.add_edge("tools", "model")              # loop back
+app = graph.compile(checkpointer=SqliteSaver(...))   # persistence + resumability</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        LangChain = batteries-included wiring for the common LLM-app pieces.
+        LangGraph = when your app has branches, loops, retries, pauses, and
+        approvals, model it explicitly as a graph instead of burying control
+        flow in prompt logic. Neither is required — a plain HTTP client and a
+        <code>for</code> loop is a legitimate choice, especially for one
+        well-defined workflow.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Cargo-culting LangChain for a single simple call</strong> — you've added a dependency and a layer of indirection for a 10-line request.</li>
+        <li><strong>Not logging the rendered prompt</strong> — when a chain misbehaves, the first question is "what exactly did we send?" Turn on tracing (LangSmith or callbacks).</li>
+        <li><strong>Version churn</strong> — the library moves fast; pin versions and read the migration notes.</li>
+        <li><strong>Using LangGraph state as a dumping ground</strong> — unbounded message history blows the context window; prune or summarize.</li>
+      </ul>
+    </div>
+
+    <div id="t-langchain"></div>
+  </section>
+
+
+  <!-- ================= PROMPT ENGINEERING ================= -->
+  <section class="topic" id="prompting">
+    <h2>Prompt Engineering Techniques</h2>
+
+    <p>
+      Prompt engineering is specifying the task precisely enough that a
+      next-token predictor produces what you want, reliably, across inputs. For
+      production the goal isn't a clever one-off prompt — it's a
+      <strong>robust template</strong> that holds up over thousands of varied
+      inputs and is versioned like code.
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Technique</th><th>What / why</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Role + explicit task</strong></td><td>System message sets persona and hard rules; be concrete about the exact output wanted ("Return a JSON array of {name, amount}").</td></tr>
+        <tr><td><strong>Few-shot examples</strong></td><td>2–5 input→output pairs. The single most effective lever for format and edge-case handling. Cover the tricky cases, not just the happy path.</td></tr>
+        <tr><td><strong>Chain-of-thought</strong></td><td>"Think step by step" / "reason before answering" — improves multi-step reasoning and math. For structured output, have it reason in a <code>scratchpad</code> field, then a <code>final</code> field.</td></tr>
+        <tr><td><strong>Structured output</strong></td><td>Ask for JSON and use the API's schema/JSON-mode to enforce it. Parse and validate; retry on failure.</td></tr>
+        <tr><td><strong>Delimiters</strong></td><td>Wrap user content in <code>&lt;doc&gt;...&lt;/doc&gt;</code> or triple backticks so the model (and you) can tell instructions from data — also a first line of defense against injection.</td></tr>
+        <tr><td><strong>Give an out</strong></td><td>"If you're not sure, say 'I don't know'." Reduces confident fabrication.</td></tr>
+        <tr><td><strong>Decomposition</strong></td><td>Split a complex ask into chained smaller prompts — each is testable and cheaper to fix.</td></tr>
+        <tr><td><strong>Prefilling / output priming</strong></td><td>Start the assistant turn with <code>{"</code> or <code>Here is the summary:</code> to lock format.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      Structure that works well: <em>role → task → rules/constraints → examples →
+      the input (delimited) → output format reminder</em>. Put the most important
+      instruction near the start <em>and</em> restate the output format at the
+      end (models weight both ends). Iterate against a fixed set of test inputs,
+      not vibes — change one thing, re-run the set, compare.
+    </p>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        The model does what's <em>statistically implied</em> by your prompt, not
+        what you meant. Structure, examples, and explicit constraints narrow the
+        distribution toward the answer you want. If it's getting something wrong,
+        show it a correct example of exactly that case — that beats another
+        paragraph of instructions almost every time.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Negation-only instructions</strong> ("don't be verbose", "never mention X") — weak. Say what to do instead.</li>
+        <li><strong>One mega-prompt doing five jobs</strong> — decompose; each piece becomes testable.</li>
+        <li><strong>No delimiters around user input</strong> — the model can't tell your instructions from the user's text, and neither can an attacker's payload.</li>
+        <li><strong>Tuning on one example</strong> — you fix that case and silently break three others. Keep a regression set.</li>
+        <li><strong>Prompts as string literals scattered in code</strong> — version them, review changes, and log which version ran.</li>
+        <li><strong>Asking for JSON without schema enforcement or a retry path</strong> — you'll get ```json fences, trailing prose, and the occasional invalid doc.</li>
+      </ul>
+    </div>
+
+    <div id="t-prompting"></div>
+  </section>
+
+
+  <!-- ================= MCP ================= -->
+  <section class="topic" id="mcp">
+    <h2>MCP — Model Context Protocol</h2>
+
+    <p>
+      <strong>MCP</strong> is an open protocol (introduced by Anthropic, now
+      broadly adopted) that standardizes how an LLM application connects to
+      external tools and data. The problem it solves: every AI app was
+      re-implementing bespoke integrations for GitHub, Slack, Postgres, the
+      filesystem, Jira… an <em>N×M</em> mess of clients and connectors. MCP makes
+      it <em>N+M</em> — a tool provider writes one <strong>MCP server</strong>,
+      and any <strong>MCP client</strong> (an IDE assistant, a chat app, your own
+      agent) can use it. It's deliberately analogous to the Language Server
+      Protocol, which did the same for editors and language tooling.
+    </p>
+    <p>
+      The architecture is client–server over JSON-RPC 2.0, either over stdio
+      (local subprocess) or HTTP/SSE (remote). An MCP server exposes three
+      things: <strong>tools</strong> (functions the model can call —
+      <code>create_issue</code>, <code>run_query</code>),
+      <strong>resources</strong> (readable data the client can pull into context
+      — a file, a table schema, a wiki page), and <strong>prompts</strong>
+      (reusable templated instructions the user can invoke). The host app
+      discovers what a server offers at connect time and presents the tools to
+      the model. For a backend engineer, "write an MCP server" is essentially
+      "write a small adapter that exposes your internal API as a set of typed
+      tool definitions" — plus auth, and being careful about what you expose.
+    </p>
+
+    <p class="code-label">An MCP server exposing one tool (TypeScript SDK, abridged)</p>
+<pre><code>const server = new McpServer({ name: "orders", version: "1.0.0" });
+
+server.tool(
+  "get_order",
+  "Fetch an order by its ID",
+  { orderId: z.string() },
+  async ({ orderId }) =&gt; {
+    const order = await db.orders.findById(orderId);      // your existing service
+    if (!order) return { content: [{ type: "text", text: "Not found" }], isError: true };
+    return { content: [{ type: "text", text: JSON.stringify(order) }] };
+  }
+);
+
+await server.connect(new StdioServerTransport());        // or an HTTP transport</code></pre>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        MCP is <strong>a USB-C port for LLM tools</strong>: one standard socket
+        so integrations are built once and reused everywhere, instead of every
+        app inventing its own plug. You'll either <em>consume</em> MCP servers
+        (point your agent at an existing one) or <em>publish</em> one (wrap your
+        service so assistants can use it) — usually the former.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes / things to raise</span>
+      <ul>
+        <li><strong>Over-exposing.</strong> An MCP server is an API surface reachable by an LLM that may be steered by untrusted input — expose narrow, least-privilege tools, not <code>execute_sql</code>.</li>
+        <li><strong>Auth as an afterthought</strong> — remote MCP servers need real authn/authz (OAuth is the direction); a tool call should run with the user's permissions, not the server's.</li>
+        <li><strong>Prompt injection via resources</strong> — content pulled in as a "resource" can contain instructions; the client must keep the data/instruction boundary.</li>
+        <li><strong>Assuming it replaces your API layer</strong> — it's an adapter for AI clients, sitting in front of the same services your normal API uses.</li>
+        <li><strong>No rate limiting / auditing</strong> on tool calls — an agent can hammer a tool in a loop.</li>
+      </ul>
+    </div>
+
+    <div id="t-mcp"></div>
+  </section>
+
+
+  <!-- ================= PRODUCTION TRADE-OFFS ================= -->
+  <section class="topic" id="prod">
+    <h2>Production Trade-offs — Cost, Latency, Accuracy, Safety</h2>
+
+    <p>
+      This is where backend-engineer interviews for AI-adjacent roles spend the
+      most time, because it's the part that's actually engineering. The four
+      concerns trade against each other and you're expected to reason about the
+      dials.
+    </p>
+
+    <h3>Cost</h3>
+    <p>
+      You pay per token, input + output, and output is the expensive half.
+      Levers: <strong>pick the smallest model that passes your eval</strong>
+      (route easy requests to a cheap model, hard ones to a strong one —
+      "model cascade"); <strong>trim the prompt</strong> (few-shot examples and
+      giant system prompts add up over millions of calls — this is a real reason
+      to fine-tune); <strong>cache</strong> — exact-match response cache for
+      repeated queries, semantic cache for near-duplicates, and
+      <strong>prompt caching</strong> (providers discount the unchanged prefix of
+      your prompt — put the static system prompt and few-shot block first);
+      <strong>cap <code>max_tokens</code></strong>; <strong>batch</strong>
+      offline work at a discount. Always log per-request token counts and set
+      per-user / per-tenant budgets and alerts.
+    </p>
+
+    <h3>Latency</h3>
+    <p>
+      A strong model's first token can be 500&nbsp;ms–2&nbsp;s; full responses
+      several seconds. <strong>Stream</strong> so perceived latency is
+      time-to-first-token, not total. Every extra chain step, tool call, or
+      reranker is serial latency — parallelize independent retrievals, and use a
+      small fast model for cheap sub-steps (query rewriting, routing,
+      classification). Long context = slower <em>and</em> pricier, so retrieve
+      few good chunks rather than many. Set aggressive timeouts and have a
+      fallback (cached answer, cheaper model, "try again"). Speculative /
+      predicted outputs and shorter outputs also help.
+    </p>
+
+    <h3>Accuracy</h3>
+    <p>
+      You cannot manage what you don't measure. Build an <strong>eval set</strong>
+      of real inputs with expected outputs or a rubric; score with exact-match,
+      or an <strong>LLM-as-judge</strong> for open-ended answers (cheaper than
+      humans, needs its own validation), plus task metrics (retrieval recall,
+      JSON-valid rate, citation-correct rate). Run it in CI on every prompt or
+      model change. In production, sample and review, collect thumbs-up/down,
+      watch for drift. Reduce errors with grounding (RAG + "answer only from
+      context"), self-check passes, structured output + validation, and
+      constraining the task. Accept that ~100% is not on the table — design the
+      product to degrade gracefully (show sources, allow correction, keep a human
+      in the loop for high-stakes actions).
+    </p>
+
+    <h3>Safety</h3>
+    <p>
+      Distinct risks, distinct mitigations: <strong>prompt injection</strong>
+      (untrusted text — a retrieved doc, a web page, a tool result — carrying
+      instructions the model follows) → keep the data/instruction boundary,
+      least-privilege tools, confirm destructive actions, don't feed raw
+      untrusted output into another privileged call; <strong>jailbreaks / harmful
+      content</strong> → provider safety filters plus your own input/output
+      moderation classifier; <strong>PII &amp; data leakage</strong> → redact
+      before sending, check the provider's retention/training terms, enforce
+      tenant isolation in retrieval (filter, don't ask); <strong>hallucination in
+      high-stakes paths</strong> → grounding, citations, human review;
+      <strong>abuse &amp; cost-DoS</strong> → rate limits, budgets, auth. Log
+      prompts, responses, and tool calls for audit.
+    </p>
+
+    <div class="box dryrun">
+      <span class="box-title">Worked trade-off: a customer-support answer bot</span>
+      <p class="small">
+        <strong>Requirement:</strong> answer from the help center, &lt; 3&nbsp;s
+        perceived, cheap at 100K/day, must not invent policy.<br>
+        <strong>Design:</strong> hybrid retrieval over chunked help docs →
+        rerank to 5 chunks → <em>small</em> model with "answer only from context,
+        cite, else escalate" → stream. Similarity floor routes no-match straight
+        to a human. Prompt-cache the system + format block. Nightly eval set of
+        200 real tickets scored by an LLM judge + citation check; block deploys
+        on regression.<br>
+        <strong>Why:</strong> RAG (not fine-tune) because policies change weekly;
+        small model because retrieval does the heavy lifting and eval passes;
+        streaming for the latency budget; the floor + escalation is the safety
+        net against confident wrong answers.
+      </p>
+    </div>
+
+    <div class="box intuition">
+      <span class="box-title">Core intuition</span>
+      <p>
+        There's no "best" config — there's the cheapest, fastest setup that
+        <em>passes your eval and your safety bar</em>. So the first move on any
+        LLM feature is: define the eval and the failure budget. Everything after
+        is turning dials (model size, K, context length, caching, routing)
+        against that fixed target.
+      </p>
+    </div>
+
+    <div class="box mistakes">
+      <span class="box-title">Common mistakes</span>
+      <ul>
+        <li><strong>Shipping without an eval set</strong> — every later change is a guess, and regressions are invisible.</li>
+        <li><strong>Biggest model by default</strong> — often 5–20× the cost for accuracy your task doesn't need; benchmark the small one.</li>
+        <li><strong>No streaming</strong> — users stare at a spinner for 6 seconds.</li>
+        <li><strong>No cost guardrails</strong> — no <code>max_tokens</code>, no per-tenant budget, no alert; the bill teaches you.</li>
+        <li><strong>Access control in the prompt</strong> instead of in the retrieval query / tool authz.</li>
+        <li><strong>Treating prompt injection as theoretical</strong> — any agent with tools + untrusted input has a real attack surface.</li>
+        <li><strong>No fallback path</strong> when the provider is slow or down.</li>
+      </ul>
+    </div>
+
+    <div id="t-prod"></div>
+  </section>
+
+  <p class="backlink"><a href="index.html">← Back to home &amp; dashboard</a> &nbsp;·&nbsp; <a href="fullstack-js.html">← Full-Stack JS</a></p>
+
+  <footer class="foot">
+    <p>Phase 4 of the <a href="roadmap.html">8-month roadmap</a>. Next: <a href="electives.html">Electives</a> — advanced DSA, system-design case studies, networks, OS, and optional mobile.</p>
+  </footer>
+</main>
+
+<script src="content-index.js"></script>
+<script src="tracker.js"></script>
+<script src="search.js"></script>
+<script>
+Tracker.registerTopics("genai", [
+  {
+    group: "LLMs & Transformers",
+    mount: "#t-llm",
+    items: [
+      "Next-token prediction & autoregressive decoding",
+      "Self-attention: query/key/value and what it does",
+      "Why transformers beat RNNs (parallelism, long-range); O(n²) cost & KV cache",
+      "Tokens, context window, temperature/top-p, knowledge cutoff",
+      "Hallucination: why it happens, why it's not just a bug"
+    ]
+  },
+  {
+    group: "Vector DBs & Semantic Search",
+    mount: "#t-vectordb",
+    items: [
+      "Embeddings & cosine similarity for meaning-based match",
+      "ANN indexes (HNSW) & the recall-vs-latency trade-off",
+      "pgvector vs dedicated vector DB — when to switch",
+      "Metadata filtering & multi-tenant isolation",
+      "Hybrid (keyword + vector) search & why it helps"
+    ]
+  },
+  {
+    group: "LLM APIs & Fine-Tuning",
+    mount: "#t-apis",
+    items: [
+      "Messages/roles, streaming, token-based billing",
+      "Tool calling & structured (JSON-schema) output",
+      "Prompting vs RAG vs fine-tuning — what each fixes",
+      "When fine-tuning is right (style/format/narrow task) vs wrong (knowledge)",
+      "LoRA/PEFT; pin model versions; PII & data terms"
+    ]
+  },
+  {
+    group: "RAG Systems",
+    mount: "#t-rag",
+    items: [
+      "Ingest vs query pipeline architecture",
+      "Chunking trade-offs: size, overlap, structure-aware, small-to-big",
+      "Retrieval failure modes & how to diagnose each",
+      "Rerankers; retrieve-wide-then-narrow",
+      "Similarity floor & 'I don't know' path; grounded-ness check",
+      "Access control at the query, not in the prompt"
+    ]
+  },
+  {
+    group: "Agentic AI Workflows",
+    mount: "#t-agents",
+    items: [
+      "Agent = LLM in a loop with tools; the ReAct pattern",
+      "Pattern spectrum: single call → chain → router → agent → multi-agent",
+      "Loop control: max steps, cost/time budget, stuck detection",
+      "Tool error handling & state/context management",
+      "Least-privilege tools; confirm destructive actions; trace everything"
+    ]
+  },
+  {
+    group: "LangChain & LangGraph",
+    mount: "#t-langchain",
+    items: [
+      "LangChain: uniform wrappers; LCEL pipe composition",
+      "LangGraph: workflow as a state graph (nodes/edges/state)",
+      "Conditional edges & cycles = the agent loop",
+      "Checkpointing, resumability, human-in-the-loop",
+      "When a plain SDK + for-loop is the better choice"
+    ]
+  },
+  {
+    group: "Prompt Engineering",
+    mount: "#t-prompting",
+    items: [
+      "Role + explicit task + constraints + delimited input + format reminder",
+      "Few-shot examples as the top lever; cover edge cases",
+      "Chain-of-thought & scratchpad-then-answer",
+      "Structured output with schema enforcement + retry",
+      "Give an 'I don't know' out; decomposition over mega-prompts",
+      "Version prompts like code; iterate against a regression set"
+    ]
+  },
+  {
+    group: "MCP",
+    mount: "#t-mcp",
+    items: [
+      "What MCP is & the N×M → N+M integration problem",
+      "Client/server over JSON-RPC; stdio vs HTTP transport",
+      "Tools, resources, and prompts a server exposes",
+      "Writing a server = typed adapter over your internal API",
+      "Least-privilege exposure, auth, injection via resources"
+    ]
+  },
+  {
+    group: "Production Trade-offs",
+    mount: "#t-prod",
+    items: [
+      "Cost: model cascade, prompt trimming, caching (incl. prompt caching), budgets",
+      "Latency: streaming/TTFT, parallel steps, small models for sub-tasks",
+      "Accuracy: eval sets, LLM-as-judge, CI on prompt/model changes",
+      "Safety: prompt injection, PII/leakage, jailbreaks, cost-DoS — and mitigations",
+      "Design to degrade gracefully; define eval + failure budget first"
+    ]
+  }
+], { pageTitle: "GenAI: For Backend Engineers Building on LLMs" });
+
+/* Page-level roll-up banner */
+(function () {
+  var el = document.getElementById("page-progress");
+  function refresh() {
+    var c = Tracker.countPage("genai");
+    if (c.total === 0) return;
+    el.style.display = "";
+    var p = Math.round((c.done / c.total) * 100);
+    document.getElementById("pp-count").textContent = c.done + " / " + c.total + "  ·  " + p + "%";
+    document.getElementById("pp-fill").style.width = p + "%";
+  }
+  refresh();
+  document.addEventListener("tracker:update", refresh);
+})();
+</script>
+</body>
+</html>

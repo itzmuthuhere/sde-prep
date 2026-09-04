@@ -1,0 +1,11 @@
+{
+  "name": "sde-prep",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-contained static study site for Java backend SDE interview prep",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node -e \"require('http').createServer((q,s)=>{const p=require('path').join(process.cwd(),q.url==='/'?'index.html':q.url.split('?')[0]);require('fs').readFile(p,(e,d)=>{if(e){s.statusCode=404;return s.end('404')}const t={'.html':'text/html','.css':'text/css','.js':'text/javascript'}[require('path').extname(p)]||'text/plain';s.setHeader('content-type',t);s.end(d)})}).listen(5173,()=>console.log('http://localhost:5173'))\""
+  },
+  "license": "MIT"
+}
