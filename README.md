@@ -1,5 +1,7 @@
 # sde-prep
 
+**Live:** https://sde-prep-six.vercel.app — auto-deploys from `main`.
+
 A self-contained study site for a Java-backend SDE interview prep run — one
 roadmap, one page per subject, and a checklist that remembers what you've
 finished. Everything is static HTML/CSS/JS; your progress lives in
