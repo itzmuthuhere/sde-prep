@@ -8,7 +8,10 @@
 
    Data is expected to come from four other features, each of
    which OWNS one localStorage key and writes to it independently.
-   This file defines that contract; it does not populate it.
+   This file defines that contract but does not populate it — the
+   full schema lives in README.md ("Data contracts (for future
+   prompts)"), which future prompts must read before writing to
+   any of these keys.
 
      - Prompt 28 (quiz engine)          -> sdeprep:v1:quiz:results
      - Prompt 29 (review queue)         -> sdeprep:v1:review:queue
@@ -18,39 +21,6 @@
    All four keys live under the same "sdeprep:v1:" namespace
    tracker.js already uses, so Tracker.resetAll()-style housekeeping
    and devtools inspection stay in one place.
-
-   ---------------- Data contract ----------------
-
-   1) sdeprep:v1:quiz:results  — object keyed by quizId
-      { [quizId]: {
-          title:  string,            // "Dynamic Programming Quiz"
-          topic:  string,            // canonical label, used to merge
-                                      // with mock-test / interview signals
-          pageId: string,            // matches an id in index.html PAGES
-          anchor: string,            // in-page anchor on that page
-          attempts: [ { score: number, total: number, ts: number } ]
-                                      // last element = most recent attempt
-      } }
-
-   2) sdeprep:v1:review:queue  — object keyed by cardId
-      { [cardId]: {
-          label:  string,            // topic/pattern label
-          pageId: string,
-          anchor: string,
-          history: Array<"shaky" | "got-it">   // oldest first
-      } }
-
-   3) sdeprep:v1:mocktest:results  — array, one entry per mock test sat
-      [ { id: string, title: string, ts: number,
-          topics: [ { topic: string, score: number, total: number,
-                      pageId: string, anchor: string } ]
-      } ]
-
-   4) sdeprep:v1:interview:scorecards  — array, one entry per AI interview
-      [ { id: string, title: string, ts: number,
-          criteria: [ { skill: string, score: number, max: number,
-                        pageId: string, anchor: string } ]
-      } ]
 
    Every reader below tolerates a missing/malformed key, so the widget
    just shows its empty state until those four features exist.

@@ -43,6 +43,69 @@ with no build step.
 - **Dark / light theme** — toggled in the top bar, persisted per browser.
 - **Responsive** — the nav collapses behind a hamburger below 900px.
 
+## Data contracts (for future prompts)
+
+`index.html`'s **"Focus This Week"** widget (`focus.js`) reads localStorage
+data it does not write. That data is expected to come from four other
+features, each of which **owns one localStorage key** and must write to it
+independently:
+
+| Feature | Prompt | localStorage key |
+|---|---|---|
+| Quiz engine | 28 | `sdeprep:v1:quiz:results` |
+| Review queue | 29 | `sdeprep:v1:review:queue` |
+| Mock tests | 30 | `sdeprep:v1:mocktest:results` |
+| AI interview scorer | 36 | `sdeprep:v1:interview:scorecards` |
+
+All four keys live under the same `sdeprep:v1:` namespace `tracker.js`
+already uses. `focus.js` tolerates a missing or malformed key, so the widget
+just shows its empty state until a feature below actually exists — but when
+you build one of them, write to the exact shape here or the widget won't
+pick it up.
+
+**1) `sdeprep:v1:quiz:results`** — object keyed by `quizId`
+
+```js
+{ [quizId]: {
+    title:  string,            // "Dynamic Programming Quiz"
+    topic:  string,            // canonical label, used to merge with
+                                // mock-test / interview signals
+    pageId: string,            // matches an id in index.html's PAGES array
+    anchor: string,            // in-page anchor on that page
+    attempts: [ { score: number, total: number, ts: number } ]
+                                // last element = most recent attempt
+} }
+```
+
+**2) `sdeprep:v1:review:queue`** — object keyed by `cardId`
+
+```js
+{ [cardId]: {
+    label:  string,            // topic/pattern label
+    pageId: string,
+    anchor: string,
+    history: Array<"shaky" | "got-it">   // oldest first
+} }
+```
+
+**3) `sdeprep:v1:mocktest:results`** — array, one entry per mock test sat
+
+```js
+[ { id: string, title: string, ts: number,
+    topics: [ { topic: string, score: number, total: number,
+                pageId: string, anchor: string } ]
+} ]
+```
+
+**4) `sdeprep:v1:interview:scorecards`** — array, one entry per AI interview
+
+```js
+[ { id: string, title: string, ts: number,
+    criteria: [ { skill: string, score: number, max: number,
+                  pageId: string, anchor: string } ]
+} ]
+```
+
 ## Deploy (Vercel)
 
 No environment variables are required. `vercel.json` sets
