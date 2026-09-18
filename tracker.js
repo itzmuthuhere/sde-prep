@@ -222,8 +222,12 @@
 
       input.addEventListener("change", function () {
         var checks = getChecks(pageId);
-        if (input.checked) checks[itemSlug] = true;
-        else delete checks[itemSlug];
+        if (input.checked) {
+          checks[itemSlug] = true;
+          if (global.Activity) global.Activity.log("checklist");
+        } else {
+          delete checks[itemSlug];
+        }
         setChecks(pageId, checks);
         refresh();
         fireUpdate();

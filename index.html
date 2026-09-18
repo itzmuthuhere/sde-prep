@@ -39,6 +39,17 @@
     <p><a href="roadmap.html">Open the roadmap →</a></p>
   </section>
 
+  <!-- ACTIVITY STREAK + HEATMAP -->
+  <section class="streak-section">
+    <span class="box-title" style="color:var(--accent)">🔥 Consistency</span>
+    <p class="muted small" style="margin-top:.3rem">
+      Content doesn't finish itself on a deadline — showing up daily does. Every
+      checklist item you check, quiz you complete, mock test you sit, and AI
+      interview you run logs today on this heatmap.
+    </p>
+    <div id="activity-widget"><!-- filled by JS --></div>
+  </section>
+
   <!-- FOCUS THIS WEEK -->
   <section class="focus-widget">
     <span class="box-title" style="color:var(--bad)">🎯 Focus this week</span>
@@ -78,6 +89,7 @@
 
 <script src="content-index.js"></script>
 <script src="tracker.js"></script>
+<script src="activity.js"></script>
 <script src="focus.js"></script>
 <script src="search.js"></script>
 <script>
@@ -164,9 +176,15 @@ function renderFocus() {
   Focus.render("#focus-widget", CATALOG);
 }
 
+function renderActivity() {
+  Activity.render("#activity-widget");
+}
+
 renderNav();
 renderDashboard();
 renderFocus();
+renderActivity();
+Activity.wireLiveUpdates("#activity-widget");
 document.addEventListener("tracker:update", renderDashboard);
 window.addEventListener("storage", function (e) {
   if (!e.key) return;

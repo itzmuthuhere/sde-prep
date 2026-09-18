@@ -38,6 +38,11 @@ with no build step.
 
 - **Progress dashboard** (`index.html`) — sums every page's checklist state,
   including pages this browser has never opened, from `content-index.js`.
+- **Activity heatmap + streak** (`activity.js`) — a GitHub-style calendar
+  heatmap of the last 6 months plus a current-streak counter, prominent on
+  the homepage. Logs one event per local day whenever you check a checklist
+  item, or a quiz/mock-test/AI-interview result is saved. See "Data
+  contracts" below.
 - **Command palette** — <kbd>Cmd/Ctrl</kbd>+<kbd>K</kbd> (or `/`, or the Search
   button) searches page titles, topic names and every checklist item.
 - **Dark / light theme** — toggled in the top bar, persisted per browser.
@@ -62,6 +67,16 @@ already uses. `focus.js` tolerates a missing or malformed key, so the widget
 just shows its empty state until a feature below actually exists — but when
 you build one of them, write to the exact shape here or the widget won't
 pick it up.
+
+`activity.js` (the homepage heatmap/streak) also watches the quiz, mock-test
+and AI-interview keys — it patches `localStorage.setItem` and logs an
+activity event for today on any write to one of those three keys, so once
+you build one of these features it starts feeding the heatmap automatically
+with no extra call required. The one exception is the checklist: since
+"checking an item" and "unchecking an item" both write the same
+`sdeprep:v1:checks:*` key, `tracker.js` calls `Activity.log("checklist")`
+explicitly on check (not uncheck) rather than relying on the generic
+watcher.
 
 **1) `sdeprep:v1:quiz:results`** — object keyed by `quizId`
 
