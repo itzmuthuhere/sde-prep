@@ -39,6 +39,17 @@
     <p><a href="roadmap.html">Open the roadmap →</a></p>
   </section>
 
+  <!-- FOCUS THIS WEEK -->
+  <section class="focus-widget">
+    <span class="box-title" style="color:var(--bad)">🎯 Focus this week</span>
+    <p class="muted small" style="margin-top:.3rem">
+      Recomputed on every load from your quiz scores, mock-test results, AI interview
+      scorecards, and review-queue marks — whichever of those you've actually used in
+      this browser. Not a static list.
+    </p>
+    <div id="focus-widget"><!-- filled by JS --></div>
+  </section>
+
   <!-- AGGREGATE DASHBOARD -->
   <h2>Progress dashboard</h2>
   <p class="muted small">
@@ -67,6 +78,7 @@
 
 <script src="content-index.js"></script>
 <script src="tracker.js"></script>
+<script src="focus.js"></script>
 <script src="search.js"></script>
 <script>
 /* ---- The site map. `built:false` pages render as disabled placeholders. ---- */
@@ -148,9 +160,23 @@ function renderNav() {
   });
 }
 
+function renderFocus() {
+  Focus.render("#focus-widget", CATALOG);
+}
+
 renderNav();
 renderDashboard();
+renderFocus();
 document.addEventListener("tracker:update", renderDashboard);
+window.addEventListener("storage", function (e) {
+  if (!e.key) return;
+  if (e.key.indexOf("sdeprep:v1:quiz:") === 0 ||
+      e.key.indexOf("sdeprep:v1:review:") === 0 ||
+      e.key.indexOf("sdeprep:v1:mocktest:") === 0 ||
+      e.key.indexOf("sdeprep:v1:interview:") === 0) {
+    renderFocus();
+  }
+});
 document.getElementById("reset-all").addEventListener("click", function () {
   if (confirm("Clear every ticked item on every page? This cannot be undone.")) {
     Tracker.resetAll();
