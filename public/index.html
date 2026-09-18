@@ -39,6 +39,18 @@
     <p><a href="roadmap.html">Open the roadmap →</a></p>
   </section>
 
+  <!-- MOCK INTERVIEW -->
+  <section class="hero">
+    <span class="box-title" style="color:var(--accent)">Live practice</span>
+    <h2 style="margin-top:.3rem"><a href="/mock-interview">🎙️ AI Mock Interview</a></h2>
+    <p class="muted">
+      DSA, LLD, HLD, or Behavioral — a live AI interviewer that presents one
+      problem, waits for your approach, and pushes back before giving hints.
+      Uses your own Anthropic API key, set on the <a href="/settings">Settings</a> page.
+    </p>
+    <div id="interview-history-mount"><!-- filled by JS --></div>
+  </section>
+
   <!-- AGGREGATE DASHBOARD -->
   <h2>Progress dashboard</h2>
   <p class="muted small">
@@ -68,6 +80,7 @@
 <script src="content-index.js"></script>
 <script src="tracker.js"></script>
 <script src="search.js"></script>
+<script src="interview-history.js"></script>
 <script>
 /* ---- The site map. `built:false` pages render as disabled placeholders. ---- */
 var PAGES = [
@@ -150,6 +163,7 @@ function renderNav() {
 
 renderNav();
 renderDashboard();
+if (window.InterviewHistory) InterviewHistory.render("interview-history-mount");
 document.addEventListener("tracker:update", renderDashboard);
 document.getElementById("reset-all").addEventListener("click", function () {
   if (confirm("Clear every ticked item on every page? This cannot be undone.")) {

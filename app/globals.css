@@ -1,0 +1,254 @@
+/* ============================================================
+   Styles for the Next.js-powered pages (settings, mock-interview).
+   Design tokens (--bg, --text, --accent, ...) come from /style.css,
+   linked in the root layout so both the static site and these pages
+   share one palette.
+   ============================================================ */
+
+.chat-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.option-group {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--bg-elev);
+}
+
+.option-group legend {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  padding: 0 4px;
+}
+
+.option-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chip {
+  border: 1px solid var(--border);
+  background: var(--bg-elev-2);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.chip:hover { color: var(--text); border-color: var(--accent); }
+
+.chip.is-active {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent-strong);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary:hover { background: var(--accent-strong); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.btn-secondary:hover { color: var(--text); border-color: var(--accent); }
+
+.btn-danger {
+  background: transparent;
+  color: var(--bad);
+  border: 1px solid var(--bad);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.text-input {
+  width: 100%;
+  background: var(--code-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: 15px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.text-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.callout {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background: var(--bg-elev);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin: 16px 0;
+}
+
+.callout.warn { border-left-color: var(--warn); }
+.callout strong { color: var(--text); }
+
+.status-line {
+  font-size: 0.86rem;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 10px 0;
+}
+
+.status-line.ok { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); }
+.status-line.err { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 240px;
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--bg-elev);
+}
+
+.chat-msg {
+  max-width: 85%;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.94rem;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.chat-msg.interviewer {
+  align-self: flex-start;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+}
+
+.chat-msg.candidate {
+  align-self: flex-end;
+  background: var(--sel);
+  border: 1px solid var(--accent);
+}
+
+.chat-msg .role-tag {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.chat-input-row textarea {
+  flex: 1;
+  resize: vertical;
+  min-height: 52px;
+  background: var(--code-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.chat-input-row textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.chat-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.scorecard {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  background: var(--bg-elev);
+  margin-top: 10px;
+}
+
+.scorecard-verdict {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+.scorecard-verdict.hire { color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+.scorecard-verdict.lean_hire { color: var(--good); background: color-mix(in srgb, var(--good) 10%, transparent); }
+.scorecard-verdict.lean_no_hire { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.scorecard-verdict.no_hire { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+
+.scorecard-section { margin-bottom: 14px; }
+.scorecard-section h4 { margin: 0 0 4px; font-size: 0.86rem; color: var(--accent); }
+.scorecard-section p { margin: 0; color: var(--text-dim); font-size: 0.92rem; }
+
+.spinner-dot::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}

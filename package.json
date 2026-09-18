@@ -2,10 +2,24 @@
   "name": "sde-prep",
   "version": "1.0.0",
   "private": true,
-  "description": "Self-contained static study site for Java backend SDE interview prep",
+  "description": "Self-contained static study site for Java backend SDE interview prep, plus a live AI mock-interview feature",
   "scripts": {
-    "build": "node build.mjs",
-    "dev": "node -e \"require('http').createServer((q,s)=>{const p=require('path').join(process.cwd(),q.url==='/'?'index.html':q.url.split('?')[0]);require('fs').readFile(p,(e,d)=>{if(e){s.statusCode=404;return s.end('404')}const t={'.html':'text/html','.css':'text/css','.js':'text/javascript'}[require('path').extname(p)]||'text/plain';s.setHeader('content-type',t);s.end(d)})}).listen(5173,()=>console.log('http://localhost:5173'))\""
+    "predev": "node build.mjs",
+    "dev": "next dev",
+    "prebuild": "node build.mjs",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "16.3.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
   },
   "license": "MIT"
 }

@@ -565,6 +565,43 @@ td code { font-size: 0.82em; }
   margin: 2px 4px 2px 0;
 }
 
+/* ---------- Mock-interview homepage widget ---------- */
+.interview-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.interview-spark { display: block; }
+.interview-summary .meta { font-size: 0.86rem; color: var(--text-dim); }
+.interview-list { display: flex; flex-direction: column; gap: 6px; }
+.interview-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elev);
+  font-size: 0.86rem;
+}
+.interview-row-main { flex: none; }
+.interview-row-meta { color: var(--text-faint); flex: 1; }
+.interview-badge {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--text-dim);
+  background: var(--bg-elev-2);
+}
+.interview-badge.good { color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+.interview-badge.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+.interview-badge.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 16%, transparent); }
+
 /* ---------- Footer ---------- */
 .foot {
   border-top: 1px solid var(--border);
